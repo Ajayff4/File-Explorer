@@ -150,6 +150,14 @@ Progress log for the Flutter application.
   - Replaced placeholder settings with grouped Explorer, Transfers, and Search toggles.
   - `Use indexed search` now controls whether search uses the persisted index.
   - Added controller tests for defaults, persistence, and reset.
+- Wired settings into app behavior:
+  - `Show hidden files` now controls dot-prefixed explorer entries through a shared entry filter.
+  - `Confirm destructive actions` now controls whether delete queues immediately or asks first.
+  - `Show transfer station` now controls the Home transfer status tile.
+  - `Show folders only in history` now filters Home recents and allows file history when disabled.
+  - Added `isFolder` to recent history persistence with Drift schema version 6 migration.
+  - Search result taps can record file recents when file history is enabled.
+  - Added tests for explorer entry filtering and file recent recording.
 
 ### Verified
 
@@ -164,5 +172,4 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Wire remaining settings into explorer display, transfer confirmation, and history behavior.
 - Continue UI polish using reference screenshots.

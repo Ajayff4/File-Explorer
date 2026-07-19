@@ -41,6 +41,21 @@ void main() {
     expect((await store.loadRecents()).single.openCount, 2);
   });
 
+  test('records file history when requested', () async {
+    final store = InMemoryRecentLocationStore();
+    final controller = RecentsController(store);
+
+    await controller.recordLocation(
+      path: '/storage/emulated/0/Download/report.pdf',
+      label: 'report.pdf',
+      isFolder: false,
+    );
+
+    final recent = controller.state.locations.single;
+    expect(recent.isFolder, isFalse);
+    expect((await store.loadRecents()).single.isFolder, isFalse);
+  });
+
   test('removes and clears recents', () async {
     final store = InMemoryRecentLocationStore();
     final controller = RecentsController(store);

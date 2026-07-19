@@ -1,6 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
@@ -96,7 +97,20 @@ class _EntryActionsSheet extends ConsumerWidget {
             ),
             onTap: () async {
               Navigator.of(context).pop();
-              await _confirmDelete(parentContext, ref, entry);
+              final shouldConfirm = ref
+                  .read(settingsControllerProvider)
+                  .settings
+                  .confirmDestructiveActions;
+              if (shouldConfirm) {
+                await _confirmDelete(parentContext, ref, entry);
+              } else {
+                _queueEntryOperation(
+                  parentContext,
+                  ref,
+                  entry,
+                  TransferOperation.delete,
+                );
+              }
             },
           ),
           const Divider(),

@@ -5,10 +5,13 @@ import 'package:file_explorer/features/favorites/domain/entities/favorite_locati
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -18,7 +21,12 @@ class HomeScreen extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final favoritesState = ref.watch(favoritesControllerProvider);
     final recentsState = ref.watch(recentsControllerProvider);
+    final settings = ref.watch(settingsControllerProvider).settings;
+    final transferState = ref.watch(transferControllerProvider);
     final summary = explorerState.summary.valueOrNull;
+    final visibleRecents = settings.showFoldersOnlyInHistory
+        ? recentsState.locations.where((recent) => recent.isFolder).toList()
+        : recentsState.locations;
 
     return CustomScrollView(
       slivers: [
@@ -44,6 +52,10 @@ class HomeScreen extends ConsumerWidget {
               _StoragePanel(summary: summary),
               const SizedBox(height: 16),
               const _ShortcutGrid(),
+              if (settings.showTransferStation) ...[
+                const SizedBox(height: 16),
+                _TransferStationTile(state: transferState),
+              ],
               const SizedBox(height: 20),
               _SectionHeader(
                 title: 'Favorites',
@@ -63,10 +75,11 @@ class HomeScreen extends ConsumerWidget {
                     ),
               const SizedBox(height: 20),
               _SectionHeader(
-                title: 'Recent',
-                actionLabel:
-                    recentsState.locations.isEmpty ? 'Browse' : 'Clear',
-                onPressed: recentsState.locations.isEmpty
+                title: settings.showFoldersOnlyInHistory
+                    ? 'Recent folders'
+                    : 'Recent',
+                actionLabel: visibleRecents.isEmpty ? 'Browse' : 'Clear',
+                onPressed: visibleRecents.isEmpty
                     ? () => context.go(AppRoutes.explorer)
                     : () {
                         ref
@@ -77,10 +90,10 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 8),
               if (recentsState.isLoading)
                 const LinearProgressIndicator()
-              else if (recentsState.locations.isEmpty)
+              else if (visibleRecents.isEmpty)
                 const _EmptyRecentsTile()
               else
-                ...recentsState.locations.take(5).map(
+                ...visibleRecents.take(5).map(
                       (recent) => _RecentLocationTile(
                         recent: recent,
                       ),
@@ -89,6 +102,27 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _TransferStationTile extends StatelessWidget {
+  const _TransferStationTile({required this.state});
+
+  final TransferState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.sync_alt_rounded),
+        title: const Text('Transfer station'),
+        subtitle: Text(
+          '${state.pendingCount} pending - ${state.finishedCount} finished - ${state.failedCount} failed',
+        ),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.go(AppRoutes.transfers),
+      ),
     );
   }
 }
@@ -248,7 +282,9 @@ class _RecentLocationTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
-        leading: const Icon(Icons.history_rounded),
+        leading: Icon(
+          recent.isFolder ? Icons.folder_open_rounded : Icons.insert_drive_file,
+        ),
         title: Text(
           recent.label,
           maxLines: 1,
@@ -260,8 +296,11 @@ class _RecentLocationTile extends ConsumerWidget {
           overflow: TextOverflow.ellipsis,
         ),
         onTap: () {
+          final pathToOpen =
+              recent.isFolder ? recent.path : p.dirname(recent.path);
           ref.read(explorerControllerProvider.notifier).openDirectory(
-                recent.path,
+                pathToOpen,
+                recordRecent: false,
               );
           context.go(AppRoutes.explorer);
         },

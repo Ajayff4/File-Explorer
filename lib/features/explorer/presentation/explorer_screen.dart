@@ -1,9 +1,11 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -31,6 +33,7 @@ class ExplorerScreen extends ConsumerWidget {
     final permission = explorerState.permission;
     final selectedVolume = _selectedVolumeFor(explorerState);
     final favoritesState = ref.watch(favoritesControllerProvider);
+    final settings = ref.watch(settingsControllerProvider).settings;
     final isFavorite = favoritesState.containsPath(explorerState.currentPath);
     final awaitingDestinationTask =
         ref.watch(transferControllerProvider).awaitingDestinationTask;
@@ -151,7 +154,10 @@ class ExplorerScreen extends ConsumerWidget {
 
                 return listing.when(
                   data: (directoryListing) {
-                    final entries = directoryListing.entries;
+                    final entries = visibleExplorerEntries(
+                      directoryListing.entries,
+                      showHiddenFiles: settings.showHiddenFiles,
+                    );
                     if (entries.isEmpty) {
                       return const _EmptyDirectory();
                     }

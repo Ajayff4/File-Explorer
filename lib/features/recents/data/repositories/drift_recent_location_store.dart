@@ -43,6 +43,7 @@ class DriftRecentLocationStore implements RecentLocationStore {
       label: row.label,
       openedAt: row.openedAt,
       openCount: row.openCount,
+      isFolder: row.isFolder,
     );
   }
 
@@ -52,6 +53,7 @@ class DriftRecentLocationStore implements RecentLocationStore {
       label: recent.label,
       openedAt: recent.openedAt,
       openCount: Value(recent.openCount),
+      isFolder: Value(recent.isFolder),
     );
   }
 }

@@ -122,7 +122,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     }
   }
 
-  Future<void> openDirectory(String path) async {
+  Future<void> openDirectory(String path, {bool recordRecent = true}) async {
     final repository = _ref.read(storageRepositoryProvider);
     state = state.copyWith(
       currentPath: path,
@@ -132,7 +132,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final listing =
         await AsyncValue.guard(() => repository.listDirectory(path));
     state = state.copyWith(listing: listing);
-    if (listing.hasValue) {
+    if (listing.hasValue && recordRecent) {
       _recordRecent(path: path);
     }
   }

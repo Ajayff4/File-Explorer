@@ -39,6 +39,7 @@ class RecentLocationRows extends Table {
   TextColumn get label => text()();
   DateTimeColumn get openedAt => dateTime()();
   IntColumn get openCount => integer().withDefault(const Constant(1))();
+  BoolColumn get isFolder => boolean().withDefault(const Constant(true))();
 
   @override
   Set<Column<Object>> get primaryKey => {path};
@@ -82,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration {
@@ -99,6 +100,10 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 5) {
           await migrator.createTable(settingRows);
+        }
+        if (from < 6) {
+          await migrator.addColumn(
+              recentLocationRows, recentLocationRows.isFolder);
         }
       },
     );

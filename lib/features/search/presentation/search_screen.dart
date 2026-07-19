@@ -2,8 +2,10 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -264,8 +266,20 @@ class _SearchResultTile extends ConsumerWidget {
         ),
         trailing: Text(_detailFor(entry)),
         onTap: () {
+          final settings = ref.read(settingsControllerProvider).settings;
+          final isFolder = entry.isFolder;
+          final shouldRecordFile =
+              !isFolder && !settings.showFoldersOnlyInHistory;
+          if (shouldRecordFile) {
+            ref.read(recentsControllerProvider.notifier).recordLocation(
+                  path: entry.path,
+                  label: entry.name,
+                  isFolder: false,
+                );
+          }
           ref.read(explorerControllerProvider.notifier).openDirectory(
                 parentPathForSearchResult(result),
+                recordRecent: isFolder || !shouldRecordFile,
               );
           context.go(AppRoutes.explorer);
         },

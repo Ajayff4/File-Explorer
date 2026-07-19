@@ -1048,8 +1048,19 @@ class $RecentLocationRowsTable extends RecentLocationRows
       type: DriftSqlType.int,
       requiredDuringInsert: false,
       defaultValue: const Constant(1));
+  static const VerificationMeta _isFolderMeta =
+      const VerificationMeta('isFolder');
   @override
-  List<GeneratedColumn> get $columns => [path, label, openedAt, openCount];
+  late final GeneratedColumn<bool> isFolder = GeneratedColumn<bool>(
+      'is_folder', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_folder" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  @override
+  List<GeneratedColumn> get $columns =>
+      [path, label, openedAt, openCount, isFolder];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1082,6 +1093,10 @@ class $RecentLocationRowsTable extends RecentLocationRows
       context.handle(_openCountMeta,
           openCount.isAcceptableOrUnknown(data['open_count']!, _openCountMeta));
     }
+    if (data.containsKey('is_folder')) {
+      context.handle(_isFolderMeta,
+          isFolder.isAcceptableOrUnknown(data['is_folder']!, _isFolderMeta));
+    }
     return context;
   }
 
@@ -1099,6 +1114,8 @@ class $RecentLocationRowsTable extends RecentLocationRows
           .read(DriftSqlType.dateTime, data['${effectivePrefix}opened_at'])!,
       openCount: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}open_count'])!,
+      isFolder: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_folder'])!,
     );
   }
 
@@ -1114,11 +1131,13 @@ class RecentLocationRow extends DataClass
   final String label;
   final DateTime openedAt;
   final int openCount;
+  final bool isFolder;
   const RecentLocationRow(
       {required this.path,
       required this.label,
       required this.openedAt,
-      required this.openCount});
+      required this.openCount,
+      required this.isFolder});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1126,6 +1145,7 @@ class RecentLocationRow extends DataClass
     map['label'] = Variable<String>(label);
     map['opened_at'] = Variable<DateTime>(openedAt);
     map['open_count'] = Variable<int>(openCount);
+    map['is_folder'] = Variable<bool>(isFolder);
     return map;
   }
 
@@ -1135,6 +1155,7 @@ class RecentLocationRow extends DataClass
       label: Value(label),
       openedAt: Value(openedAt),
       openCount: Value(openCount),
+      isFolder: Value(isFolder),
     );
   }
 
@@ -1146,6 +1167,7 @@ class RecentLocationRow extends DataClass
       label: serializer.fromJson<String>(json['label']),
       openedAt: serializer.fromJson<DateTime>(json['openedAt']),
       openCount: serializer.fromJson<int>(json['openCount']),
+      isFolder: serializer.fromJson<bool>(json['isFolder']),
     );
   }
   @override
@@ -1156,16 +1178,22 @@ class RecentLocationRow extends DataClass
       'label': serializer.toJson<String>(label),
       'openedAt': serializer.toJson<DateTime>(openedAt),
       'openCount': serializer.toJson<int>(openCount),
+      'isFolder': serializer.toJson<bool>(isFolder),
     };
   }
 
   RecentLocationRow copyWith(
-          {String? path, String? label, DateTime? openedAt, int? openCount}) =>
+          {String? path,
+          String? label,
+          DateTime? openedAt,
+          int? openCount,
+          bool? isFolder}) =>
       RecentLocationRow(
         path: path ?? this.path,
         label: label ?? this.label,
         openedAt: openedAt ?? this.openedAt,
         openCount: openCount ?? this.openCount,
+        isFolder: isFolder ?? this.isFolder,
       );
   RecentLocationRow copyWithCompanion(RecentLocationRowsCompanion data) {
     return RecentLocationRow(
@@ -1173,6 +1201,7 @@ class RecentLocationRow extends DataClass
       label: data.label.present ? data.label.value : this.label,
       openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
       openCount: data.openCount.present ? data.openCount.value : this.openCount,
+      isFolder: data.isFolder.present ? data.isFolder.value : this.isFolder,
     );
   }
 
@@ -1182,13 +1211,14 @@ class RecentLocationRow extends DataClass
           ..write('path: $path, ')
           ..write('label: $label, ')
           ..write('openedAt: $openedAt, ')
-          ..write('openCount: $openCount')
+          ..write('openCount: $openCount, ')
+          ..write('isFolder: $isFolder')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(path, label, openedAt, openCount);
+  int get hashCode => Object.hash(path, label, openedAt, openCount, isFolder);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1196,7 +1226,8 @@ class RecentLocationRow extends DataClass
           other.path == this.path &&
           other.label == this.label &&
           other.openedAt == this.openedAt &&
-          other.openCount == this.openCount);
+          other.openCount == this.openCount &&
+          other.isFolder == this.isFolder);
 }
 
 class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
@@ -1204,12 +1235,14 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
   final Value<String> label;
   final Value<DateTime> openedAt;
   final Value<int> openCount;
+  final Value<bool> isFolder;
   final Value<int> rowid;
   const RecentLocationRowsCompanion({
     this.path = const Value.absent(),
     this.label = const Value.absent(),
     this.openedAt = const Value.absent(),
     this.openCount = const Value.absent(),
+    this.isFolder = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   RecentLocationRowsCompanion.insert({
@@ -1217,6 +1250,7 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
     required String label,
     required DateTime openedAt,
     this.openCount = const Value.absent(),
+    this.isFolder = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : path = Value(path),
         label = Value(label),
@@ -1226,6 +1260,7 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
     Expression<String>? label,
     Expression<DateTime>? openedAt,
     Expression<int>? openCount,
+    Expression<bool>? isFolder,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1233,6 +1268,7 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
       if (label != null) 'label': label,
       if (openedAt != null) 'opened_at': openedAt,
       if (openCount != null) 'open_count': openCount,
+      if (isFolder != null) 'is_folder': isFolder,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1242,12 +1278,14 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
       Value<String>? label,
       Value<DateTime>? openedAt,
       Value<int>? openCount,
+      Value<bool>? isFolder,
       Value<int>? rowid}) {
     return RecentLocationRowsCompanion(
       path: path ?? this.path,
       label: label ?? this.label,
       openedAt: openedAt ?? this.openedAt,
       openCount: openCount ?? this.openCount,
+      isFolder: isFolder ?? this.isFolder,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1267,6 +1305,9 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
     if (openCount.present) {
       map['open_count'] = Variable<int>(openCount.value);
     }
+    if (isFolder.present) {
+      map['is_folder'] = Variable<bool>(isFolder.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1280,6 +1321,7 @@ class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
           ..write('label: $label, ')
           ..write('openedAt: $openedAt, ')
           ..write('openCount: $openCount, ')
+          ..write('isFolder: $isFolder, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2566,6 +2608,7 @@ typedef $$RecentLocationRowsTableCreateCompanionBuilder
   required String label,
   required DateTime openedAt,
   Value<int> openCount,
+  Value<bool> isFolder,
   Value<int> rowid,
 });
 typedef $$RecentLocationRowsTableUpdateCompanionBuilder
@@ -2574,6 +2617,7 @@ typedef $$RecentLocationRowsTableUpdateCompanionBuilder
   Value<String> label,
   Value<DateTime> openedAt,
   Value<int> openCount,
+  Value<bool> isFolder,
   Value<int> rowid,
 });
 
@@ -2597,6 +2641,9 @@ class $$RecentLocationRowsTableFilterComposer
 
   ColumnFilters<int> get openCount => $composableBuilder(
       column: $table.openCount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isFolder => $composableBuilder(
+      column: $table.isFolder, builder: (column) => ColumnFilters(column));
 }
 
 class $$RecentLocationRowsTableOrderingComposer
@@ -2619,6 +2666,9 @@ class $$RecentLocationRowsTableOrderingComposer
 
   ColumnOrderings<int> get openCount => $composableBuilder(
       column: $table.openCount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isFolder => $composableBuilder(
+      column: $table.isFolder, builder: (column) => ColumnOrderings(column));
 }
 
 class $$RecentLocationRowsTableAnnotationComposer
@@ -2641,6 +2691,9 @@ class $$RecentLocationRowsTableAnnotationComposer
 
   GeneratedColumn<int> get openCount =>
       $composableBuilder(column: $table.openCount, builder: (column) => column);
+
+  GeneratedColumn<bool> get isFolder =>
+      $composableBuilder(column: $table.isFolder, builder: (column) => column);
 }
 
 class $$RecentLocationRowsTableTableManager extends RootTableManager<
@@ -2675,6 +2728,7 @@ class $$RecentLocationRowsTableTableManager extends RootTableManager<
             Value<String> label = const Value.absent(),
             Value<DateTime> openedAt = const Value.absent(),
             Value<int> openCount = const Value.absent(),
+            Value<bool> isFolder = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecentLocationRowsCompanion(
@@ -2682,6 +2736,7 @@ class $$RecentLocationRowsTableTableManager extends RootTableManager<
             label: label,
             openedAt: openedAt,
             openCount: openCount,
+            isFolder: isFolder,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -2689,6 +2744,7 @@ class $$RecentLocationRowsTableTableManager extends RootTableManager<
             required String label,
             required DateTime openedAt,
             Value<int> openCount = const Value.absent(),
+            Value<bool> isFolder = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               RecentLocationRowsCompanion.insert(
@@ -2696,6 +2752,7 @@ class $$RecentLocationRowsTableTableManager extends RootTableManager<
             label: label,
             openedAt: openedAt,
             openCount: openCount,
+            isFolder: isFolder,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

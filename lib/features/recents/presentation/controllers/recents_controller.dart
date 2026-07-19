@@ -54,6 +54,7 @@ class RecentsController extends StateNotifier<RecentsState> {
   Future<void> recordLocation({
     required String path,
     required String label,
+    bool isFolder = true,
   }) async {
     final now = DateTime.now();
     final existing = _recentFor(path);
@@ -62,11 +63,13 @@ class RecentsController extends StateNotifier<RecentsState> {
             path: path,
             label: label,
             openedAt: now,
+            isFolder: isFolder,
           )
         : existing.copyWith(
             label: label,
             openedAt: now,
             openCount: existing.openCount + 1,
+            isFolder: isFolder,
           );
 
     await _store.saveRecent(recent);
