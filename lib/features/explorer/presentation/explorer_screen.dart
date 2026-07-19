@@ -2,6 +2,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -9,6 +10,7 @@ import 'package:file_explorer/features/transfers/presentation/transfer_visuals.d
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 final explorerViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
   return ExplorerViewMode.list;
@@ -26,6 +28,8 @@ class ExplorerScreen extends ConsumerWidget {
     final listing = explorerState.listing;
     final permission = explorerState.permission;
     final selectedVolume = _selectedVolumeFor(explorerState);
+    final favoritesState = ref.watch(favoritesControllerProvider);
+    final isFavorite = favoritesState.containsPath(explorerState.currentPath);
     final awaitingDestinationTask =
         ref.watch(transferControllerProvider).awaitingDestinationTask;
 
@@ -67,6 +71,18 @@ class ExplorerScreen extends ConsumerWidget {
           loading: () => const Text('Files'),
         ),
         actions: [
+          IconButton(
+            tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
+            onPressed: () {
+              ref.read(favoritesControllerProvider.notifier).toggleFavorite(
+                    path: explorerState.currentPath,
+                    label: _favoriteLabelFor(explorerState, selectedVolume),
+                  );
+            },
+            icon: Icon(
+              isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+            ),
+          ),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () {
@@ -161,6 +177,18 @@ class ExplorerScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _favoriteLabelFor(ExplorerState state, StorageVolume? selectedVolume) {
+  final currentPath = state.currentPath;
+  if (selectedVolume != null && currentPath == selectedVolume.path) {
+    return selectedVolume.label;
+  }
+  final name = p.basename(currentPath);
+  if (name.isNotEmpty && name != '.') {
+    return name;
+  }
+  return currentPath;
 }
 
 bool _taskTouchesPath(TransferTask task, String path) {

@@ -23,10 +23,31 @@ class TransferTaskRows extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [TransferTaskRows])
+class FavoriteLocationRows extends Table {
+  TextColumn get path => text()();
+  TextColumn get label => text()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {path};
+}
+
+@DriftDatabase(tables: [TransferTaskRows, FavoriteLocationRows])
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration {
+    return MigrationStrategy(
+      onUpgrade: (migrator, from, to) async {
+        if (from < 2) {
+          await migrator.createTable(favoriteLocationRows);
+        }
+      },
+    );
+  }
 }

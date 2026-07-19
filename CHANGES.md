@@ -98,6 +98,13 @@ Progress log for the Flutter application.
   - Transfer controller hydrates saved queue/history on startup.
   - Interrupted `running` tasks restore as failed instead of staying stuck as active.
   - Added controller coverage for loading history, restoring interrupted work, and persisting loaded queued work.
+- Added favorites/bookmarks foundation:
+  - Added persisted `favorite_location_rows` Drift table with schema version 2 migration.
+  - Added favorite location entity, store boundary, Drift IO store, and in-memory fallback store.
+  - Added `FavoritesController` for loading, adding, removing, and toggling favorite folders.
+  - Added Explorer star action for the current folder.
+  - Added Home favorites section with open/remove actions.
+  - Added controller tests for loading, toggling, and favorite ordering.
 
 ### Verified
 
@@ -112,5 +119,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add database-backed favorites/bookmarks.
+- Add recent locations/history using the same database pattern.
 - Continue UI polish using reference screenshots.

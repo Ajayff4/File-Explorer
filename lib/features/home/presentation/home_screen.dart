@@ -1,6 +1,8 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
+import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,6 +14,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
+    final favoritesState = ref.watch(favoritesControllerProvider);
     final summary = explorerState.summary.valueOrNull;
     final recentEntries = explorerState.listing.valueOrNull?.entries ?? [];
 
@@ -39,6 +42,23 @@ class HomeScreen extends ConsumerWidget {
               _StoragePanel(summary: summary),
               const SizedBox(height: 16),
               const _ShortcutGrid(),
+              const SizedBox(height: 20),
+              _SectionHeader(
+                title: 'Favorites',
+                actionLabel: 'Browse',
+                onPressed: () => context.go(AppRoutes.explorer),
+              ),
+              const SizedBox(height: 8),
+              if (favoritesState.isLoading)
+                const LinearProgressIndicator()
+              else if (favoritesState.locations.isEmpty)
+                const _EmptyFavoritesTile()
+              else
+                ...favoritesState.locations.take(5).map(
+                      (favorite) => _FavoriteLocationTile(
+                        favorite: favorite,
+                      ),
+                    ),
               const SizedBox(height: 20),
               _SectionHeader(
                 title: 'Recent',
@@ -258,6 +278,60 @@ class _InlineError extends StatelessWidget {
           onPressed: onRetry,
           child: const Text('Retry'),
         ),
+      ),
+    );
+  }
+}
+
+class _FavoriteLocationTile extends ConsumerWidget {
+  const _FavoriteLocationTile({required this.favorite});
+
+  final FavoriteLocation favorite;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.star_rounded),
+        title: Text(
+          favorite.label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Text(
+          favorite.path,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onTap: () {
+          ref.read(explorerControllerProvider.notifier).openDirectory(
+                favorite.path,
+              );
+          context.go(AppRoutes.explorer);
+        },
+        trailing: IconButton(
+          tooltip: 'Remove favorite',
+          onPressed: () {
+            ref
+                .read(favoritesControllerProvider.notifier)
+                .removeFavorite(favorite.path);
+          },
+          icon: const Icon(Icons.close_rounded),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyFavoritesTile extends StatelessWidget {
+  const _EmptyFavoritesTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Card(
+      child: ListTile(
+        leading: Icon(Icons.star_border_rounded),
+        title: Text('No favorite folders yet'),
       ),
     );
   }

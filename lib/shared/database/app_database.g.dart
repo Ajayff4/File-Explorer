@@ -744,16 +744,293 @@ class TransferTaskRowsCompanion extends UpdateCompanion<TransferTaskRow> {
   }
 }
 
+class $FavoriteLocationRowsTable extends FavoriteLocationRows
+    with TableInfo<$FavoriteLocationRowsTable, FavoriteLocationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FavoriteLocationRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+      'path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [path, label, createdAt, updatedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'favorite_location_rows';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<FavoriteLocationRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('path')) {
+      context.handle(
+          _pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {path};
+  @override
+  FavoriteLocationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FavoriteLocationRow(
+      path: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}path'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $FavoriteLocationRowsTable createAlias(String alias) {
+    return $FavoriteLocationRowsTable(attachedDatabase, alias);
+  }
+}
+
+class FavoriteLocationRow extends DataClass
+    implements Insertable<FavoriteLocationRow> {
+  final String path;
+  final String label;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const FavoriteLocationRow(
+      {required this.path,
+      required this.label,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['path'] = Variable<String>(path);
+    map['label'] = Variable<String>(label);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  FavoriteLocationRowsCompanion toCompanion(bool nullToAbsent) {
+    return FavoriteLocationRowsCompanion(
+      path: Value(path),
+      label: Value(label),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory FavoriteLocationRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FavoriteLocationRow(
+      path: serializer.fromJson<String>(json['path']),
+      label: serializer.fromJson<String>(json['label']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'path': serializer.toJson<String>(path),
+      'label': serializer.toJson<String>(label),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  FavoriteLocationRow copyWith(
+          {String? path,
+          String? label,
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      FavoriteLocationRow(
+        path: path ?? this.path,
+        label: label ?? this.label,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  FavoriteLocationRow copyWithCompanion(FavoriteLocationRowsCompanion data) {
+    return FavoriteLocationRow(
+      path: data.path.present ? data.path.value : this.path,
+      label: data.label.present ? data.label.value : this.label,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteLocationRow(')
+          ..write('path: $path, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(path, label, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FavoriteLocationRow &&
+          other.path == this.path &&
+          other.label == this.label &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class FavoriteLocationRowsCompanion
+    extends UpdateCompanion<FavoriteLocationRow> {
+  final Value<String> path;
+  final Value<String> label;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const FavoriteLocationRowsCompanion({
+    this.path = const Value.absent(),
+    this.label = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FavoriteLocationRowsCompanion.insert({
+    required String path,
+    required String label,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : path = Value(path),
+        label = Value(label),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<FavoriteLocationRow> custom({
+    Expression<String>? path,
+    Expression<String>? label,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (path != null) 'path': path,
+      if (label != null) 'label': label,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FavoriteLocationRowsCompanion copyWith(
+      {Value<String>? path,
+      Value<String>? label,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return FavoriteLocationRowsCompanion(
+      path: path ?? this.path,
+      label: label ?? this.label,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FavoriteLocationRowsCompanion(')
+          ..write('path: $path, ')
+          ..write('label: $label, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TransferTaskRowsTable transferTaskRows =
       $TransferTaskRowsTable(this);
+  late final $FavoriteLocationRowsTable favoriteLocationRows =
+      $FavoriteLocationRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [transferTaskRows];
+  List<DatabaseSchemaEntity> get allSchemaEntities =>
+      [transferTaskRows, favoriteLocationRows];
 }
 
 typedef $$TransferTaskRowsTableCreateCompanionBuilder
@@ -1086,10 +1363,176 @@ typedef $$TransferTaskRowsTableProcessedTableManager = ProcessedTableManager<
     ),
     TransferTaskRow,
     PrefetchHooks Function()>;
+typedef $$FavoriteLocationRowsTableCreateCompanionBuilder
+    = FavoriteLocationRowsCompanion Function({
+  required String path,
+  required String label,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$FavoriteLocationRowsTableUpdateCompanionBuilder
+    = FavoriteLocationRowsCompanion Function({
+  Value<String> path,
+  Value<String> label,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$FavoriteLocationRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $FavoriteLocationRowsTable> {
+  $$FavoriteLocationRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$FavoriteLocationRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FavoriteLocationRowsTable> {
+  $$FavoriteLocationRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$FavoriteLocationRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FavoriteLocationRowsTable> {
+  $$FavoriteLocationRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$FavoriteLocationRowsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FavoriteLocationRowsTable,
+    FavoriteLocationRow,
+    $$FavoriteLocationRowsTableFilterComposer,
+    $$FavoriteLocationRowsTableOrderingComposer,
+    $$FavoriteLocationRowsTableAnnotationComposer,
+    $$FavoriteLocationRowsTableCreateCompanionBuilder,
+    $$FavoriteLocationRowsTableUpdateCompanionBuilder,
+    (
+      FavoriteLocationRow,
+      BaseReferences<_$AppDatabase, $FavoriteLocationRowsTable,
+          FavoriteLocationRow>
+    ),
+    FavoriteLocationRow,
+    PrefetchHooks Function()> {
+  $$FavoriteLocationRowsTableTableManager(
+      _$AppDatabase db, $FavoriteLocationRowsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FavoriteLocationRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FavoriteLocationRowsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FavoriteLocationRowsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> path = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteLocationRowsCompanion(
+            path: path,
+            label: label,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String path,
+            required String label,
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FavoriteLocationRowsCompanion.insert(
+            path: path,
+            label: label,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$FavoriteLocationRowsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $FavoriteLocationRowsTable,
+        FavoriteLocationRow,
+        $$FavoriteLocationRowsTableFilterComposer,
+        $$FavoriteLocationRowsTableOrderingComposer,
+        $$FavoriteLocationRowsTableAnnotationComposer,
+        $$FavoriteLocationRowsTableCreateCompanionBuilder,
+        $$FavoriteLocationRowsTableUpdateCompanionBuilder,
+        (
+          FavoriteLocationRow,
+          BaseReferences<_$AppDatabase, $FavoriteLocationRowsTable,
+              FavoriteLocationRow>
+        ),
+        FavoriteLocationRow,
+        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$TransferTaskRowsTableTableManager get transferTaskRows =>
       $$TransferTaskRowsTableTableManager(_db, _db.transferTaskRows);
+  $$FavoriteLocationRowsTableTableManager get favoriteLocationRows =>
+      $$FavoriteLocationRowsTableTableManager(_db, _db.favoriteLocationRows);
 }
