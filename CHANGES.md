@@ -163,6 +163,11 @@ Progress log for the Flutter application.
   - Added sort options for name, modified date, size, and type.
   - Added an Explorer app bar sort menu shared by list and grid views.
   - Added tests for name, size, and modified-date ordering.
+- Added app branding assets:
+  - Added the source logo at `assets/brand/logo.png`.
+  - Added `flutter_launcher_icons` configuration.
+  - Generated launcher icons for Android, iOS, web, Windows, and macOS.
+  - Updated web app icon assets and manifest colors.
 
 ### Verified
 
