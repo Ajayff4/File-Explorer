@@ -1,13 +1,20 @@
 import 'dart:async';
 
 import 'package:file_explorer/features/transfers/data/repositories/transfer_executor_provider.dart';
+import 'package:file_explorer/features/transfers/data/repositories/transfer_task_store_provider.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
+import 'package:file_explorer/features/transfers/domain/repositories/transfer_task_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final transferControllerProvider =
     StateNotifierProvider<TransferController, TransferState>((ref) {
-  return TransferController(ref.read(transferExecutorProvider));
+  final controller = TransferController(
+    ref.read(transferExecutorProvider),
+    ref.read(transferTaskStoreProvider),
+  );
+  unawaited(controller.loadPersistedTasks());
+  return controller;
 });
 
 class TransferState {
@@ -66,9 +73,14 @@ class TransferState {
 }
 
 class TransferController extends StateNotifier<TransferState> {
-  TransferController(this._executor) : super(const TransferState());
+  TransferController(
+    this._executor, [
+    TransferTaskStore? taskStore,
+  ])  : _taskStore = taskStore,
+        super(const TransferState());
 
   final TransferExecutor _executor;
+  final TransferTaskStore? _taskStore;
   final Set<String> _runningTaskIds = {};
 
   int _nextSequence = 0;
@@ -94,8 +106,36 @@ class TransferController extends StateNotifier<TransferState> {
     );
 
     state = state.copyWith(tasks: [task, ...state.tasks]);
+    _saveTask(task);
     _startIfReady(task.id);
     return task;
+  }
+
+  Future<void> loadPersistedTasks() async {
+    final persistedTasks = await _taskStore?.loadTasks() ?? const [];
+    if (persistedTasks.isEmpty || !mounted) {
+      return;
+    }
+
+    final normalizedTasks = [
+      for (final task in persistedTasks) _normalizeRestoredTask(task),
+    ];
+    final currentTaskIds = state.tasks.map((task) => task.id).toSet();
+    state = state.copyWith(
+      tasks: [
+        ...state.tasks,
+        for (final task in normalizedTasks)
+          if (!currentTaskIds.contains(task.id)) task,
+      ],
+    );
+
+    for (final task in normalizedTasks) {
+      if (task.status == TransferTaskStatus.failed &&
+          task.failureMessage == _interruptedFailureMessage) {
+        _saveTask(task);
+      }
+      _startIfReady(task.id);
+    }
   }
 
   void setDestination({
@@ -237,12 +277,17 @@ class TransferController extends StateNotifier<TransferState> {
   }
 
   void clearFinished() {
+    final finishedTaskIds = [
+      for (final task in state.tasks)
+        if (task.isFinished) task.id,
+    ];
     state = state.copyWith(
       tasks: [
         for (final task in state.tasks)
           if (!task.isFinished) task,
       ],
     );
+    unawaited(_taskStore?.deleteTasks(finishedTaskIds) ?? Future.value());
   }
 
   void _startIfReady(String taskId) {
@@ -310,11 +355,34 @@ class TransferController extends StateNotifier<TransferState> {
     TransferTask Function(TransferTask task, DateTime now) update,
   ) {
     final now = DateTime.now();
+    TransferTask? updatedTask;
     state = state.copyWith(
       tasks: [
         for (final task in state.tasks)
-          if (task.id == taskId) update(task, now) else task,
+          if (task.id == taskId) updatedTask = update(task, now) else task,
       ],
     );
+    final taskToSave = updatedTask;
+    if (taskToSave != null) {
+      _saveTask(taskToSave);
+    }
+  }
+
+  TransferTask _normalizeRestoredTask(TransferTask task) {
+    if (task.status != TransferTaskStatus.running) {
+      return task;
+    }
+    return task.copyWith(
+      status: TransferTaskStatus.failed,
+      failureMessage: _interruptedFailureMessage,
+      failureCode: TransferFailureCode.unknown,
+      updatedAt: DateTime.now(),
+    );
+  }
+
+  void _saveTask(TransferTask task) {
+    unawaited(_taskStore?.saveTask(task) ?? Future.value());
   }
 }
+
+const _interruptedFailureMessage = 'Transfer interrupted before completion';

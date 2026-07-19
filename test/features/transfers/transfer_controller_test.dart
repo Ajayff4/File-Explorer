@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:file_explorer/features/transfers/data/repositories/in_memory_transfer_task_store.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -128,11 +129,65 @@ void main() {
     expect(resolvedTask.failureCode, isNull);
     expect(executor.policies, [ConflictPolicy.ask, ConflictPolicy.overwrite]);
   });
+
+  test('loads persisted transfer history', () async {
+    final store = InMemoryTransferTaskStore();
+    final task = _storedTask(status: TransferTaskStatus.completed);
+    await store.saveTask(task);
+
+    final controller = TransferController(_HoldingTransferExecutor(), store);
+    await controller.loadPersistedTasks();
+
+    expect(controller.state.tasks.single.id, task.id);
+    expect(controller.state.tasks.single.status, TransferTaskStatus.completed);
+  });
+
+  test('restores interrupted running tasks as failed', () async {
+    final store = InMemoryTransferTaskStore();
+    await store.saveTask(_storedTask(status: TransferTaskStatus.running));
+
+    final controller = TransferController(_HoldingTransferExecutor(), store);
+    await controller.loadPersistedTasks();
+
+    final restoredTask = controller.state.tasks.single;
+    expect(restoredTask.status, TransferTaskStatus.failed);
+    expect(restoredTask.failureMessage, contains('interrupted'));
+  });
+
+  test('persists completed status after loading queued work', () async {
+    final store = InMemoryTransferTaskStore();
+    await store.saveTask(_storedTask(status: TransferTaskStatus.queued));
+
+    final controller = TransferController(_ProgressTransferExecutor(), store);
+    await controller.loadPersistedTasks();
+    await _pumpEventQueue();
+
+    final restoredTask = controller.state.tasks.single;
+    final storedTask = (await store.loadTasks()).single;
+    expect(restoredTask.status, TransferTaskStatus.completed);
+    expect(storedTask.status, TransferTaskStatus.completed);
+  });
 }
 
 Future<void> _pumpEventQueue() async {
   await Future<void>.delayed(Duration.zero);
   await Future<void>.delayed(Duration.zero);
+}
+
+TransferTask _storedTask({
+  required TransferTaskStatus status,
+}) {
+  final now = DateTime(2026);
+  return TransferTask(
+    id: 'stored-task',
+    operation: TransferOperation.delete,
+    sourcePaths: const ['/storage/emulated/0/file.txt'],
+    displayName: 'file.txt',
+    status: status,
+    createdAt: now,
+    updatedAt: now,
+    progress: const TransferProgress(totalBytes: 100),
+  );
 }
 
 class _HoldingTransferExecutor implements TransferExecutor {

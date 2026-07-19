@@ -1,0 +1,32 @@
+import 'package:drift/drift.dart';
+import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
+
+part 'app_database.g.dart';
+
+class TransferTaskRows extends Table {
+  TextColumn get id => text()();
+  IntColumn get operation => intEnum<TransferOperation>()();
+  TextColumn get sourcePathsJson => text()();
+  TextColumn get displayName => text()();
+  IntColumn get status => intEnum<TransferTaskStatus>()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get destinationPath => text().nullable()();
+  IntColumn get transferredBytes => integer().withDefault(const Constant(0))();
+  IntColumn get totalBytes => integer().nullable()();
+  TextColumn get currentItemPath => text().nullable()();
+  IntColumn get conflictPolicy => intEnum<ConflictPolicy>()();
+  TextColumn get failureMessage => text().nullable()();
+  IntColumn get failureCode => intEnum<TransferFailureCode>().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+@DriftDatabase(tables: [TransferTaskRows])
+class AppDatabase extends _$AppDatabase {
+  AppDatabase(super.executor);
+
+  @override
+  int get schemaVersion => 1;
+}

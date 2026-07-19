@@ -89,12 +89,22 @@ Progress log for the Flutter application.
   - Local copy, move, and rename operations share one conflict policy resolver.
   - `Keep both` writes to a unique `name (1).ext` style path.
   - Added executor and controller tests for conflict policy behavior.
+- Added Drift database foundation for transfer persistence:
+  - Added app database setup and generated Drift schema code.
+  - Added `transfer_task_rows` table for transfer queue/history data.
+  - Added transfer task store boundary with Drift-backed IO implementation.
+  - Kept web/fallback builds on an in-memory transfer task store.
+  - Transfer controller now saves queue, progress, failure, completion, and clear-finished changes.
+  - Transfer controller hydrates saved queue/history on startup.
+  - Interrupted `running` tasks restore as failed instead of staying stuck as active.
+  - Added controller coverage for loading history, restoring interrupted work, and persisting loaded queued work.
 
 ### Verified
 
 - `dart format lib test`
 - `flutter analyze`
 - `flutter test`
+- `dart run build_runner build --delete-conflicting-outputs`
 - `flutter build web`
 - `flutter build apk --debug` (confirmed locally by user)
 
@@ -102,6 +112,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add Drift database schema and generated code.
-- Persist transfer queue and transfer history.
+- Add database-backed favorites/bookmarks.
 - Continue UI polish using reference screenshots.
