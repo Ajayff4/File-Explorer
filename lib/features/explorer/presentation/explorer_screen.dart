@@ -1,5 +1,6 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,6 +19,7 @@ class ExplorerScreen extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final viewMode = ref.watch(explorerViewModeProvider);
     final listing = explorerState.listing;
+    final permission = explorerState.permission;
 
     return Scaffold(
       appBar: AppBar(
@@ -59,20 +61,50 @@ class ExplorerScreen extends ConsumerWidget {
           if (listing.valueOrNull?.generatedFromSampleData ?? false)
             const _SampleDataBanner(),
           Expanded(
-            child: listing.when(
-              data: (directoryListing) {
-                final entries = directoryListing.entries;
-                if (entries.isEmpty) {
-                  return const _EmptyDirectory();
+            child: permission.when(
+              data: (permissionState) {
+                if (!permissionState.canBrowse) {
+                  return StoragePermissionCard(
+                    state: permissionState,
+                    onRequestFullAccess: () {
+                      ref
+                          .read(explorerControllerProvider.notifier)
+                          .requestFullStorageAccess();
+                    },
+                    onRetry: () {
+                      ref
+                          .read(explorerControllerProvider.notifier)
+                          .loadInitialDirectory();
+                    },
+                  );
                 }
-                return viewMode == ExplorerViewMode.list
-                    ? _EntryList(entries: entries)
-                    : _EntryGrid(entries: entries);
+
+                return listing.when(
+                  data: (directoryListing) {
+                    final entries = directoryListing.entries;
+                    if (entries.isEmpty) {
+                      return const _EmptyDirectory();
+                    }
+                    return viewMode == ExplorerViewMode.list
+                        ? _EntryList(entries: entries)
+                        : _EntryGrid(entries: entries);
+                  },
+                  error: (error, stackTrace) => _DirectoryError(
+                    error: error,
+                    onRetry: () {
+                      ref.read(explorerControllerProvider.notifier).refresh();
+                    },
+                  ),
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator()),
+                );
               },
               error: (error, stackTrace) => _DirectoryError(
                 error: error,
                 onRetry: () {
-                  ref.read(explorerControllerProvider.notifier).refresh();
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .loadInitialDirectory();
                 },
               ),
               loading: () => const Center(child: CircularProgressIndicator()),

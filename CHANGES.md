@@ -38,6 +38,16 @@ Progress log for the Flutter application.
 - Rewired Home and Explorer screens to consume repository-backed explorer state.
 - Added folder tap navigation through the controller.
 - Renamed leftover app widget naming from `EsFileExplorerApp` to `FileExplorerApp`.
+- Added the first storage permission foundation:
+  - `StoragePermissionState` domain model.
+  - `StoragePermissionRepository` interface.
+  - Fake permission repository for web/tests.
+  - Permission-handler-backed repository for local/Android builds.
+  - Conditional repository factory so web stays decoupled from `dart:io`.
+  - Storage permission education/recovery card in Explorer.
+- Added Android storage permission declarations for legacy read/write, Android 13 media reads, and Android 11+ all-files access.
+- Added `permission_handler` dependency.
+- Added tests for storage permission state mapping.
 
 ### Verified
 
@@ -46,9 +56,14 @@ Progress log for the Flutter application.
 - `flutter test`
 - `flutter build web`
 
+### Not Completed
+
+- `flutter build apk --debug` was started as an extra native verification check, then intentionally stopped after the request to avoid running build commands without confirmation.
+
 ### Pending
 
-- Implement Android storage permission flow.
+- Finish Android debug build verification when approved.
+- Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Replace Android fallback filesystem access with permission-aware native storage access.
 - Add real directory browsing.
 - Add copy, move, rename, delete, and conflict handling.
