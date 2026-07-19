@@ -127,6 +127,13 @@ Progress log for the Flutter application.
   - Added result count header.
   - Improved loading state from a bare progress bar to a list tile state.
   - Added tests for type filters and explicit search scope.
+- Added indexed search persistence:
+  - Added persisted `search_index_entry_rows` Drift table with schema version 4 migration.
+  - Added search index store boundary with Drift-backed IO implementation and in-memory fallback.
+  - First search for a scope builds an index from the storage repository.
+  - Later searches reuse the stored index instead of walking storage again.
+  - Search UI now shows an indexing state during first index build.
+  - Added test coverage for index reuse.
 
 ### Verified
 
@@ -141,5 +148,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add indexed search persistence.
+- Add search index invalidation and manual reindex controls.
 - Continue UI polish using reference screenshots.

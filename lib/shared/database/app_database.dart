@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 
 part 'app_database.g.dart';
@@ -43,18 +44,35 @@ class RecentLocationRows extends Table {
   Set<Column<Object>> get primaryKey => {path};
 }
 
+class SearchIndexEntryRows extends Table {
+  TextColumn get path => text()();
+  TextColumn get rootPath => text()();
+  TextColumn get parentPath => text()();
+  TextColumn get name => text()();
+  IntColumn get type => intEnum<FileSystemEntryType>()();
+  DateTimeColumn get modifiedAt => dateTime()();
+  IntColumn get sizeBytes => integer().nullable()();
+  IntColumn get childrenCount => integer().nullable()();
+  IntColumn get depth => integer()();
+  DateTimeColumn get indexedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {path};
+}
+
 @DriftDatabase(
   tables: [
     TransferTaskRows,
     FavoriteLocationRows,
     RecentLocationRows,
+    SearchIndexEntryRows,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration {
@@ -65,6 +83,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 3) {
           await migrator.createTable(recentLocationRows);
+        }
+        if (from < 4) {
+          await migrator.createTable(searchIndexEntryRows);
         }
       },
     );

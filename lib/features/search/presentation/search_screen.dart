@@ -132,7 +132,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           if (!searchState.hasQuery)
             const _SearchHint()
           else if (searchState.isSearching)
-            const _SearchLoadingState()
+            _SearchLoadingState(isIndexing: searchState.isIndexing)
           else if (searchState.error != null)
             _SearchError(error: searchState.error!)
           else if (searchState.results.isEmpty)
@@ -283,17 +283,19 @@ class _SearchHint extends StatelessWidget {
 }
 
 class _SearchLoadingState extends StatelessWidget {
-  const _SearchLoadingState();
+  const _SearchLoadingState({required this.isIndexing});
+
+  final bool isIndexing;
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return Card(
       child: ListTile(
-        leading: SizedBox.square(
+        leading: const SizedBox.square(
           dimension: 24,
           child: CircularProgressIndicator(strokeWidth: 2),
         ),
-        title: Text('Searching'),
+        title: Text(isIndexing ? 'Indexing files' : 'Searching'),
       ),
     );
   }

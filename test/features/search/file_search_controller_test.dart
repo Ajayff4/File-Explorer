@@ -1,5 +1,6 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
+import 'package:file_explorer/features/search/data/repositories/in_memory_search_index_store.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -76,6 +77,35 @@ void main() {
     expect(repository.listedPaths, ['/storage']);
     expect(controller.state.rootPath, '/storage');
     expect(controller.state.results.single.entry.path, '/storage/report.txt');
+  });
+
+  test('builds index once and reuses it for later searches', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('Reports', '/root/Reports'),
+        _file('report.txt', '/root/report.txt'),
+      ],
+      '/root/Reports': [
+        _file('annual.txt', '/root/Reports/annual.txt'),
+      ],
+    });
+    final indexStore = InMemorySearchIndexStore();
+    final controller = FileSearchController(
+      repository,
+      indexStore: indexStore,
+    );
+
+    await controller.searchNow(query: 'report', rootPath: '/root');
+    expect(repository.listedPaths, ['/root', '/root/Reports']);
+
+    repository.listedPaths.clear();
+    await controller.searchNow(query: 'annual', rootPath: '/root');
+
+    expect(repository.listedPaths, isEmpty);
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      ['/root/Reports/annual.txt'],
+    );
   });
 
   test('slow stale search cannot replace newer results', () async {

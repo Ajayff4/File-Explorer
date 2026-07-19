@@ -1,9 +1,11 @@
 import 'dart:async';
 
+import 'package:file_explorer/features/search/data/repositories/search_index_store_provider.dart';
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
+import 'package:file_explorer/features/search/domain/repositories/search_index_store.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
@@ -11,6 +13,7 @@ final fileSearchControllerProvider =
     StateNotifierProvider<FileSearchController, FileSearchState>((ref) {
   return FileSearchController(
     ref.read(storageRepositoryProvider),
+    indexStore: ref.read(searchIndexStoreProvider),
   );
 });
 
@@ -21,6 +24,7 @@ class FileSearchState {
     this.filteredTypes = const {},
     this.results = const [],
     this.isSearching = false,
+    this.isIndexing = false,
     this.error,
   });
 
@@ -29,6 +33,7 @@ class FileSearchState {
   final Set<FileSystemEntryType> filteredTypes;
   final List<SearchResult> results;
   final bool isSearching;
+  final bool isIndexing;
   final Object? error;
 
   bool get hasQuery => query.trim().isNotEmpty;
@@ -39,6 +44,7 @@ class FileSearchState {
     Set<FileSystemEntryType>? filteredTypes,
     List<SearchResult>? results,
     bool? isSearching,
+    bool? isIndexing,
     Object? error,
     bool clearError = false,
   }) {
@@ -48,6 +54,7 @@ class FileSearchState {
       filteredTypes: filteredTypes ?? this.filteredTypes,
       results: results ?? this.results,
       isSearching: isSearching ?? this.isSearching,
+      isIndexing: isIndexing ?? this.isIndexing,
       error: clearError ? null : error ?? this.error,
     );
   }
@@ -56,18 +63,24 @@ class FileSearchState {
 class FileSearchController extends StateNotifier<FileSearchState> {
   FileSearchController(
     this._repository, {
+    SearchIndexStore? indexStore,
     Duration debounceDuration = const Duration(milliseconds: 300),
     int maxDepth = 4,
     int maxResults = 100,
-  })  : _debounceDuration = debounceDuration,
+    int maxIndexedEntries = 1000,
+  })  : _indexStore = indexStore,
+        _debounceDuration = debounceDuration,
         _maxDepth = maxDepth,
         _maxResults = maxResults,
+        _maxIndexedEntries = maxIndexedEntries,
         super(const FileSearchState());
 
   final StorageRepository _repository;
+  final SearchIndexStore? _indexStore;
   final Duration _debounceDuration;
   final int _maxDepth;
   final int _maxResults;
+  final int _maxIndexedEntries;
   Timer? _debounceTimer;
   int _requestSequence = 0;
 
@@ -83,11 +96,12 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       clearError: true,
       results: trimmedQuery.isEmpty ? const [] : state.results,
       isSearching: trimmedQuery.isNotEmpty,
+      isIndexing: false,
     );
 
     if (trimmedQuery.isEmpty) {
       _requestSequence += 1;
-      state = state.copyWith(isSearching: false);
+      state = state.copyWith(isSearching: false, isIndexing: false);
       return;
     }
 
@@ -107,11 +121,12 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       rootPath: rootPath,
       results: trimmedQuery.isEmpty ? const [] : state.results,
       isSearching: trimmedQuery.isNotEmpty,
+      isIndexing: false,
       clearError: true,
     );
     if (trimmedQuery.isEmpty) {
       _requestSequence += 1;
-      state = state.copyWith(isSearching: false);
+      state = state.copyWith(isSearching: false, isIndexing: false);
       return Future.value();
     }
     return _runSearch(trimmedQuery, rootPath);
@@ -132,13 +147,13 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
   Future<void> _runSearch(String query, String rootPath) async {
     final requestId = ++_requestSequence;
+    final filteredTypes = state.filteredTypes;
     try {
-      final results = await _searchDirectory(
-        query.toLowerCase(),
-        rootPath,
-        filteredTypes: state.filteredTypes,
-        depth: 0,
-        visitedPaths: <String>{},
+      final results = await _searchIndexedOrLive(
+        query: query.toLowerCase(),
+        rootPath: rootPath,
+        filteredTypes: filteredTypes,
+        requestId: requestId,
       );
       if (!mounted || requestId != _requestSequence) {
         return;
@@ -147,6 +162,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       state = state.copyWith(
         results: results,
         isSearching: false,
+        isIndexing: false,
         clearError: true,
       );
     } catch (error) {
@@ -156,9 +172,51 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       state = state.copyWith(
         results: const [],
         isSearching: false,
+        isIndexing: false,
         error: error,
       );
     }
+  }
+
+  Future<List<SearchResult>> _searchIndexedOrLive({
+    required String query,
+    required String rootPath,
+    required Set<FileSystemEntryType> filteredTypes,
+    required int requestId,
+  }) async {
+    final indexStore = _indexStore;
+    if (indexStore == null) {
+      return _searchDirectory(
+        query,
+        rootPath,
+        filteredTypes: filteredTypes,
+        depth: 0,
+        visitedPaths: <String>{},
+      );
+    }
+
+    if (!await indexStore.hasIndex(rootPath)) {
+      if (!mounted || requestId != _requestSequence) {
+        return const [];
+      }
+      state = state.copyWith(isIndexing: true);
+      final entries = await _collectIndexEntries(
+        rootPath,
+        depth: 0,
+        visitedPaths: <String>{},
+      );
+      entries.sort(_compareResults);
+      await indexStore.replaceIndex(rootPath: rootPath, entries: entries);
+    }
+
+    final results = await indexStore.search(
+      rootPath: rootPath,
+      query: query,
+      filteredTypes: filteredTypes,
+      maxResults: _maxResults,
+    );
+    results.sort(_compareResults);
+    return results;
   }
 
   Future<List<SearchResult>> _searchDirectory(
@@ -212,6 +270,48 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
     return results.length > _maxResults
         ? results.take(_maxResults).toList(growable: false)
+        : results;
+  }
+
+  Future<List<SearchResult>> _collectIndexEntries(
+    String path, {
+    required int depth,
+    required Set<String> visitedPaths,
+  }) async {
+    if (depth > _maxDepth || visitedPaths.contains(path)) {
+      return const [];
+    }
+    visitedPaths.add(path);
+
+    final listing = await _repository.listDirectory(path);
+    final results = <SearchResult>[
+      for (final entry in listing.entries)
+        SearchResult(
+          entry: entry,
+          parentPath: path,
+          depth: depth,
+        ),
+    ];
+
+    for (final folder in listing.entries.where((entry) => entry.isFolder)) {
+      if (results.length >= _maxIndexedEntries) {
+        break;
+      }
+      try {
+        results.addAll(
+          await _collectIndexEntries(
+            folder.path,
+            depth: depth + 1,
+            visitedPaths: visitedPaths,
+          ),
+        );
+      } on Object {
+        continue;
+      }
+    }
+
+    return results.length > _maxIndexedEntries
+        ? results.take(_maxIndexedEntries).toList(growable: false)
         : results;
   }
 
