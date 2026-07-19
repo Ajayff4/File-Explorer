@@ -59,6 +59,11 @@ Progress log for the Flutter application.
 - Pinned Android `compileSdk` to `35` because `permission_handler_android` and `sqlite3_flutter_libs` require it.
 - Documented Android SDK license and SDK 35 setup commands in `README.md`.
 - Added exact Linux Mint `/usr/lib/android-sdk` `sdkmanager` commands for accepting licenses and installing Android SDK 35/build tools.
+- Added storage root switching in Explorer:
+  - Explorer state now tracks discovered storage volumes.
+  - App bar storage selector opens any detected root.
+  - Selected volume summary/listing state updates together.
+  - Added controller coverage for opening a secondary storage root.
 
 ### Verified
 
@@ -66,18 +71,12 @@ Progress log for the Flutter application.
 - `flutter analyze`
 - `flutter test`
 - `flutter build web`
-
-### Not Completed
-
-- `flutter build apk --debug` was started as an extra native verification check, then intentionally stopped after the request to avoid running build commands without confirmation.
+- `flutter build apk --debug` (confirmed locally by user)
 
 ### Pending
 
-- Finish Android debug build verification when approved.
-- Accept local Android SDK licenses with `flutter doctor --android-licenses`.
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add storage root picker/list when multiple Android volumes are available.
 - Add copy, move, rename, delete, and conflict handling.
 - Add Drift database schema and generated code.
 - Implement transfer engine.

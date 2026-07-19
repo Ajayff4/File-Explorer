@@ -20,6 +20,7 @@ class ExplorerScreen extends ConsumerWidget {
     final viewMode = ref.watch(explorerViewModeProvider);
     final listing = explorerState.listing;
     final permission = explorerState.permission;
+    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return Scaffold(
       appBar: AppBar(
@@ -34,7 +35,14 @@ class ExplorerScreen extends ConsumerWidget {
                 icon: const Icon(Icons.arrow_upward_rounded),
               )
             : null,
-        title: Text(listing.valueOrNull?.volume?.label ?? 'Files'),
+        title: explorerState.volumes.when(
+          data: (volumes) => _VolumeSwitcher(
+            volumes: volumes,
+            selectedVolume: selectedVolume,
+          ),
+          error: (error, stackTrace) => const Text('Files'),
+          loading: () => const Text('Files'),
+        ),
         actions: [
           IconButton(
             tooltip: 'Refresh',
@@ -130,6 +138,103 @@ class ExplorerScreen extends ConsumerWidget {
 bool _canNavigateUp(ExplorerState state) {
   final volumeRoot = state.listing.valueOrNull?.volume?.path;
   return volumeRoot != null && state.currentPath != volumeRoot;
+}
+
+StorageVolume? _selectedVolumeFor(ExplorerState state) {
+  final listingVolume = state.listing.valueOrNull?.volume;
+  if (listingVolume != null) {
+    return listingVolume;
+  }
+
+  final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+  for (final volume in volumes) {
+    if (state.currentPath.startsWith(volume.path)) {
+      return volume;
+    }
+  }
+  return volumes.isEmpty ? null : volumes.first;
+}
+
+class _VolumeSwitcher extends ConsumerWidget {
+  const _VolumeSwitcher({
+    required this.volumes,
+    required this.selectedVolume,
+  });
+
+  final List<StorageVolume> volumes;
+  final StorageVolume? selectedVolume;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final label = selectedVolume?.label ?? 'Files';
+    if (volumes.length < 2) {
+      return Text(label);
+    }
+
+    return PopupMenuButton<StorageVolume>(
+      tooltip: 'Storage roots',
+      onSelected: (volume) {
+        ref.read(explorerControllerProvider.notifier).openStorageVolume(volume);
+      },
+      itemBuilder: (context) {
+        return volumes.map((volume) {
+          final isSelected = volume.path == selectedVolume?.path;
+          return PopupMenuItem<StorageVolume>(
+            value: volume,
+            child: Row(
+              children: [
+                Icon(
+                  volume.isPrimary
+                      ? Icons.phone_android_rounded
+                      : Icons.sd_storage_rounded,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        volume.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        volume.summary == null
+                            ? volume.path
+                            : '${formatBytes(volume.summary!.freeBytes)} free',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+                if (isSelected) ...[
+                  const SizedBox(width: 12),
+                  const Icon(Icons.check_rounded),
+                ],
+              ],
+            ),
+          );
+        }).toList();
+      },
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.expand_more_rounded),
+        ],
+      ),
+    );
+  }
 }
 
 class _BreadcrumbBar extends StatelessWidget {
