@@ -3,6 +3,8 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
+import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,8 +17,8 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final favoritesState = ref.watch(favoritesControllerProvider);
+    final recentsState = ref.watch(recentsControllerProvider);
     final summary = explorerState.summary.valueOrNull;
-    final recentEntries = explorerState.listing.valueOrNull?.entries ?? [];
 
     return CustomScrollView(
       slivers: [
@@ -62,22 +64,26 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 20),
               _SectionHeader(
                 title: 'Recent',
-                actionLabel: 'Browse',
-                onPressed: () => context.go(AppRoutes.explorer),
+                actionLabel:
+                    recentsState.locations.isEmpty ? 'Browse' : 'Clear',
+                onPressed: recentsState.locations.isEmpty
+                    ? () => context.go(AppRoutes.explorer)
+                    : () {
+                        ref
+                            .read(recentsControllerProvider.notifier)
+                            .clearRecents();
+                      },
               ),
               const SizedBox(height: 8),
-              if (explorerState.listing.isLoading)
+              if (recentsState.isLoading)
                 const LinearProgressIndicator()
-              else if (explorerState.listing.hasError)
-                _InlineError(
-                  message: 'Could not load storage',
-                  onRetry: () {
-                    ref.read(explorerControllerProvider.notifier).refresh();
-                  },
-                )
+              else if (recentsState.locations.isEmpty)
+                const _EmptyRecentsTile()
               else
-                ...recentEntries.take(5).map(
-                      (entry) => _RecentEntryTile(entry: entry),
+                ...recentsState.locations.take(5).map(
+                      (recent) => _RecentLocationTile(
+                        recent: recent,
+                      ),
                     ),
             ],
           ),
@@ -169,7 +175,7 @@ class _ShortcutGrid extends StatelessWidget {
             crossAxisCount: columns,
             mainAxisSpacing: 8,
             crossAxisSpacing: 8,
-            childAspectRatio: columns == 6 ? 1.15 : 1,
+            childAspectRatio: columns == 6 ? 1.15 : 0.92,
           ),
           itemBuilder: (context, index) {
             final shortcut = shortcuts[index];
@@ -178,12 +184,12 @@ class _ShortcutGrid extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
                 onTap: () => context.go(AppRoutes.explorer),
                 child: Padding(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(shortcut.icon, size: 28),
-                      const SizedBox(height: 8),
+                      Icon(shortcut.icon, size: 26),
+                      const SizedBox(height: 6),
                       Text(
                         shortcut.label,
                         maxLines: 1,
@@ -233,51 +239,55 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _RecentEntryTile extends StatelessWidget {
-  const _RecentEntryTile({required this.entry});
+class _RecentLocationTile extends ConsumerWidget {
+  const _RecentLocationTile({required this.recent});
 
-  final FileSystemEntry entry;
+  final RecentLocation recent;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Card(
       child: ListTile(
-        leading: Icon(_iconFor(entry.type)),
-        title: Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-        subtitle: Text(
-          entry.path,
+        leading: const Icon(Icons.history_rounded),
+        title: Text(
+          recent.label,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(
-          entry.isFolder
-              ? '${entry.childrenCount ?? 0} items'
-              : formatBytes(entry.sizeBytes ?? 0),
+        subtitle: Text(
+          recent.path,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        onTap: () {
+          ref.read(explorerControllerProvider.notifier).openDirectory(
+                recent.path,
+              );
+          context.go(AppRoutes.explorer);
+        },
+        trailing: IconButton(
+          tooltip: 'Remove recent',
+          onPressed: () {
+            ref.read(recentsControllerProvider.notifier).removeRecent(
+                  recent.path,
+                );
+          },
+          icon: const Icon(Icons.close_rounded),
         ),
       ),
     );
   }
 }
 
-class _InlineError extends StatelessWidget {
-  const _InlineError({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
+class _EmptyRecentsTile extends StatelessWidget {
+  const _EmptyRecentsTile();
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return const Card(
       child: ListTile(
-        leading: const Icon(Icons.error_outline_rounded),
-        title: Text(message),
-        trailing: TextButton(
-          onPressed: onRetry,
-          child: const Text('Retry'),
-        ),
+        leading: Icon(Icons.history_rounded),
+        title: Text('No recent folders yet'),
       ),
     );
   }
@@ -343,17 +353,4 @@ class _Shortcut {
   final String label;
   final IconData icon;
   final String detail;
-}
-
-IconData _iconFor(FileSystemEntryType type) {
-  return switch (type) {
-    FileSystemEntryType.folder => Icons.folder_rounded,
-    FileSystemEntryType.image => Icons.image_rounded,
-    FileSystemEntryType.video => Icons.movie_rounded,
-    FileSystemEntryType.audio => Icons.music_note_rounded,
-    FileSystemEntryType.document => Icons.description_rounded,
-    FileSystemEntryType.archive => Icons.inventory_2_rounded,
-    FileSystemEntryType.app => Icons.apps_rounded,
-    FileSystemEntryType.other => Icons.insert_drive_file_rounded,
-  };
 }

@@ -2,6 +2,8 @@ import 'package:file_explorer/features/explorer/data/repositories/storage_reposi
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/recents/data/repositories/in_memory_recent_location_store.dart';
+import 'package:file_explorer/features/recents/data/repositories/recent_location_store_provider.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
@@ -11,9 +13,11 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   test('opens a selected storage volume root', () async {
     final repository = _MultiVolumeStorageRepository();
+    final recentStore = InMemoryRecentLocationStore();
     final container = ProviderContainer(
       overrides: [
         storageRepositoryProvider.overrideWithValue(repository),
+        recentLocationStoreProvider.overrideWithValue(recentStore),
         storagePermissionRepositoryProvider.overrideWithValue(
           const FakeStoragePermissionRepository(
             initialState: StoragePermissionState.fullAccess(
@@ -40,6 +44,11 @@ void main() {
     expect(selectedState.currentPath, _MultiVolumeStorageRepository.sdCardPath);
     expect(selectedState.summary.valueOrNull?.label, 'SD card');
     expect(selectedState.listing.valueOrNull?.volume?.label, 'SD card');
+
+    final recentPaths = (await recentStore.loadRecents()).map(
+      (recent) => recent.path,
+    );
+    expect(recentPaths, contains(_MultiVolumeStorageRepository.sdCardPath));
   });
 }
 

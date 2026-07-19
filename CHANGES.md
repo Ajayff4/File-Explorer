@@ -105,6 +105,13 @@ Progress log for the Flutter application.
   - Added Explorer star action for the current folder.
   - Added Home favorites section with open/remove actions.
   - Added controller tests for loading, toggling, and favorite ordering.
+- Added recent locations/history foundation:
+  - Added persisted `recent_location_rows` Drift table with schema version 3 migration.
+  - Added recent location entity, store boundary, Drift IO store, and in-memory fallback store.
+  - Added `RecentsController` for loading, recording, removing, and clearing recent folders.
+  - Explorer now records successfully opened folders.
+  - Home recent section now shows persisted folder history instead of current directory entries.
+  - Added tests for recent loading, deduping, open counts, remove/clear, sorting, and Explorer recording.
 
 ### Verified
 
@@ -119,5 +126,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add recent locations/history using the same database pattern.
+- Add search/indexing foundation.
 - Continue UI polish using reference screenshots.

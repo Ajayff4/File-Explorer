@@ -1018,6 +1018,274 @@ class FavoriteLocationRowsCompanion
   }
 }
 
+class $RecentLocationRowsTable extends RecentLocationRows
+    with TableInfo<$RecentLocationRowsTable, RecentLocationRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RecentLocationRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _pathMeta = const VerificationMeta('path');
+  @override
+  late final GeneratedColumn<String> path = GeneratedColumn<String>(
+      'path', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _openedAtMeta =
+      const VerificationMeta('openedAt');
+  @override
+  late final GeneratedColumn<DateTime> openedAt = GeneratedColumn<DateTime>(
+      'opened_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _openCountMeta =
+      const VerificationMeta('openCount');
+  @override
+  late final GeneratedColumn<int> openCount = GeneratedColumn<int>(
+      'open_count', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(1));
+  @override
+  List<GeneratedColumn> get $columns => [path, label, openedAt, openCount];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'recent_location_rows';
+  @override
+  VerificationContext validateIntegrity(Insertable<RecentLocationRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('path')) {
+      context.handle(
+          _pathMeta, path.isAcceptableOrUnknown(data['path']!, _pathMeta));
+    } else if (isInserting) {
+      context.missing(_pathMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('opened_at')) {
+      context.handle(_openedAtMeta,
+          openedAt.isAcceptableOrUnknown(data['opened_at']!, _openedAtMeta));
+    } else if (isInserting) {
+      context.missing(_openedAtMeta);
+    }
+    if (data.containsKey('open_count')) {
+      context.handle(_openCountMeta,
+          openCount.isAcceptableOrUnknown(data['open_count']!, _openCountMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {path};
+  @override
+  RecentLocationRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return RecentLocationRow(
+      path: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}path'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      openedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}opened_at'])!,
+      openCount: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}open_count'])!,
+    );
+  }
+
+  @override
+  $RecentLocationRowsTable createAlias(String alias) {
+    return $RecentLocationRowsTable(attachedDatabase, alias);
+  }
+}
+
+class RecentLocationRow extends DataClass
+    implements Insertable<RecentLocationRow> {
+  final String path;
+  final String label;
+  final DateTime openedAt;
+  final int openCount;
+  const RecentLocationRow(
+      {required this.path,
+      required this.label,
+      required this.openedAt,
+      required this.openCount});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['path'] = Variable<String>(path);
+    map['label'] = Variable<String>(label);
+    map['opened_at'] = Variable<DateTime>(openedAt);
+    map['open_count'] = Variable<int>(openCount);
+    return map;
+  }
+
+  RecentLocationRowsCompanion toCompanion(bool nullToAbsent) {
+    return RecentLocationRowsCompanion(
+      path: Value(path),
+      label: Value(label),
+      openedAt: Value(openedAt),
+      openCount: Value(openCount),
+    );
+  }
+
+  factory RecentLocationRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return RecentLocationRow(
+      path: serializer.fromJson<String>(json['path']),
+      label: serializer.fromJson<String>(json['label']),
+      openedAt: serializer.fromJson<DateTime>(json['openedAt']),
+      openCount: serializer.fromJson<int>(json['openCount']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'path': serializer.toJson<String>(path),
+      'label': serializer.toJson<String>(label),
+      'openedAt': serializer.toJson<DateTime>(openedAt),
+      'openCount': serializer.toJson<int>(openCount),
+    };
+  }
+
+  RecentLocationRow copyWith(
+          {String? path, String? label, DateTime? openedAt, int? openCount}) =>
+      RecentLocationRow(
+        path: path ?? this.path,
+        label: label ?? this.label,
+        openedAt: openedAt ?? this.openedAt,
+        openCount: openCount ?? this.openCount,
+      );
+  RecentLocationRow copyWithCompanion(RecentLocationRowsCompanion data) {
+    return RecentLocationRow(
+      path: data.path.present ? data.path.value : this.path,
+      label: data.label.present ? data.label.value : this.label,
+      openedAt: data.openedAt.present ? data.openedAt.value : this.openedAt,
+      openCount: data.openCount.present ? data.openCount.value : this.openCount,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecentLocationRow(')
+          ..write('path: $path, ')
+          ..write('label: $label, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('openCount: $openCount')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(path, label, openedAt, openCount);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is RecentLocationRow &&
+          other.path == this.path &&
+          other.label == this.label &&
+          other.openedAt == this.openedAt &&
+          other.openCount == this.openCount);
+}
+
+class RecentLocationRowsCompanion extends UpdateCompanion<RecentLocationRow> {
+  final Value<String> path;
+  final Value<String> label;
+  final Value<DateTime> openedAt;
+  final Value<int> openCount;
+  final Value<int> rowid;
+  const RecentLocationRowsCompanion({
+    this.path = const Value.absent(),
+    this.label = const Value.absent(),
+    this.openedAt = const Value.absent(),
+    this.openCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RecentLocationRowsCompanion.insert({
+    required String path,
+    required String label,
+    required DateTime openedAt,
+    this.openCount = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : path = Value(path),
+        label = Value(label),
+        openedAt = Value(openedAt);
+  static Insertable<RecentLocationRow> custom({
+    Expression<String>? path,
+    Expression<String>? label,
+    Expression<DateTime>? openedAt,
+    Expression<int>? openCount,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (path != null) 'path': path,
+      if (label != null) 'label': label,
+      if (openedAt != null) 'opened_at': openedAt,
+      if (openCount != null) 'open_count': openCount,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RecentLocationRowsCompanion copyWith(
+      {Value<String>? path,
+      Value<String>? label,
+      Value<DateTime>? openedAt,
+      Value<int>? openCount,
+      Value<int>? rowid}) {
+    return RecentLocationRowsCompanion(
+      path: path ?? this.path,
+      label: label ?? this.label,
+      openedAt: openedAt ?? this.openedAt,
+      openCount: openCount ?? this.openCount,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (path.present) {
+      map['path'] = Variable<String>(path.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (openedAt.present) {
+      map['opened_at'] = Variable<DateTime>(openedAt.value);
+    }
+    if (openCount.present) {
+      map['open_count'] = Variable<int>(openCount.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RecentLocationRowsCompanion(')
+          ..write('path: $path, ')
+          ..write('label: $label, ')
+          ..write('openedAt: $openedAt, ')
+          ..write('openCount: $openCount, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1025,12 +1293,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $TransferTaskRowsTable(this);
   late final $FavoriteLocationRowsTable favoriteLocationRows =
       $FavoriteLocationRowsTable(this);
+  late final $RecentLocationRowsTable recentLocationRows =
+      $RecentLocationRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities =>
-      [transferTaskRows, favoriteLocationRows];
+      [transferTaskRows, favoriteLocationRows, recentLocationRows];
 }
 
 typedef $$TransferTaskRowsTableCreateCompanionBuilder
@@ -1527,6 +1797,166 @@ typedef $$FavoriteLocationRowsTableProcessedTableManager
         ),
         FavoriteLocationRow,
         PrefetchHooks Function()>;
+typedef $$RecentLocationRowsTableCreateCompanionBuilder
+    = RecentLocationRowsCompanion Function({
+  required String path,
+  required String label,
+  required DateTime openedAt,
+  Value<int> openCount,
+  Value<int> rowid,
+});
+typedef $$RecentLocationRowsTableUpdateCompanionBuilder
+    = RecentLocationRowsCompanion Function({
+  Value<String> path,
+  Value<String> label,
+  Value<DateTime> openedAt,
+  Value<int> openCount,
+  Value<int> rowid,
+});
+
+class $$RecentLocationRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $RecentLocationRowsTable> {
+  $$RecentLocationRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get openedAt => $composableBuilder(
+      column: $table.openedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get openCount => $composableBuilder(
+      column: $table.openCount, builder: (column) => ColumnFilters(column));
+}
+
+class $$RecentLocationRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $RecentLocationRowsTable> {
+  $$RecentLocationRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get path => $composableBuilder(
+      column: $table.path, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get openedAt => $composableBuilder(
+      column: $table.openedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get openCount => $composableBuilder(
+      column: $table.openCount, builder: (column) => ColumnOrderings(column));
+}
+
+class $$RecentLocationRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $RecentLocationRowsTable> {
+  $$RecentLocationRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get path =>
+      $composableBuilder(column: $table.path, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get openedAt =>
+      $composableBuilder(column: $table.openedAt, builder: (column) => column);
+
+  GeneratedColumn<int> get openCount =>
+      $composableBuilder(column: $table.openCount, builder: (column) => column);
+}
+
+class $$RecentLocationRowsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $RecentLocationRowsTable,
+    RecentLocationRow,
+    $$RecentLocationRowsTableFilterComposer,
+    $$RecentLocationRowsTableOrderingComposer,
+    $$RecentLocationRowsTableAnnotationComposer,
+    $$RecentLocationRowsTableCreateCompanionBuilder,
+    $$RecentLocationRowsTableUpdateCompanionBuilder,
+    (
+      RecentLocationRow,
+      BaseReferences<_$AppDatabase, $RecentLocationRowsTable, RecentLocationRow>
+    ),
+    RecentLocationRow,
+    PrefetchHooks Function()> {
+  $$RecentLocationRowsTableTableManager(
+      _$AppDatabase db, $RecentLocationRowsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RecentLocationRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RecentLocationRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RecentLocationRowsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> path = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<DateTime> openedAt = const Value.absent(),
+            Value<int> openCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecentLocationRowsCompanion(
+            path: path,
+            label: label,
+            openedAt: openedAt,
+            openCount: openCount,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String path,
+            required String label,
+            required DateTime openedAt,
+            Value<int> openCount = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              RecentLocationRowsCompanion.insert(
+            path: path,
+            label: label,
+            openedAt: openedAt,
+            openCount: openCount,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$RecentLocationRowsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $RecentLocationRowsTable,
+    RecentLocationRow,
+    $$RecentLocationRowsTableFilterComposer,
+    $$RecentLocationRowsTableOrderingComposer,
+    $$RecentLocationRowsTableAnnotationComposer,
+    $$RecentLocationRowsTableCreateCompanionBuilder,
+    $$RecentLocationRowsTableUpdateCompanionBuilder,
+    (
+      RecentLocationRow,
+      BaseReferences<_$AppDatabase, $RecentLocationRowsTable, RecentLocationRow>
+    ),
+    RecentLocationRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1535,4 +1965,6 @@ class $AppDatabaseManager {
       $$TransferTaskRowsTableTableManager(_db, _db.transferTaskRows);
   $$FavoriteLocationRowsTableTableManager get favoriteLocationRows =>
       $$FavoriteLocationRowsTableTableManager(_db, _db.favoriteLocationRows);
+  $$RecentLocationRowsTableTableManager get recentLocationRows =>
+      $$RecentLocationRowsTableTableManager(_db, _db.recentLocationRows);
 }

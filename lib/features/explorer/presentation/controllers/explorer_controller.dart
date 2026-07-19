@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:file_explorer/features/explorer/data/repositories/fake_storage_repository.dart';
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
+import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -129,6 +132,9 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final listing =
         await AsyncValue.guard(() => repository.listDirectory(path));
     state = state.copyWith(listing: listing);
+    if (listing.hasValue) {
+      _recordRecent(path: path);
+    }
   }
 
   Future<void> openStorageVolume(StorageVolume volume) async {
@@ -149,6 +155,9 @@ class ExplorerController extends StateNotifier<ExplorerState> {
       summary: summary,
       listing: listing,
     );
+    if (listing.hasValue) {
+      _recordRecent(path: volume.path, label: volume.label);
+    }
   }
 
   Future<void> openParentDirectory() async {
@@ -187,5 +196,25 @@ class ExplorerController extends StateNotifier<ExplorerState> {
       return summary;
     }
     return repository.getPrimaryStorageSummary();
+  }
+
+  void _recordRecent({
+    required String path,
+    String? label,
+  }) {
+    unawaited(
+      _ref.read(recentsControllerProvider.notifier).recordLocation(
+            path: path,
+            label: label ?? _labelForPath(path),
+          ),
+    );
+  }
+
+  String _labelForPath(String path) {
+    final name = p.basename(path);
+    if (name.isNotEmpty && name != '.') {
+      return name;
+    }
+    return path;
   }
 }

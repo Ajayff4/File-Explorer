@@ -33,12 +33,28 @@ class FavoriteLocationRows extends Table {
   Set<Column<Object>> get primaryKey => {path};
 }
 
-@DriftDatabase(tables: [TransferTaskRows, FavoriteLocationRows])
+class RecentLocationRows extends Table {
+  TextColumn get path => text()();
+  TextColumn get label => text()();
+  DateTimeColumn get openedAt => dateTime()();
+  IntColumn get openCount => integer().withDefault(const Constant(1))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {path};
+}
+
+@DriftDatabase(
+  tables: [
+    TransferTaskRows,
+    FavoriteLocationRows,
+    RecentLocationRows,
+  ],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration {
@@ -46,6 +62,9 @@ class AppDatabase extends _$AppDatabase {
       onUpgrade: (migrator, from, to) async {
         if (from < 2) {
           await migrator.createTable(favoriteLocationRows);
+        }
+        if (from < 3) {
+          await migrator.createTable(recentLocationRows);
         }
       },
     );
