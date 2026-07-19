@@ -131,10 +131,16 @@ Web release build:
 flutter build web
 ```
 
-Android APK:
+Android debug APK:
 
 ```bash
-flutter build apk
+flutter build apk --debug
+```
+
+Android release APK:
+
+```bash
+flutter build apk --release
 ```
 
 Android App Bundle:

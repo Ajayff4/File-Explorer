@@ -64,6 +64,14 @@ Progress log for the Flutter application.
   - App bar storage selector opens any detected root.
   - Selected volume summary/listing state updates together.
   - Added controller coverage for opening a secondary storage root.
+- Added the first transfer queue foundation:
+  - Transfer task domain model for copy, move, delete, and rename.
+  - Transfer controller with queue, destination, progress, completion, retry, cancel, and clear-finished transitions.
+  - State-driven Transfer Manager screen.
+  - Explorer entry action sheet that queues file operation intents instead of mutating files directly.
+  - Shared transfer presentation helpers for operation icons and status colors.
+  - Unit tests for transfer controller state transitions.
+- Updated `README.md` Android APK build commands to show explicit debug and release variants.
 
 ### Verified
 
@@ -77,7 +85,7 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add copy, move, rename, delete, and conflict handling.
+- Add transfer executor for real copy, move, rename, delete, and conflict handling.
 - Add Drift database schema and generated code.
-- Implement transfer engine.
+- Persist transfer queue and transfer history.
 - Continue UI polish using reference screenshots.

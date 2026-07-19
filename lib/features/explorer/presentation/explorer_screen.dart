@@ -1,5 +1,7 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
@@ -289,10 +291,10 @@ class _EntryList extends ConsumerWidget {
         final entry = entries[index];
         return Card(
           child: ListTile(
-            leading: Icon(_iconFor(entry.type)),
+            leading: Icon(iconForFileSystemEntryType(entry.type)),
             title:
                 Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(_entryDetail(entry)),
+            subtitle: Text(detailForFileSystemEntry(entry)),
             onTap: entry.isFolder
                 ? () {
                     // Folder navigation is routed through the controller so
@@ -302,11 +304,7 @@ class _EntryList extends ConsumerWidget {
                         .openDirectory(entry.path);
                   }
                 : null,
-            trailing: IconButton(
-              tooltip: 'More',
-              onPressed: () {},
-              icon: const Icon(Icons.more_vert_rounded),
-            ),
+            trailing: EntryActionsButton(entry: entry),
           ),
         );
       },
@@ -332,39 +330,48 @@ class _EntryGrid extends ConsumerWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         return Card(
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: entry.isFolder
-                ? () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .openDirectory(entry.path);
-                  }
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(_iconFor(entry.type), size: 36),
-                  const SizedBox(height: 12),
-                  Text(
-                    entry.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.labelLarge,
+          child: Stack(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(8),
+                onTap: entry.isFolder
+                    ? () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .openDirectory(entry.path);
+                      }
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(iconForFileSystemEntryType(entry.type), size: 36),
+                      const SizedBox(height: 12),
+                      Text(
+                        entry.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        detailForFileSystemEntry(entry),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    _entryDetail(entry),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
+                ),
               ),
-            ),
+              Positioned(
+                top: 4,
+                right: 4,
+                child: EntryActionsButton(entry: entry),
+              ),
+            ],
           ),
         );
       },
@@ -443,24 +450,4 @@ class _DirectoryError extends StatelessWidget {
       ),
     );
   }
-}
-
-IconData _iconFor(FileSystemEntryType type) {
-  return switch (type) {
-    FileSystemEntryType.folder => Icons.folder_rounded,
-    FileSystemEntryType.image => Icons.image_rounded,
-    FileSystemEntryType.video => Icons.movie_rounded,
-    FileSystemEntryType.audio => Icons.music_note_rounded,
-    FileSystemEntryType.document => Icons.description_rounded,
-    FileSystemEntryType.archive => Icons.inventory_2_rounded,
-    FileSystemEntryType.app => Icons.apps_rounded,
-    FileSystemEntryType.other => Icons.insert_drive_file_rounded,
-  };
-}
-
-String _entryDetail(FileSystemEntry entry) {
-  if (entry.isFolder) {
-    return '${entry.childrenCount ?? 0} items';
-  }
-  return formatBytes(entry.sizeBytes ?? 0);
 }
