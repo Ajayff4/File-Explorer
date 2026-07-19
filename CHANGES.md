@@ -142,6 +142,14 @@ Progress log for the Flutter application.
   - Search index stores can clear indexes that overlap changed paths.
   - App root listens for completed transfer tasks and invalidates affected search indexes.
   - Added test coverage for transfer-driven index invalidation.
+- Added settings foundation:
+  - Added persisted `setting_rows` Drift table with schema version 5 migration.
+  - Added typed `AppSettings` model and setting keys.
+  - Added settings store boundary with Drift-backed IO implementation and in-memory fallback.
+  - Added `SettingsController` for loading, updating, and resetting settings.
+  - Replaced placeholder settings with grouped Explorer, Transfers, and Search toggles.
+  - `Use indexed search` now controls whether search uses the persisted index.
+  - Added controller tests for defaults, persistence, and reset.
 
 ### Verified
 
@@ -156,5 +164,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add settings implementation for search, transfers, explorer display, and history.
+- Wire remaining settings into explorer display, transfer confirmation, and history behavior.
 - Continue UI polish using reference screenshots.

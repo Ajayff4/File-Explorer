@@ -60,19 +60,29 @@ class SearchIndexEntryRows extends Table {
   Set<Column<Object>> get primaryKey => {path};
 }
 
+class SettingRows extends Table {
+  TextColumn get key => text()();
+  TextColumn get value => text()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {key};
+}
+
 @DriftDatabase(
   tables: [
     TransferTaskRows,
     FavoriteLocationRows,
     RecentLocationRows,
     SearchIndexEntryRows,
+    SettingRows,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration {
@@ -86,6 +96,9 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 4) {
           await migrator.createTable(searchIndexEntryRows);
+        }
+        if (from < 5) {
+          await migrator.createTable(settingRows);
         }
       },
     );

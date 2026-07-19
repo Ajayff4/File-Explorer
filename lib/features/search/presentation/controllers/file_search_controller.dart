@@ -1,19 +1,22 @@
 import 'dart:async';
 
-import 'package:file_explorer/features/search/data/repositories/search_index_store_provider.dart';
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
+import 'package:file_explorer/features/search/data/repositories/search_index_store_provider.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/domain/repositories/search_index_store.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 final fileSearchControllerProvider =
     StateNotifierProvider<FileSearchController, FileSearchState>((ref) {
+  final settings = ref.watch(settingsControllerProvider).settings;
   return FileSearchController(
     ref.read(storageRepositoryProvider),
-    indexStore: ref.read(searchIndexStoreProvider),
+    indexStore:
+        settings.useIndexedSearch ? ref.read(searchIndexStoreProvider) : null,
   );
 });
 
