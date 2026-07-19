@@ -83,6 +83,12 @@ Progress log for the Flutter application.
   - `Paste here` assigns the current folder as the destination and starts the queued task.
   - `Cancel` cancels the pending task.
   - Explorer refreshes when a completed task touches the current folder.
+- Added transfer destination conflict handling:
+  - Existing destinations fail with a typed `destinationExists` error by default.
+  - Transfer Manager exposes `Skip`, `Replace`, and `Keep both` actions for destination conflicts.
+  - Local copy, move, and rename operations share one conflict policy resolver.
+  - `Keep both` writes to a unique `name (1).ext` style path.
+  - Added executor and controller tests for conflict policy behavior.
 
 ### Verified
 
@@ -96,7 +102,6 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add conflict handling UI and policies.
 - Add Drift database schema and generated code.
 - Persist transfer queue and transfer history.
 - Continue UI polish using reference screenshots.

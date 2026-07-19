@@ -173,6 +173,7 @@ class TransferController extends StateNotifier<TransferState> {
   void fail({
     required String taskId,
     required String message,
+    TransferFailureCode code = TransferFailureCode.unknown,
   }) {
     final currentTask = _taskById(taskId);
     if (currentTask == null ||
@@ -186,6 +187,7 @@ class TransferController extends StateNotifier<TransferState> {
         status: TransferTaskStatus.failed,
         updatedAt: now,
         failureMessage: message,
+        failureCode: code,
       ),
     );
   }
@@ -198,6 +200,25 @@ class TransferController extends StateNotifier<TransferState> {
         updatedAt: now,
         progress: const TransferProgress(),
         clearFailureMessage: true,
+        clearFailureCode: true,
+      ),
+    );
+    _startIfReady(taskId);
+  }
+
+  void resolveConflict({
+    required String taskId,
+    required ConflictPolicy policy,
+  }) {
+    _replaceTask(
+      taskId,
+      (task, now) => task.copyWith(
+        status: _initialStatusFor(task.operation, task.destinationPath),
+        updatedAt: now,
+        progress: const TransferProgress(),
+        conflictPolicy: policy,
+        clearFailureMessage: true,
+        clearFailureCode: true,
       ),
     );
     _startIfReady(taskId);
@@ -249,6 +270,14 @@ class TransferController extends StateNotifier<TransferState> {
       ).then((_) {
         complete(taskId);
       }).catchError((Object error) {
+        if (error is TransferExecutionException) {
+          fail(
+            taskId: taskId,
+            message: error.toString(),
+            code: error.code,
+          );
+          return;
+        }
         fail(taskId: taskId, message: error.toString());
       }).whenComplete(() {
         _runningTaskIds.remove(taskId);

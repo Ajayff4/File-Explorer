@@ -21,6 +21,13 @@ enum ConflictPolicy {
   rename,
 }
 
+enum TransferFailureCode {
+  destinationExists,
+  sourceMissing,
+  permissionDenied,
+  unknown,
+}
+
 class TransferProgress {
   const TransferProgress({
     this.transferredBytes = 0,
@@ -54,6 +61,7 @@ class TransferTask {
     this.progress = const TransferProgress(),
     this.conflictPolicy = ConflictPolicy.ask,
     this.failureMessage,
+    this.failureCode,
   });
 
   final String id;
@@ -67,6 +75,7 @@ class TransferTask {
   final TransferProgress progress;
   final ConflictPolicy conflictPolicy;
   final String? failureMessage;
+  final TransferFailureCode? failureCode;
 
   bool get isActive => status == TransferTaskStatus.running;
 
@@ -105,7 +114,9 @@ class TransferTask {
     TransferProgress? progress,
     ConflictPolicy? conflictPolicy,
     String? failureMessage,
+    TransferFailureCode? failureCode,
     bool clearFailureMessage = false,
+    bool clearFailureCode = false,
   }) {
     return TransferTask(
       id: id,
@@ -120,6 +131,7 @@ class TransferTask {
       conflictPolicy: conflictPolicy ?? this.conflictPolicy,
       failureMessage:
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
+      failureCode: clearFailureCode ? null : failureCode ?? this.failureCode,
     );
   }
 }

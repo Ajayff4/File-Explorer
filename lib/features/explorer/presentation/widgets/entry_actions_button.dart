@@ -171,6 +171,9 @@ Future<void> _requestRename(
   if (trimmedName == null || trimmedName.isEmpty || trimmedName == entry.name) {
     return;
   }
+  if (!context.mounted) {
+    return;
+  }
 
   _queueEntryOperation(
     context,
@@ -208,6 +211,9 @@ Future<void> _confirmDelete(
   );
 
   if (confirmed ?? false) {
+    if (!context.mounted) {
+      return;
+    }
     _queueEntryOperation(context, ref, entry, TransferOperation.delete);
   }
 }

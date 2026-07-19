@@ -37,6 +37,7 @@ class LocalTransferExecutor implements TransferExecutor {
           await _copyPath(
             sourcePath,
             _destinationChildPath(sourcePath, destinationRoot),
+            task: task,
             onBytes: (bytes) {
               transferredBytes += bytes;
               report(sourcePath);
@@ -47,6 +48,7 @@ class LocalTransferExecutor implements TransferExecutor {
           await _movePath(
             sourcePath,
             _destinationChildPath(sourcePath, destinationRoot),
+            task: task,
             onBytes: (bytes) {
               transferredBytes += bytes;
               report(sourcePath);
@@ -59,7 +61,7 @@ class LocalTransferExecutor implements TransferExecutor {
           report(sourcePath);
         case TransferOperation.rename:
           final destinationPath = _requireDestination(task);
-          await _renamePath(sourcePath, destinationPath);
+          await _renamePath(sourcePath, destinationPath, task: task);
           transferredBytes = totalBytes == 0 ? 1 : totalBytes;
           report(sourcePath);
       }
@@ -107,30 +109,55 @@ class LocalTransferExecutor implements TransferExecutor {
   Future<void> _copyPath(
     String sourcePath,
     String destinationPath, {
+    required TransferTask task,
+    required void Function(int bytes) onBytes,
+  }) async {
+    final targetPath = await _resolveDestinationPath(
+      destinationPath,
+      task: task,
+    );
+    if (targetPath == null) {
+      onBytes(await _progressBytes(sourcePath));
+      return;
+    }
+
+    await _copyPathIntoAvailableTarget(
+      sourcePath,
+      targetPath,
+      onBytes: onBytes,
+    );
+  }
+
+  Future<void> _copyPathIntoAvailableTarget(
+    String sourcePath,
+    String destinationPath, {
     required void Function(int bytes) onBytes,
   }) async {
     final type = await FileSystemEntity.type(sourcePath, followLinks: false);
     if (type == FileSystemEntityType.file) {
-      await _copyFile(sourcePath, destinationPath, onBytes: onBytes);
+      await _copyFileIntoAvailableTarget(
+        sourcePath,
+        destinationPath,
+        onBytes: onBytes,
+      );
       return;
     }
     if (type == FileSystemEntityType.directory) {
-      await _copyDirectory(sourcePath, destinationPath, onBytes: onBytes);
+      await _copyDirectoryIntoAvailableTarget(
+        sourcePath,
+        destinationPath,
+        onBytes: onBytes,
+      );
       return;
     }
     throw FileSystemException('Source path not found', sourcePath);
   }
 
-  Future<void> _copyFile(
+  Future<void> _copyFileIntoAvailableTarget(
     String sourcePath,
     String destinationPath, {
     required void Function(int bytes) onBytes,
   }) async {
-    if (await FileSystemEntity.type(destinationPath, followLinks: false) !=
-        FileSystemEntityType.notFound) {
-      throw FileSystemException('Destination already exists', destinationPath);
-    }
-
     await Directory(p.dirname(destinationPath)).create(recursive: true);
     final input = File(sourcePath).openRead();
     final output = File(destinationPath).openWrite();
@@ -144,16 +171,11 @@ class LocalTransferExecutor implements TransferExecutor {
     }
   }
 
-  Future<void> _copyDirectory(
+  Future<void> _copyDirectoryIntoAvailableTarget(
     String sourcePath,
     String destinationPath, {
     required void Function(int bytes) onBytes,
   }) async {
-    if (await FileSystemEntity.type(destinationPath, followLinks: false) !=
-        FileSystemEntityType.notFound) {
-      throw FileSystemException('Destination already exists', destinationPath);
-    }
-
     await Directory(destinationPath).create(recursive: true);
     await for (final entity
         in Directory(sourcePath).list(recursive: true, followLinks: false)) {
@@ -162,7 +184,11 @@ class LocalTransferExecutor implements TransferExecutor {
       if (entity is Directory) {
         await Directory(targetPath).create(recursive: true);
       } else if (entity is File) {
-        await _copyFile(entity.path, targetPath, onBytes: onBytes);
+        await _copyFileIntoAvailableTarget(
+          entity.path,
+          targetPath,
+          onBytes: onBytes,
+        );
       }
     }
   }
@@ -170,23 +196,49 @@ class LocalTransferExecutor implements TransferExecutor {
   Future<void> _movePath(
     String sourcePath,
     String destinationPath, {
+    required TransferTask task,
     required void Function(int bytes) onBytes,
   }) async {
+    final targetPath = await _resolveDestinationPath(
+      destinationPath,
+      task: task,
+    );
+    if (targetPath == null) {
+      onBytes(await _progressBytes(sourcePath));
+      return;
+    }
+
+    final movedBytes = await _progressBytes(sourcePath);
     try {
-      await _renamePath(sourcePath, destinationPath);
-      onBytes(await _pathSize(destinationPath));
+      await _renamePathIntoAvailableTarget(sourcePath, targetPath);
+      onBytes(movedBytes);
     } on FileSystemException {
-      await _copyPath(sourcePath, destinationPath, onBytes: onBytes);
+      await _copyPathIntoAvailableTarget(sourcePath, targetPath,
+          onBytes: onBytes);
       await _deletePath(sourcePath);
     }
   }
 
-  Future<void> _renamePath(String sourcePath, String destinationPath) async {
-    if (await FileSystemEntity.type(destinationPath, followLinks: false) !=
-        FileSystemEntityType.notFound) {
-      throw FileSystemException('Destination already exists', destinationPath);
+  Future<void> _renamePath(
+    String sourcePath,
+    String destinationPath, {
+    required TransferTask task,
+  }) async {
+    final targetPath = await _resolveDestinationPath(
+      destinationPath,
+      task: task,
+    );
+    if (targetPath == null) {
+      return;
     }
 
+    await _renamePathIntoAvailableTarget(sourcePath, targetPath);
+  }
+
+  Future<void> _renamePathIntoAvailableTarget(
+    String sourcePath,
+    String destinationPath,
+  ) async {
     await Directory(p.dirname(destinationPath)).create(recursive: true);
     final type = await FileSystemEntity.type(sourcePath, followLinks: false);
     if (type == FileSystemEntityType.file) {
@@ -198,6 +250,56 @@ class LocalTransferExecutor implements TransferExecutor {
       return;
     }
     throw FileSystemException('Source path not found', sourcePath);
+  }
+
+  Future<String?> _resolveDestinationPath(
+    String destinationPath, {
+    required TransferTask task,
+  }) async {
+    if (!await _exists(destinationPath)) {
+      return destinationPath;
+    }
+
+    return switch (task.conflictPolicy) {
+      ConflictPolicy.ask => throw TransferExecutionException(
+          code: TransferFailureCode.destinationExists,
+          message: 'Destination already exists',
+          path: destinationPath,
+        ),
+      ConflictPolicy.overwrite => await _overwriteDestination(destinationPath),
+      ConflictPolicy.skip => null,
+      ConflictPolicy.rename => await _uniquePath(destinationPath),
+    };
+  }
+
+  Future<String> _overwriteDestination(String destinationPath) async {
+    await _deletePath(destinationPath);
+    return destinationPath;
+  }
+
+  Future<String> _uniquePath(String destinationPath) async {
+    final directory = p.dirname(destinationPath);
+    final extension = p.extension(destinationPath);
+    final baseName = p.basenameWithoutExtension(destinationPath);
+
+    var sequence = 1;
+    while (true) {
+      final candidate = p.join(directory, '$baseName ($sequence)$extension');
+      if (!await _exists(candidate)) {
+        return candidate;
+      }
+      sequence += 1;
+    }
+  }
+
+  Future<bool> _exists(String path) async {
+    return await FileSystemEntity.type(path, followLinks: false) !=
+        FileSystemEntityType.notFound;
+  }
+
+  Future<int> _progressBytes(String path) async {
+    final bytes = await _pathSize(path);
+    return bytes == 0 ? 1 : bytes;
   }
 
   Future<void> _deletePath(String path) async {

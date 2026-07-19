@@ -18,8 +18,8 @@ void main() {
     );
 
     expect(task.status, TransferTaskStatus.awaitingDestination);
-    expect(controller.debugState.awaitingDestinationTask?.id, task.id);
-    expect(controller.debugState.pendingCount, 1);
+    expect(controller.state.awaitingDestinationTask?.id, task.id);
+    expect(controller.state.pendingCount, 1);
     expect(executor.startedTaskIds, isEmpty);
 
     controller.setDestination(
@@ -28,7 +28,7 @@ void main() {
     );
     await _pumpEventQueue();
 
-    final runningTask = controller.debugState.tasks.single;
+    final runningTask = controller.state.tasks.single;
     expect(runningTask.status, TransferTaskStatus.running);
     expect(runningTask.destinationPath, '/storage/emulated/0/Download');
     expect(executor.startedTaskIds, [task.id]);
@@ -47,11 +47,11 @@ void main() {
 
     await _pumpEventQueue();
 
-    final completedTask = controller.debugState.tasks.single;
+    final completedTask = controller.state.tasks.single;
     expect(completedTask.id, task.id);
     expect(completedTask.status, TransferTaskStatus.completed);
     expect(completedTask.progress.fraction, 1);
-    expect(controller.debugState.finishedCount, 1);
+    expect(controller.state.finishedCount, 1);
   });
 
   test('cancels pending work and clear finished removes it', () async {
@@ -68,13 +68,13 @@ void main() {
     await _pumpEventQueue();
 
     expect(
-      controller.debugState.tasks.single.status,
+      controller.state.tasks.single.status,
       TransferTaskStatus.cancelled,
     );
 
     controller.clearFinished();
 
-    expect(controller.debugState.tasks, isEmpty);
+    expect(controller.state.tasks, isEmpty);
   });
 
   test('retries failed tasks without keeping old failure message', () async {
@@ -87,17 +87,46 @@ void main() {
     );
 
     await _pumpEventQueue();
-    expect(
-        controller.debugState.tasks.single.status, TransferTaskStatus.failed);
-    expect(controller.debugState.tasks.single.failureMessage, contains('Nope'));
+    expect(controller.state.tasks.single.status, TransferTaskStatus.failed);
+    expect(controller.state.tasks.single.failureMessage, contains('Nope'));
 
     executor.shouldFail = false;
     controller.retry(task.id);
     await _pumpEventQueue();
 
-    final retriedTask = controller.debugState.tasks.single;
+    final retriedTask = controller.state.tasks.single;
     expect(retriedTask.status, TransferTaskStatus.completed);
     expect(retriedTask.failureMessage, isNull);
+  });
+
+  test('resolves destination conflict with selected policy', () async {
+    final executor = _ConflictTransferExecutor();
+    final controller = TransferController(executor);
+    final task = controller.queueOperation(
+      operation: TransferOperation.rename,
+      sourcePaths: const ['/storage/emulated/0/file.txt'],
+      displayName: 'file.txt',
+      destinationPath: '/storage/emulated/0/existing.txt',
+    );
+
+    await _pumpEventQueue();
+
+    final failedTask = controller.state.tasks.single;
+    expect(failedTask.status, TransferTaskStatus.failed);
+    expect(failedTask.failureCode, TransferFailureCode.destinationExists);
+
+    controller.resolveConflict(
+      taskId: task.id,
+      policy: ConflictPolicy.overwrite,
+    );
+    await _pumpEventQueue();
+
+    final resolvedTask = controller.state.tasks.single;
+    expect(resolvedTask.status, TransferTaskStatus.completed);
+    expect(resolvedTask.conflictPolicy, ConflictPolicy.overwrite);
+    expect(resolvedTask.failureMessage, isNull);
+    expect(resolvedTask.failureCode, isNull);
+    expect(executor.policies, [ConflictPolicy.ask, ConflictPolicy.overwrite]);
   });
 }
 
@@ -159,6 +188,25 @@ class _FailingTransferExecutor implements TransferExecutor {
   }) async {
     if (shouldFail) {
       throw Exception('Nope');
+    }
+  }
+}
+
+class _ConflictTransferExecutor implements TransferExecutor {
+  final policies = <ConflictPolicy>[];
+
+  @override
+  Future<void> execute(
+    TransferTask task, {
+    required TransferProgressCallback onProgress,
+  }) async {
+    policies.add(task.conflictPolicy);
+    if (task.conflictPolicy == ConflictPolicy.ask) {
+      throw const TransferExecutionException(
+        code: TransferFailureCode.destinationExists,
+        message: 'Destination already exists',
+        path: '/storage/emulated/0/existing.txt',
+      );
     }
   }
 }

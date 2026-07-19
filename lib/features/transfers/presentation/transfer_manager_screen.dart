@@ -166,6 +166,11 @@ class _TransferTaskTile extends StatelessWidget {
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
+              if (task.failureCode ==
+                  TransferFailureCode.destinationExists) ...[
+                const SizedBox(height: 8),
+                _ConflictActions(task: task, controller: controller),
+              ],
               const SizedBox(height: 8),
               LinearProgressIndicator(value: task.progress.fraction),
             ],
@@ -201,6 +206,9 @@ class _TransferTaskActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (task.failureCode == TransferFailureCode.destinationExists) {
+      return const SizedBox.square(dimension: 48);
+    }
     if (task.canRetry) {
       return IconButton(
         tooltip: 'Retry',
@@ -216,6 +224,50 @@ class _TransferTaskActions extends StatelessWidget {
       );
     }
     return const SizedBox.square(dimension: 48);
+  }
+}
+
+class _ConflictActions extends StatelessWidget {
+  const _ConflictActions({
+    required this.task,
+    required this.controller,
+  });
+
+  final TransferTask task;
+  final TransferController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        OutlinedButton.icon(
+          onPressed: () => controller.resolveConflict(
+            taskId: task.id,
+            policy: ConflictPolicy.skip,
+          ),
+          icon: const Icon(Icons.skip_next_rounded),
+          label: const Text('Skip'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => controller.resolveConflict(
+            taskId: task.id,
+            policy: ConflictPolicy.overwrite,
+          ),
+          icon: const Icon(Icons.find_replace_rounded),
+          label: const Text('Replace'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => controller.resolveConflict(
+            taskId: task.id,
+            policy: ConflictPolicy.rename,
+          ),
+          icon: const Icon(Icons.copy_rounded),
+          label: const Text('Keep both'),
+        ),
+      ],
+    );
   }
 }
 
