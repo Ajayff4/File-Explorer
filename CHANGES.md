@@ -134,6 +134,10 @@ Progress log for the Flutter application.
   - Later searches reuse the stored index instead of walking storage again.
   - Search UI now shows an indexing state during first index build.
   - Added test coverage for index reuse.
+- Added manual search reindex controls:
+  - Search screen now exposes a reindex action.
+  - Reindex clears the current scope index and rebuilds it from storage.
+  - Added test coverage for clearing stale indexed results.
 
 ### Verified
 
@@ -148,5 +152,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add search index invalidation and manual reindex controls.
+- Add automatic search index invalidation after completed transfer operations.
 - Continue UI polish using reference screenshots.

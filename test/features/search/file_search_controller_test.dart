@@ -108,6 +108,30 @@ void main() {
     );
   });
 
+  test('manual reindex clears stale index and rebuilds', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [_file('old.txt', '/root/old.txt')],
+    });
+    final indexStore = InMemorySearchIndexStore();
+    final controller = FileSearchController(
+      repository,
+      indexStore: indexStore,
+    );
+
+    await controller.searchNow(query: 'old', rootPath: '/root');
+    repository.replaceEntries('/root', [_file('new.txt', '/root/new.txt')]);
+
+    await controller.searchNow(query: 'new', rootPath: '/root');
+    expect(controller.state.results, isEmpty);
+
+    await controller.reindex(rootPath: '/root');
+
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      ['/root/new.txt'],
+    );
+  });
+
   test('slow stale search cannot replace newer results', () async {
     final repository = _DelayedStorageRepository();
     final controller = FileSearchController(repository);
@@ -179,6 +203,10 @@ class _TreeStorageRepository implements StorageRepository {
       path: path,
       entries: _entriesByPath[path] ?? const [],
     );
+  }
+
+  void replaceEntries(String path, List<FileSystemEntry> entries) {
+    _entriesByPath[path] = entries;
   }
 }
 

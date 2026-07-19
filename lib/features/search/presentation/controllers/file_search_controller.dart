@@ -145,6 +145,33 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     return searchNow(query: state.query, rootPath: rootPath);
   }
 
+  Future<void> reindex({
+    required String rootPath,
+  }) async {
+    _debounceTimer?.cancel();
+    _requestSequence += 1;
+    final query = state.query.trim();
+    state = state.copyWith(
+      rootPath: rootPath,
+      isSearching: query.isNotEmpty,
+      isIndexing: true,
+      results: query.isEmpty ? const [] : state.results,
+      clearError: true,
+    );
+
+    final indexStore = _indexStore;
+    if (indexStore != null) {
+      await indexStore.clearIndex(rootPath);
+    }
+
+    if (query.isEmpty) {
+      state = state.copyWith(isSearching: false, isIndexing: false);
+      return;
+    }
+
+    await _runSearch(query, rootPath);
+  }
+
   Future<void> _runSearch(String query, String rootPath) async {
     final requestId = ++_requestSequence;
     final filteredTypes = state.filteredTypes;

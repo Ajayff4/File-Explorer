@@ -6,14 +6,21 @@ Package/application ID: `com.ajayff4.fileexplorer`
 
 ## Current Status
 
-The project currently contains the first app foundation:
+The project now has a usable early file-manager vertical slice:
 
 - Responsive app shell with mobile bottom navigation and desktop/tablet navigation rail.
-- Home dashboard.
-- Explorer screen with list/grid toggle.
-- Transfers screen placeholder.
+- Home dashboard with storage summary, shortcuts, favorites, and recent folders.
+- Explorer screen with real local/Android storage browsing where permissions allow it.
+- List/grid view toggle, breadcrumb, storage selector, refresh, and folder navigation.
+- Android storage permission card and native Android storage volume discovery.
+- Transfer queue for copy, move, rename, and delete.
+- Copy/move destination picker with `Paste here`.
+- Transfer conflict actions: `Skip`, `Replace`, and `Keep both`.
+- Persistent transfer queue/history with Drift.
+- Persistent favorite folders and recent folders.
+- Search screen with current/storage scope, type filters, and persisted search index.
 - Settings screen placeholder.
-- Fake storage data for UI development before native filesystem integration.
+- Fake storage fallback for web and unsupported environments.
 
 ## Requirements
 
@@ -97,6 +104,38 @@ If multiple Android devices are connected:
 ```bash
 flutter devices
 flutter run -d <device-id>
+```
+
+For your connected phone, the command usually looks like:
+
+```bash
+flutter devices
+flutter run -d HAL7EAPNFULJZPUG
+```
+
+Detach from the terminal while leaving the app running:
+
+```text
+d
+```
+
+Quit the running app session:
+
+```text
+q
+```
+
+Build and install a debug APK on a connected phone:
+
+```bash
+flutter build apk --debug
+flutter install -d <device-id> --use-application-binary build/app/outputs/flutter-apk/app-debug.apk
+```
+
+Launch the installed app from terminal:
+
+```bash
+adb -s <device-id> shell monkey -p com.ajayff4.fileexplorer 1
 ```
 
 If Android builds fail because SDK licenses are not accepted, run:
@@ -185,9 +224,9 @@ flutter test
 
 ## Code Generation
 
-Drift and `build_runner` are already added for the upcoming local metadata database.
+Drift and `build_runner` are used for the local metadata database.
 
-Run generators when generated files are introduced:
+Run generators after Drift schema/table changes:
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
@@ -209,9 +248,14 @@ lib/
     theme/
   features/
     explorer/
+    favorites/
     home/
+    recents/
+    search/
     settings/
     transfers/
+  shared/
+    database/
 ```
 
-The codebase is organized feature-first so platform storage, transfer engine, and settings work can grow without turning `lib/` into one large shared folder.
+The codebase is organized feature-first so platform storage, transfer engine, search, settings, and future tools can grow without turning `lib/` into one large shared folder.
