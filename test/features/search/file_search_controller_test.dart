@@ -42,6 +42,42 @@ void main() {
     expect(controller.state.isSearching, isFalse);
   });
 
+  test('filters results by selected file types', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('Docs', '/root/Docs'),
+        _file('report.txt', '/root/report.txt'),
+        _image('report.png', '/root/report.png'),
+      ],
+    });
+    final controller = FileSearchController(repository);
+
+    await controller.searchNow(query: 'report', rootPath: '/root');
+    await controller.setFilteredTypes(
+      filteredTypes: const {FileSystemEntryType.document},
+      rootPath: '/root',
+    );
+
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      ['/root/report.txt'],
+    );
+  });
+
+  test('uses provided root path as search scope', () async {
+    final repository = _TreeStorageRepository({
+      '/current': [_file('report.txt', '/current/report.txt')],
+      '/storage': [_file('report.txt', '/storage/report.txt')],
+    });
+    final controller = FileSearchController(repository);
+
+    await controller.searchNow(query: 'report', rootPath: '/storage');
+
+    expect(repository.listedPaths, ['/storage']);
+    expect(controller.state.rootPath, '/storage');
+    expect(controller.state.results.single.entry.path, '/storage/report.txt');
+  });
+
   test('slow stale search cannot replace newer results', () async {
     final repository = _DelayedStorageRepository();
     final controller = FileSearchController(repository);
@@ -80,10 +116,21 @@ FileSystemEntry _file(String name, String path) {
   );
 }
 
+FileSystemEntry _image(String name, String path) {
+  return FileSystemEntry(
+    name: name,
+    path: path,
+    type: FileSystemEntryType.image,
+    modifiedAt: DateTime(2026),
+    sizeBytes: 42,
+  );
+}
+
 class _TreeStorageRepository implements StorageRepository {
-  const _TreeStorageRepository(this._entriesByPath);
+  _TreeStorageRepository(this._entriesByPath);
 
   final Map<String, List<FileSystemEntry>> _entriesByPath;
+  final listedPaths = <String>[];
 
   @override
   Future<List<StorageVolume>> getStorageVolumes() async {
@@ -97,6 +144,7 @@ class _TreeStorageRepository implements StorageRepository {
 
   @override
   Future<DirectoryListing> listDirectory(String path) async {
+    listedPaths.add(path);
     return DirectoryListing(
       path: path,
       entries: _entriesByPath[path] ?? const [],

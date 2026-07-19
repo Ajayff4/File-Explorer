@@ -18,6 +18,7 @@ class FileSearchState {
   const FileSearchState({
     this.query = '',
     this.rootPath = '',
+    this.filteredTypes = const {},
     this.results = const [],
     this.isSearching = false,
     this.error,
@@ -25,6 +26,7 @@ class FileSearchState {
 
   final String query;
   final String rootPath;
+  final Set<FileSystemEntryType> filteredTypes;
   final List<SearchResult> results;
   final bool isSearching;
   final Object? error;
@@ -34,6 +36,7 @@ class FileSearchState {
   FileSearchState copyWith({
     String? query,
     String? rootPath,
+    Set<FileSystemEntryType>? filteredTypes,
     List<SearchResult>? results,
     bool? isSearching,
     Object? error,
@@ -42,6 +45,7 @@ class FileSearchState {
     return FileSearchState(
       query: query ?? this.query,
       rootPath: rootPath ?? this.rootPath,
+      filteredTypes: filteredTypes ?? this.filteredTypes,
       results: results ?? this.results,
       isSearching: isSearching ?? this.isSearching,
       error: clearError ? null : error ?? this.error,
@@ -113,12 +117,26 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     return _runSearch(trimmedQuery, rootPath);
   }
 
+  Future<void> setFilteredTypes({
+    required Set<FileSystemEntryType> filteredTypes,
+    required String rootPath,
+  }) {
+    final copiedTypes = Set<FileSystemEntryType>.unmodifiable(filteredTypes);
+    state = state.copyWith(
+      rootPath: rootPath,
+      filteredTypes: copiedTypes,
+      clearError: true,
+    );
+    return searchNow(query: state.query, rootPath: rootPath);
+  }
+
   Future<void> _runSearch(String query, String rootPath) async {
     final requestId = ++_requestSequence;
     try {
       final results = await _searchDirectory(
         query.toLowerCase(),
         rootPath,
+        filteredTypes: state.filteredTypes,
         depth: 0,
         visitedPaths: <String>{},
       );
@@ -146,6 +164,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
   Future<List<SearchResult>> _searchDirectory(
     String query,
     String path, {
+    required Set<FileSystemEntryType> filteredTypes,
     required int depth,
     required Set<String> visitedPaths,
   }) async {
@@ -158,7 +177,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     final results = <SearchResult>[];
 
     for (final entry in listing.entries) {
-      if (_matches(entry, query)) {
+      if (_matches(entry, query, filteredTypes)) {
         results.add(
           SearchResult(
             entry: entry,
@@ -181,6 +200,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           await _searchDirectory(
             query,
             folder.path,
+            filteredTypes: filteredTypes,
             depth: depth + 1,
             visitedPaths: visitedPaths,
           ),
@@ -195,7 +215,14 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         : results;
   }
 
-  bool _matches(FileSystemEntry entry, String query) {
+  bool _matches(
+    FileSystemEntry entry,
+    String query,
+    Set<FileSystemEntryType> filteredTypes,
+  ) {
+    if (filteredTypes.isNotEmpty && !filteredTypes.contains(entry.type)) {
+      return false;
+    }
     return entry.name.toLowerCase().contains(query) ||
         entry.path.toLowerCase().contains(query);
   }

@@ -121,6 +121,12 @@ Progress log for the Flutter application.
   - Slow stale searches cannot overwrite newer query results.
   - Result taps open folders directly or open the parent folder for files.
   - Added tests for matching, sorting, clearing, and stale search cancellation.
+- Added search filters and scope polish:
+  - Added current folder vs storage root scope selector.
+  - Added type filter chips for folders, images, videos, audio, documents, archives, and apps.
+  - Added result count header.
+  - Improved loading state from a bare progress bar to a list tile state.
+  - Added tests for type filters and explicit search scope.
 
 ### Verified
 
@@ -135,5 +141,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add search filters and indexed search persistence.
+- Add indexed search persistence.
 - Continue UI polish using reference screenshots.
