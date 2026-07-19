@@ -112,6 +112,15 @@ Progress log for the Flutter application.
   - Explorer now records successfully opened folders.
   - Home recent section now shows persisted folder history instead of current directory entries.
   - Added tests for recent loading, deduping, open counts, remove/clear, sorting, and Explorer recording.
+- Added search foundation:
+  - Added Search route and screen.
+  - Added debounced file search controller.
+  - Search traverses the current folder tree through `StorageRepository`.
+  - Search matches file/folder names and paths.
+  - Search uses result/depth caps and ignores unreadable folders.
+  - Slow stale searches cannot overwrite newer query results.
+  - Result taps open folders directly or open the parent folder for files.
+  - Added tests for matching, sorting, clearing, and stale search cancellation.
 
 ### Verified
 
@@ -126,5 +135,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add search/indexing foundation.
+- Add search filters and indexed search persistence.
 - Continue UI polish using reference screenshots.

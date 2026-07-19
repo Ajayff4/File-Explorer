@@ -1,5 +1,6 @@
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
+import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:flutter/material.dart';
@@ -22,6 +23,10 @@ final appRouter = GoRouter(
           builder: (context, state) => const ExplorerScreen(),
         ),
         GoRoute(
+          path: AppRoutes.search,
+          builder: (context, state) => const SearchScreen(),
+        ),
+        GoRoute(
           path: AppRoutes.transfers,
           builder: (context, state) => const TransferManagerScreen(),
         ),
@@ -39,6 +44,7 @@ class AppRoutes {
 
   static const home = '/';
   static const explorer = '/explorer';
+  static const search = '/search';
   static const transfers = '/transfers';
   static const settings = '/settings';
 }
@@ -136,6 +142,9 @@ class AppShell extends StatelessWidget {
 
   int _selectedIndex(String location) {
     if (location.startsWith(AppRoutes.explorer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.search)) {
       return 1;
     }
     if (location.startsWith(AppRoutes.transfers)) {

@@ -27,7 +27,7 @@ class HomeScreen extends ConsumerWidget {
           actions: [
             IconButton(
               tooltip: 'Search',
-              onPressed: () {},
+              onPressed: () => context.go(AppRoutes.search),
               icon: const Icon(Icons.search_rounded),
             ),
             IconButton(

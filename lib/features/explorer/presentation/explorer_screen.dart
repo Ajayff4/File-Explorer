@@ -1,3 +1,4 @@
+import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
@@ -10,6 +11,7 @@ import 'package:file_explorer/features/transfers/presentation/transfer_visuals.d
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 final explorerViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
@@ -71,6 +73,11 @@ class ExplorerScreen extends ConsumerWidget {
           loading: () => const Text('Files'),
         ),
         actions: [
+          IconButton(
+            tooltip: 'Search',
+            onPressed: () => context.go(AppRoutes.search),
+            icon: const Icon(Icons.search_rounded),
+          ),
           IconButton(
             tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
             onPressed: () {
