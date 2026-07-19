@@ -78,6 +78,24 @@ class DriftSearchIndexStore implements SearchIndexStore {
         .go();
   }
 
+  @override
+  Future<void> clearIndexesForPaths(List<String> paths) async {
+    if (paths.isEmpty) {
+      return;
+    }
+
+    final rows = await _database.select(_database.searchIndexEntryRows).get();
+    final rootPaths = {
+      for (final row in rows)
+        if (paths.any((path) => _pathsOverlap(row.rootPath, path)))
+          row.rootPath,
+    };
+
+    for (final rootPath in rootPaths) {
+      await clearIndex(rootPath);
+    }
+  }
+
   SearchResult _toSearchResult(SearchIndexEntryRow row) {
     return SearchResult(
       parentPath: row.parentPath,
@@ -123,5 +141,19 @@ class DriftSearchIndexStore implements SearchIndexStore {
     }
     return row.name.toLowerCase().contains(query) ||
         row.path.toLowerCase().contains(query);
+  }
+
+  bool _pathsOverlap(String left, String right) {
+    if (left == right) {
+      return true;
+    }
+    return _isChildPath(left, right) || _isChildPath(right, left);
+  }
+
+  bool _isChildPath(String parent, String child) {
+    if (parent == '/') {
+      return child.startsWith('/');
+    }
+    return child.startsWith('$parent/');
   }
 }

@@ -17,4 +17,6 @@ abstract interface class SearchIndexStore {
   });
 
   Future<void> clearIndex(String rootPath);
+
+  Future<void> clearIndexesForPaths(List<String> paths);
 }

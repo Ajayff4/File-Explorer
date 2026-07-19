@@ -138,6 +138,10 @@ Progress log for the Flutter application.
   - Search screen now exposes a reindex action.
   - Reindex clears the current scope index and rebuilds it from storage.
   - Added test coverage for clearing stale indexed results.
+- Added automatic search index invalidation:
+  - Search index stores can clear indexes that overlap changed paths.
+  - App root listens for completed transfer tasks and invalidates affected search indexes.
+  - Added test coverage for transfer-driven index invalidation.
 
 ### Verified
 
@@ -152,5 +156,5 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add automatic search index invalidation after completed transfer operations.
+- Add settings implementation for search, transfers, explorer display, and history.
 - Continue UI polish using reference screenshots.

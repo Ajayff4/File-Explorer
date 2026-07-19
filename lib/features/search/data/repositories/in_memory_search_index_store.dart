@@ -39,6 +39,16 @@ class InMemorySearchIndexStore implements SearchIndexStore {
     _entriesByRoot.remove(rootPath);
   }
 
+  @override
+  Future<void> clearIndexesForPaths(List<String> paths) async {
+    if (paths.isEmpty) {
+      return;
+    }
+    _entriesByRoot.removeWhere(
+      (rootPath, entries) => paths.any((path) => _pathsOverlap(rootPath, path)),
+    );
+  }
+
   bool _matches(
     FileSystemEntry entry,
     String query,
@@ -49,5 +59,19 @@ class InMemorySearchIndexStore implements SearchIndexStore {
     }
     return entry.name.toLowerCase().contains(query) ||
         entry.path.toLowerCase().contains(query);
+  }
+
+  bool _pathsOverlap(String left, String right) {
+    if (left == right) {
+      return true;
+    }
+    return _isChildPath(left, right) || _isChildPath(right, left);
+  }
+
+  bool _isChildPath(String parent, String child) {
+    if (parent == '/') {
+      return child.startsWith('/');
+    }
+    return child.startsWith('$parent/');
   }
 }
