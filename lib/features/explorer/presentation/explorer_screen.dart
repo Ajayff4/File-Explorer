@@ -2,6 +2,7 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
+import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
@@ -20,6 +21,10 @@ final explorerViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
   return ExplorerViewMode.list;
 });
 
+final explorerSortOptionProvider = StateProvider<ExplorerSortOption>((ref) {
+  return ExplorerSortOption.nameAscending;
+});
+
 enum ExplorerViewMode { list, grid }
 
 class ExplorerScreen extends ConsumerWidget {
@@ -29,6 +34,7 @@ class ExplorerScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final viewMode = ref.watch(explorerViewModeProvider);
+    final sortOption = ref.watch(explorerSortOptionProvider);
     final listing = explorerState.listing;
     final permission = explorerState.permission;
     final selectedVolume = _selectedVolumeFor(explorerState);
@@ -100,6 +106,7 @@ class ExplorerScreen extends ConsumerWidget {
             },
             icon: const Icon(Icons.refresh_rounded),
           ),
+          _SortMenu(selectedOption: sortOption),
           SegmentedButton<ExplorerViewMode>(
             segments: const [
               ButtonSegment(
@@ -154,9 +161,12 @@ class ExplorerScreen extends ConsumerWidget {
 
                 return listing.when(
                   data: (directoryListing) {
-                    final entries = visibleExplorerEntries(
-                      directoryListing.entries,
-                      showHiddenFiles: settings.showHiddenFiles,
+                    final entries = sortExplorerEntries(
+                      visibleExplorerEntries(
+                        directoryListing.entries,
+                        showHiddenFiles: settings.showHiddenFiles,
+                      ),
+                      option: sortOption,
                     );
                     if (entries.isEmpty) {
                       return const _EmptyDirectory();
@@ -188,6 +198,34 @@ class ExplorerScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _SortMenu extends ConsumerWidget {
+  const _SortMenu({required this.selectedOption});
+
+  final ExplorerSortOption selectedOption;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopupMenuButton<ExplorerSortOption>(
+      tooltip: 'Sort',
+      icon: const Icon(Icons.sort_rounded),
+      initialValue: selectedOption,
+      onSelected: (option) {
+        ref.read(explorerSortOptionProvider.notifier).state = option;
+      },
+      itemBuilder: (context) {
+        return [
+          for (final option in ExplorerSortOption.values)
+            CheckedPopupMenuItem<ExplorerSortOption>(
+              value: option,
+              checked: option == selectedOption,
+              child: Text(option.label),
+            ),
+        ];
+      },
     );
   }
 }

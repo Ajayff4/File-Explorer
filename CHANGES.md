@@ -158,6 +158,11 @@ Progress log for the Flutter application.
   - Added `isFolder` to recent history persistence with Drift schema version 6 migration.
   - Search result taps can record file recents when file history is enabled.
   - Added tests for explorer entry filtering and file recent recording.
+- Added Explorer sorting:
+  - Added a shared `sortExplorerEntries` helper for folder-first sorting.
+  - Added sort options for name, modified date, size, and type.
+  - Added an Explorer app bar sort menu shared by list and grid views.
+  - Added tests for name, size, and modified-date ordering.
 
 ### Verified
 
