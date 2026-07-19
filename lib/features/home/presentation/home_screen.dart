@@ -1,6 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
-import 'package:file_explorer/features/explorer/data/fake/fake_storage_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,8 +11,9 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final summary = ref.watch(storageSummaryProvider);
-    final recentEntries = ref.watch(recentEntriesProvider);
+    final explorerState = ref.watch(explorerControllerProvider);
+    final summary = explorerState.summary.valueOrNull;
+    final recentEntries = explorerState.listing.valueOrNull?.entries ?? [];
 
     return CustomScrollView(
       slivers: [
@@ -44,7 +46,19 @@ class HomeScreen extends ConsumerWidget {
                 onPressed: () => context.go(AppRoutes.explorer),
               ),
               const SizedBox(height: 8),
-              ...recentEntries.map((entry) => _RecentEntryTile(entry: entry)),
+              if (explorerState.listing.isLoading)
+                const LinearProgressIndicator()
+              else if (explorerState.listing.hasError)
+                _InlineError(
+                  message: 'Could not load storage',
+                  onRetry: () {
+                    ref.read(explorerControllerProvider.notifier).refresh();
+                  },
+                )
+              else
+                ...recentEntries.take(5).map(
+                      (entry) => _RecentEntryTile(entry: entry),
+                    ),
             ],
           ),
         ),
@@ -56,11 +70,12 @@ class HomeScreen extends ConsumerWidget {
 class _StoragePanel extends StatelessWidget {
   const _StoragePanel({required this.summary});
 
-  final StorageSummary summary;
+  final StorageSummary? summary;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final storageSummary = summary;
 
     return Card(
       child: Padding(
@@ -74,12 +89,14 @@ class _StoragePanel extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    summary.label,
+                    storageSummary?.label ?? 'Storage',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                 ),
                 Text(
-                  _formatBytes(summary.freeBytes),
+                  storageSummary == null
+                      ? 'Loading'
+                      : '${formatBytes(storageSummary.freeBytes)} free',
                   style: Theme.of(context).textTheme.labelLarge,
                 ),
               ],
@@ -88,14 +105,16 @@ class _StoragePanel extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
-                value: summary.usedFraction,
+                value: storageSummary?.usedFraction,
                 minHeight: 10,
                 backgroundColor: colors.surfaceContainerHighest,
               ),
             ),
             const SizedBox(height: 10),
             Text(
-              '${_formatBytes(summary.usedBytes)} used of ${_formatBytes(summary.totalBytes)}',
+              storageSummary == null
+                  ? 'Checking available storage'
+                  : '${formatBytes(storageSummary.usedBytes)} used of ${formatBytes(storageSummary.totalBytes)}',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
           ],
@@ -213,7 +232,31 @@ class _RecentEntryTile extends StatelessWidget {
         trailing: Text(
           entry.isFolder
               ? '${entry.childrenCount ?? 0} items'
-              : _formatBytes(entry.sizeBytes ?? 0),
+              : formatBytes(entry.sizeBytes ?? 0),
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineError extends StatelessWidget {
+  const _InlineError({
+    required this.message,
+    required this.onRetry,
+  });
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.error_outline_rounded),
+        title: Text(message),
+        trailing: TextButton(
+          onPressed: onRetry,
+          child: const Text('Retry'),
         ),
       ),
     );
@@ -239,17 +282,4 @@ IconData _iconFor(FileSystemEntryType type) {
     FileSystemEntryType.app => Icons.apps_rounded,
     FileSystemEntryType.other => Icons.insert_drive_file_rounded,
   };
-}
-
-String _formatBytes(int bytes) {
-  if (bytes >= 1024 * 1024 * 1024) {
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
-  }
-  if (bytes >= 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-  if (bytes >= 1024) {
-    return '${(bytes / 1024).toStringAsFixed(1)} KB';
-  }
-  return '$bytes B';
 }

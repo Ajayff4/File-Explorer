@@ -43,3 +43,33 @@ class StorageSummary {
   double get usedFraction => usedBytes / totalBytes;
   int get freeBytes => totalBytes - usedBytes;
 }
+
+class StorageVolume {
+  const StorageVolume({
+    required this.id,
+    required this.label,
+    required this.path,
+    this.summary,
+    this.isPrimary = false,
+  });
+
+  final String id;
+  final String label;
+  final String path;
+  final StorageSummary? summary;
+  final bool isPrimary;
+}
+
+class DirectoryListing {
+  const DirectoryListing({
+    required this.path,
+    required this.entries,
+    this.volume,
+    this.generatedFromSampleData = false,
+  });
+
+  final String path;
+  final List<FileSystemEntry> entries;
+  final StorageVolume? volume;
+  final bool generatedFromSampleData;
+}

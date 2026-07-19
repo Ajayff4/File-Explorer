@@ -2,8 +2,8 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/app/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 
-class EsFileExplorerApp extends StatelessWidget {
-  const EsFileExplorerApp({super.key});
+class FileExplorerApp extends StatelessWidget {
+  const FileExplorerApp({super.key});
 
   @override
   Widget build(BuildContext context) {
