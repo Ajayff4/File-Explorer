@@ -72,6 +72,12 @@ Progress log for the Flutter application.
   - Shared transfer presentation helpers for operation icons and status colors.
   - Unit tests for transfer controller state transitions.
 - Updated `README.md` Android APK build commands to show explicit debug and release variants.
+- Added first transfer executor foundation:
+  - Transfer executor interface.
+  - Conditional fake/local executor provider.
+  - Local `dart:io` executor for copy, move, rename, and recursive delete.
+  - Controller auto-runs ready queued tasks and keeps copy/move waiting for destination.
+  - Tests for controller execution flow and local file operations.
 
 ### Verified
 
@@ -85,7 +91,8 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add transfer executor for real copy, move, rename, delete, and conflict handling.
+- Add destination picker and paste workflow for copy/move.
+- Add conflict handling UI and policies.
 - Add Drift database schema and generated code.
 - Persist transfer queue and transfer history.
 - Continue UI polish using reference screenshots.

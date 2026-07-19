@@ -1,9 +1,13 @@
+import 'dart:async';
+
+import 'package:file_explorer/features/transfers/data/repositories/transfer_executor_provider.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
+import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final transferControllerProvider =
     StateNotifierProvider<TransferController, TransferState>((ref) {
-  return TransferController();
+  return TransferController(ref.read(transferExecutorProvider));
 });
 
 class TransferState {
@@ -53,7 +57,10 @@ class TransferState {
 }
 
 class TransferController extends StateNotifier<TransferState> {
-  TransferController() : super(const TransferState());
+  TransferController(this._executor) : super(const TransferState());
+
+  final TransferExecutor _executor;
+  final Set<String> _runningTaskIds = {};
 
   int _nextSequence = 0;
 
@@ -78,6 +85,7 @@ class TransferController extends StateNotifier<TransferState> {
     );
 
     state = state.copyWith(tasks: [task, ...state.tasks]);
+    _startIfReady(task.id);
     return task;
   }
 
@@ -93,6 +101,7 @@ class TransferController extends StateNotifier<TransferState> {
         updatedAt: now,
       ),
     );
+    _startIfReady(taskId);
   }
 
   void markRunning(String taskId) {
@@ -111,6 +120,12 @@ class TransferController extends StateNotifier<TransferState> {
     int? totalBytes,
     String? currentItemPath,
   }) {
+    final currentTask = _taskById(taskId);
+    if (currentTask == null ||
+        currentTask.status == TransferTaskStatus.cancelled) {
+      return;
+    }
+
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(
@@ -126,6 +141,12 @@ class TransferController extends StateNotifier<TransferState> {
   }
 
   void complete(String taskId) {
+    final currentTask = _taskById(taskId);
+    if (currentTask == null ||
+        currentTask.status == TransferTaskStatus.cancelled) {
+      return;
+    }
+
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(
@@ -144,6 +165,12 @@ class TransferController extends StateNotifier<TransferState> {
     required String taskId,
     required String message,
   }) {
+    final currentTask = _taskById(taskId);
+    if (currentTask == null ||
+        currentTask.status == TransferTaskStatus.cancelled) {
+      return;
+    }
+
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(
@@ -164,6 +191,7 @@ class TransferController extends StateNotifier<TransferState> {
         clearFailureMessage: true,
       ),
     );
+    _startIfReady(taskId);
   }
 
   void cancel(String taskId) {
@@ -185,6 +213,47 @@ class TransferController extends StateNotifier<TransferState> {
           if (!task.isFinished) task,
       ],
     );
+  }
+
+  void _startIfReady(String taskId) {
+    final task = _taskById(taskId);
+    if (task == null ||
+        task.status != TransferTaskStatus.queued ||
+        _runningTaskIds.contains(taskId)) {
+      return;
+    }
+
+    _runningTaskIds.add(taskId);
+    markRunning(taskId);
+
+    unawaited(
+      _executor.execute(
+        task,
+        onProgress: (progress) {
+          updateProgress(
+            taskId: taskId,
+            transferredBytes: progress.transferredBytes,
+            totalBytes: progress.totalBytes,
+            currentItemPath: progress.currentItemPath,
+          );
+        },
+      ).then((_) {
+        complete(taskId);
+      }).catchError((Object error) {
+        fail(taskId: taskId, message: error.toString());
+      }).whenComplete(() {
+        _runningTaskIds.remove(taskId);
+      }),
+    );
+  }
+
+  TransferTask? _taskById(String taskId) {
+    for (final task in state.tasks) {
+      if (task.id == taskId) {
+        return task;
+      }
+    }
+    return null;
   }
 
   TransferTaskStatus _initialStatusFor(
