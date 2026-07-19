@@ -3,6 +3,9 @@ import 'package:file_explorer/features/explorer/presentation/controllers/explore
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
+import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
+import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
+import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +26,24 @@ class ExplorerScreen extends ConsumerWidget {
     final listing = explorerState.listing;
     final permission = explorerState.permission;
     final selectedVolume = _selectedVolumeFor(explorerState);
+    final awaitingDestinationTask =
+        ref.watch(transferControllerProvider).awaitingDestinationTask;
+
+    ref.listen<TransferState>(transferControllerProvider, (previous, next) {
+      final previousTasks = previous?.tasks ?? const <TransferTask>[];
+      final previousById = {
+        for (final task in previousTasks) task.id: task.status,
+      };
+      final completedInCurrentFolder = next.tasks.any((task) {
+        final oldStatus = previousById[task.id];
+        return task.status == TransferTaskStatus.completed &&
+            oldStatus != TransferTaskStatus.completed &&
+            _taskTouchesPath(task, explorerState.currentPath);
+      });
+      if (completedInCurrentFolder) {
+        ref.read(explorerControllerProvider.notifier).refresh();
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -79,6 +100,11 @@ class ExplorerScreen extends ConsumerWidget {
       body: Column(
         children: [
           _BreadcrumbBar(path: explorerState.currentPath),
+          if (awaitingDestinationTask != null)
+            _PasteDestinationBanner(
+              task: awaitingDestinationTask,
+              destinationPath: explorerState.currentPath,
+            ),
           if (listing.valueOrNull?.generatedFromSampleData ?? false)
             const _SampleDataBanner(),
           Expanded(
@@ -135,6 +161,13 @@ class ExplorerScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _taskTouchesPath(TransferTask task, String path) {
+  if (task.destinationPath == path) {
+    return true;
+  }
+  return task.sourcePaths.any((sourcePath) => sourcePath.startsWith(path));
 }
 
 bool _canNavigateUp(ExplorerState state) {
@@ -270,6 +303,101 @@ class _BreadcrumbBar extends StatelessWidget {
                 ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PasteDestinationBanner extends ConsumerWidget {
+  const _PasteDestinationBanner({
+    required this.task,
+    required this.destinationPath,
+  });
+
+  final TransferTask task;
+  final String destinationPath;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Material(
+      color: Theme.of(context).colorScheme.secondaryContainer,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 520;
+            final details = Row(
+              children: [
+                Icon(iconForTransferOperation(task.operation)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${task.operation.label} "${task.displayName}"',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelLarge,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Destination: $destinationPath',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+            final actions = Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextButton(
+                  onPressed: () {
+                    ref
+                        .read(transferControllerProvider.notifier)
+                        .cancel(task.id);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                const SizedBox(width: 4),
+                FilledButton(
+                  onPressed: () {
+                    ref
+                        .read(transferControllerProvider.notifier)
+                        .setDestination(
+                          taskId: task.id,
+                          destinationPath: destinationPath,
+                        );
+                  },
+                  child: const Text('Paste here'),
+                ),
+              ],
+            );
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  details,
+                  const SizedBox(height: 8),
+                  Align(alignment: Alignment.centerRight, child: actions),
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: details),
+                const SizedBox(width: 8),
+                actions,
+              ],
+            );
+          },
         ),
       ),
     );

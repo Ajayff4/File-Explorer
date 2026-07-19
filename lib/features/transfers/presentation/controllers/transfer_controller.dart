@@ -26,6 +26,15 @@ class TransferState {
     return null;
   }
 
+  TransferTask? get awaitingDestinationTask {
+    for (final task in tasks) {
+      if (task.status == TransferTaskStatus.awaitingDestination) {
+        return task;
+      }
+    }
+    return null;
+  }
+
   int get pendingCount {
     return tasks
         .where(

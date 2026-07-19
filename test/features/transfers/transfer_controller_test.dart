@@ -18,6 +18,7 @@ void main() {
     );
 
     expect(task.status, TransferTaskStatus.awaitingDestination);
+    expect(controller.debugState.awaitingDestinationTask?.id, task.id);
     expect(controller.debugState.pendingCount, 1);
     expect(executor.startedTaskIds, isEmpty);
 

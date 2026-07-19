@@ -78,6 +78,11 @@ Progress log for the Flutter application.
   - Local `dart:io` executor for copy, move, rename, and recursive delete.
   - Controller auto-runs ready queued tasks and keeps copy/move waiting for destination.
   - Tests for controller execution flow and local file operations.
+- Added copy/move destination workflow:
+  - Explorer shows a pending destination banner for copy/move tasks.
+  - `Paste here` assigns the current folder as the destination and starts the queued task.
+  - `Cancel` cancels the pending task.
+  - Explorer refreshes when a completed task touches the current folder.
 
 ### Verified
 
@@ -91,7 +96,6 @@ Progress log for the Flutter application.
 
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
 - Verify real Android directory browsing on a device/emulator.
-- Add destination picker and paste workflow for copy/move.
 - Add conflict handling UI and policies.
 - Add Drift database schema and generated code.
 - Persist transfer queue and transfer history.
