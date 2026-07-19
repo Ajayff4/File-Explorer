@@ -48,6 +48,17 @@ Progress log for the Flutter application.
 - Added Android storage permission declarations for legacy read/write, Android 13 media reads, and Android 11+ all-files access.
 - Added `permission_handler` dependency.
 - Added tests for storage permission state mapping.
+- Added Android storage browsing foundation:
+  - Native MethodChannel for Android storage volume discovery.
+  - Native storage capacity lookup using Android `StatFs`.
+  - Native all-files access status bridge.
+  - Dart `AndroidStoragePlatform` wrapper.
+  - Android-aware `LocalStorageRepository` volume and summary lookup.
+  - Parent-folder navigation from Explorer without moving above the current storage root.
+- Added tests for Android storage platform channel mapping.
+- Pinned Android `compileSdk` to `35` because `permission_handler_android` and `sqlite3_flutter_libs` require it.
+- Documented Android SDK license and SDK 35 setup commands in `README.md`.
+- Added exact Linux Mint `/usr/lib/android-sdk` `sdkmanager` commands for accepting licenses and installing Android SDK 35/build tools.
 
 ### Verified
 
@@ -63,9 +74,10 @@ Progress log for the Flutter application.
 ### Pending
 
 - Finish Android debug build verification when approved.
+- Accept local Android SDK licenses with `flutter doctor --android-licenses`.
 - Replace permission-handler all-files check with a dedicated Android platform service if we need deeper settings/result handling.
-- Replace Android fallback filesystem access with permission-aware native storage access.
-- Add real directory browsing.
+- Verify real Android directory browsing on a device/emulator.
+- Add storage root picker/list when multiple Android volumes are available.
 - Add copy, move, rename, delete, and conflict handling.
 - Add Drift database schema and generated code.
 - Implement transfer engine.

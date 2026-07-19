@@ -23,6 +23,17 @@ class ExplorerScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
+        leading: _canNavigateUp(explorerState)
+            ? IconButton(
+                tooltip: 'Up',
+                onPressed: () {
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .openParentDirectory();
+                },
+                icon: const Icon(Icons.arrow_upward_rounded),
+              )
+            : null,
         title: Text(listing.valueOrNull?.volume?.label ?? 'Files'),
         actions: [
           IconButton(
@@ -114,6 +125,11 @@ class ExplorerScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+bool _canNavigateUp(ExplorerState state) {
+  final volumeRoot = state.listing.valueOrNull?.volume?.path;
+  return volumeRoot != null && state.currentPath != volumeRoot;
 }
 
 class _BreadcrumbBar extends StatelessWidget {

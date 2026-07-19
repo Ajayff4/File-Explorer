@@ -4,6 +4,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 
 final explorerControllerProvider =
     StateNotifierProvider<ExplorerController, ExplorerState>((ref) {
@@ -124,6 +125,20 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final listing =
         await AsyncValue.guard(() => repository.listDirectory(path));
     state = state.copyWith(listing: listing);
+  }
+
+  Future<void> openParentDirectory() async {
+    final currentPath = state.currentPath;
+    final volumeRoot = state.listing.valueOrNull?.volume?.path;
+
+    if (volumeRoot != null && currentPath == volumeRoot) {
+      return;
+    }
+    if (currentPath == p.dirname(currentPath)) {
+      return;
+    }
+
+    await openDirectory(p.dirname(currentPath));
   }
 
   Future<void> refresh() {

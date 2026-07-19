@@ -99,6 +99,30 @@ flutter devices
 flutter run -d <device-id>
 ```
 
+If Android builds fail because SDK licenses are not accepted, run:
+
+```bash
+flutter doctor --android-licenses
+```
+
+On Linux Mint/Ubuntu, if the SDK is installed at `/usr/lib/android-sdk`, use the full `sdkmanager` path with `sudo` because that SDK folder is system-owned:
+
+```bash
+sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
+  --sdk_root=/usr/lib/android-sdk \
+  --licenses
+```
+
+This project compiles Android with SDK `35` because the Android plugins require it. If SDK 35 or the requested build tools are missing, install them from Android Studio SDK Manager or with `sdkmanager`:
+
+```bash
+sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
+  --sdk_root=/usr/lib/android-sdk \
+  "platforms;android-35" \
+  "build-tools;33.0.1" \
+  "platform-tools"
+```
+
 ## Build Commands
 
 Web release build:

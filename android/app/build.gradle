@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.ajayff4.fileexplorer"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

@@ -1,14 +1,26 @@
 import 'dart:io';
 
+import 'package:file_explorer/features/explorer/data/platform/android_storage_platform.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:path/path.dart' as p;
 
 class LocalStorageRepository implements StorageRepository {
-  const LocalStorageRepository();
+  const LocalStorageRepository({
+    this.androidStoragePlatform = const AndroidStoragePlatform(),
+  });
+
+  final AndroidStoragePlatform androidStoragePlatform;
 
   @override
   Future<List<StorageVolume>> getStorageVolumes() async {
+    if (Platform.isAndroid) {
+      final volumes = await androidStoragePlatform.getStorageVolumes();
+      if (volumes.isNotEmpty) {
+        return volumes;
+      }
+    }
+
     final primaryPath = _defaultRootPath();
     return [
       StorageVolume(
@@ -23,6 +35,20 @@ class LocalStorageRepository implements StorageRepository {
 
   @override
   Future<StorageSummary> getPrimaryStorageSummary() async {
+    if (Platform.isAndroid) {
+      final volumes = await getStorageVolumes();
+      final primaryVolume = _primaryVolumeFrom(volumes);
+      if (primaryVolume?.summary != null) {
+        return primaryVolume!.summary!;
+      }
+      if (primaryVolume != null) {
+        return androidStoragePlatform.getStorageStats(
+          label: primaryVolume.label,
+          path: primaryVolume.path,
+        );
+      }
+    }
+
     final rootPath = _defaultRootPath();
     final stat = await _tryFileSystemEntityStat(rootPath);
 
@@ -39,15 +65,12 @@ class LocalStorageRepository implements StorageRepository {
     final entities = await directory.list().toList();
     final entries = await Future.wait(entities.map(_mapEntity));
     entries.sort(_compareEntries);
+    final volumes = await getStorageVolumes();
+    final volume = _volumeForPath(path, volumes) ?? _primaryVolumeFrom(volumes);
 
     return DirectoryListing(
       path: path,
-      volume: StorageVolume(
-        id: 'local-primary',
-        label: _defaultRootLabel(),
-        path: _defaultRootPath(),
-        isPrimary: true,
-      ),
+      volume: volume,
       entries: entries,
     );
   }
@@ -81,6 +104,26 @@ class LocalStorageRepository implements StorageRepository {
     } on FileSystemException {
       return null;
     }
+  }
+
+  StorageVolume? _primaryVolumeFrom(List<StorageVolume> volumes) {
+    for (final volume in volumes) {
+      if (volume.isPrimary) {
+        return volume;
+      }
+    }
+    return volumes.isEmpty ? null : volumes.first;
+  }
+
+  StorageVolume? _volumeForPath(String path, List<StorageVolume> volumes) {
+    StorageVolume? bestMatch;
+    for (final volume in volumes) {
+      if (path.startsWith(volume.path) &&
+          (bestMatch == null || volume.path.length > bestMatch.path.length)) {
+        bestMatch = volume;
+      }
+    }
+    return bestMatch;
   }
 
   FileSystemEntryType _typeFromPath(String path) {
