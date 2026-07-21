@@ -138,46 +138,52 @@ class _StoragePanel extends StatelessWidget {
     final storageSummary = summary;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.phone_android_rounded, color: colors.primary),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    storageSummary?.label ?? 'Storage',
-                    style: Theme.of(context).textTheme.titleMedium,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () => context.go(AppRoutes.explorer),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.phone_android_rounded, color: colors.primary),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      storageSummary?.label ?? 'Storage',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
                   ),
-                ),
-                Text(
-                  storageSummary == null
-                      ? 'Loading'
-                      : '${formatBytes(storageSummary.freeBytes)} free',
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: storageSummary?.usedFraction,
-                minHeight: 10,
-                backgroundColor: colors.surfaceContainerHighest,
+                  Text(
+                    storageSummary == null
+                        ? 'Loading'
+                        : '${formatBytes(storageSummary.freeBytes)} free',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(width: 8),
+                  const Icon(Icons.chevron_right_rounded),
+                ],
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              storageSummary == null
-                  ? 'Checking available storage'
-                  : '${formatBytes(storageSummary.usedBytes)} used of ${formatBytes(storageSummary.totalBytes)}',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: storageSummary?.usedFraction,
+                  minHeight: 10,
+                  backgroundColor: colors.surfaceContainerHighest,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                storageSummary == null
+                    ? 'Checking available storage'
+                    : '${formatBytes(storageSummary.usedBytes)} used of ${formatBytes(storageSummary.totalBytes)}',
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -190,12 +196,12 @@ class _ShortcutGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const shortcuts = [
-      _Shortcut('Images', Icons.image_outlined, '428 files'),
-      _Shortcut('Video', Icons.movie_outlined, '62 files'),
-      _Shortcut('Audio', Icons.music_note_outlined, '311 files'),
-      _Shortcut('Apps', Icons.apps_outlined, '47 apps'),
-      _Shortcut('Archives', Icons.inventory_2_outlined, '12 files'),
-      _Shortcut('Network', Icons.wifi_tethering_outlined, 'LAN/FTP'),
+      _Shortcut('Images', Icons.image_outlined, 'Coming soon'),
+      _Shortcut('Video', Icons.movie_outlined, 'Coming soon'),
+      _Shortcut('Audio', Icons.music_note_outlined, 'Coming soon'),
+      _Shortcut('Apps', Icons.apps_outlined, 'Coming soon'),
+      _Shortcut('Archives', Icons.inventory_2_outlined, 'Coming soon'),
+      _Shortcut('Network', Icons.wifi_tethering_outlined, 'Coming soon'),
     ];
 
     return LayoutBuilder(
