@@ -205,6 +205,22 @@ class _TreeStorageRepository implements StorageRepository {
     );
   }
 
+  @override
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+    // Count entries for testing
+    final counts = <FileSystemEntryType, int>{};
+    for (final type in FileSystemEntryType.values) {
+      counts[type] = 0;
+    }
+    
+    // Recursively count all entries
+    final allEntries = _entriesByPath.values.expand((e) => e);
+    for (final entry in allEntries) {
+      counts[entry.type] = (counts[entry.type] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   void replaceEntries(String path, List<FileSystemEntry> entries) {
     _entriesByPath[path] = entries;
   }

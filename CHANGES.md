@@ -2,6 +2,63 @@
 
 Progress log for the Flutter application.
 
+## 2026-07-24
+
+### Completed
+
+- Fixed back button navigation in Explorer:
+  - `PopScope` now properly intercepts Android system back presses.
+  - Back navigates up one folder level (e.g., `0→A→B` → `0→A`) instead of minimizing the app.
+  - Back exits selection mode when items are selected.
+  - Only allows minimize/pop when already at volume root.
+  - Added `explorer_navigation.dart` helper module with `canNavigateUpInExplorer()` logic.
+- Added breadcrumb navigation bar to Explorer:
+  - Breadcrumb displays current path with home icon and segment links.
+  - Clicking a non-terminal segment navigates to that folder.
+  - Terminal segment is display-only (no tap).
+  - Breadcrumb scrolls horizontally on narrow screens.
+- Fixed subfolder/child count display:
+  - Explorer repository now returns child count via `DirectoryListing`.
+  - List/grid views display folder child count instead of generic "folder" text.
+  - Count updated on each directory refresh.
+- Enhanced entry actions menu:
+  - Entry action sheet now includes rename/delete/move operations.
+  - Actions properly queue operations through transfer controller.
+  - Shared transfer presentation helpers ensure consistent operation icons.
+- Added multi-select explorer workflow:
+  - Selection mode with checkboxes in both list and grid views.
+  - Select-all and clear-selection buttons in app bar when items selected.
+  - Batch copy/move/delete operations through existing transfer queue.
+  - Selection action bar at bottom with copy, move, delete buttons.
+  - Proper state management for selection mode toggle.
+- Added real category counts to Home dashboard shortcuts:
+  - New `countEntriesByType()` method in StorageRepository interface.
+  - Implemented recursive file counting in LocalStorageRepository with 5-level depth limit.
+  - Fake repository returns sample counts for web/test builds.
+  - Home shortcuts now display actual file counts instead of "Browse" placeholder.
+  - Added `categoryCounts` FutureProvider for async count computation.
+  - Loading spinner shown while counts are computed.
+  - Graceful fallback to "Browse" text if count fetch fails.
+- Updated test repositories to implement countEntriesByType for consistency.
+- Fixed filter persistence when opening storage roots or switching volumes:
+  - Clearing the active `explorerFilterTypeProvider` when opening a storage root from Home.
+  - Clearing the filter when selecting a different storage volume in the Explorer volume switcher.
+  - Ensures tapping a storage root shows the full listing instead of a previously-applied type filter view.
+
+### Verified
+
+- `flutter analyze` (0 errors, 4 lint warnings unrelated to changes)
+- Code builds without compilation errors.
+- Back button logic and breadcrumb navigation confirmed through code inspection.
+- Selection mode UI and multi-select actions verified in code.
+- Category count provider correctly wired to home shortcuts.
+
+### Pending Verification
+
+- Real device/emulator testing of all features end-to-end.
+- Performance testing of category count computation on large directory trees.
+- Verify shortcut counts update when navigating to different storage volumes.
+
 ## 2026-07-19
 
 ### Completed

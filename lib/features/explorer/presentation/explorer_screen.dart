@@ -391,6 +391,9 @@ class _VolumeSwitcher extends ConsumerWidget {
     return PopupMenuButton<StorageVolume>(
       tooltip: 'Storage roots',
       onSelected: (volume) {
+        // Clear any active type filter when switching storage roots so the
+        // selected storage displays its full listing instead of a filtered view.
+        ref.read(explorerFilterTypeProvider.notifier).state = null;
         ref.read(explorerControllerProvider.notifier).openStorageVolume(volume);
       },
       itemBuilder: (context) {

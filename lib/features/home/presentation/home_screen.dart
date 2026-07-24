@@ -2,6 +2,7 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
+import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
@@ -13,6 +14,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
+
+// Provider for category counts in storage root
+final categoryCounts = FutureProvider.family<Map<FileSystemEntryType, int>, String>((ref, rootPath) async {
+  final repository = ref.watch(storageRepositoryProvider);
+  return repository.countEntriesByType(rootPath);
+});
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -140,12 +147,14 @@ class _StoragePanel extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedVolume = _selectedVolumeFor(explorerState);
 
-    return Card(
+        return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
           // Reset to storage root when clicking from home
           final rootPath = selectedVolume?.path ?? '/';
+          // Clear any active type filter so the storage root shows all entries
+          ref.read(explorerFilterTypeProvider.notifier).state = null;
           ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
           context.go(AppRoutes.explorer);
         },
@@ -218,6 +227,11 @@ class _ShortcutGrid extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final explorerState = ref.watch(explorerControllerProvider);
+    final selectedVolume = _selectedVolumeFor(explorerState);
+    final rootPath = selectedVolume?.path ?? '/';
+    final countsAsync = ref.watch(categoryCounts(rootPath));
+
     const shortcuts = [
       _Shortcut('Images', Icons.image_outlined, FileSystemEntryType.image),
       _Shortcut('Video', Icons.movie_outlined, FileSystemEntryType.video),
@@ -263,11 +277,29 @@ class _ShortcutGrid extends ConsumerWidget {
                         style: Theme.of(context).textTheme.labelLarge,
                       ),
                       const SizedBox(height: 2),
-                      Text(
-                        'Browse',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
+                      countsAsync.when(
+                        data: (counts) {
+                          final count = counts[shortcut.filterType] ?? 0;
+                          return Text(
+                            '$count',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          );
+                        },
+                        error: (_, __) => Text(
+                          'Browse',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        loading: () => SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                          ),
+                        ),
                       ),
                     ],
                   ),

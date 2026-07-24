@@ -81,4 +81,19 @@ class FakeStorageRepository implements StorageRepository {
       ],
     );
   }
+
+  @override
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+    // Return sample data for fake storage
+    return {
+      FileSystemEntryType.folder: 82,
+      FileSystemEntryType.image: 1204,
+      FileSystemEntryType.video: 47,
+      FileSystemEntryType.audio: 156,
+      FileSystemEntryType.document: 38,
+      FileSystemEntryType.archive: 12,
+      FileSystemEntryType.app: 64,
+      FileSystemEntryType.other: 91,
+    };
+  }
 }

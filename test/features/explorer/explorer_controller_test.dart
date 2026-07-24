@@ -195,4 +195,18 @@ class _MultiVolumeStorageRepository implements StorageRepository {
       ],
     );
   }
+
+  @override
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+    return {
+      FileSystemEntryType.folder: 5,
+      FileSystemEntryType.image: 10,
+      FileSystemEntryType.video: 2,
+      FileSystemEntryType.audio: 8,
+      FileSystemEntryType.document: 3,
+      FileSystemEntryType.archive: 1,
+      FileSystemEntryType.app: 0,
+      FileSystemEntryType.other: 4,
+    };
+  }
 }
