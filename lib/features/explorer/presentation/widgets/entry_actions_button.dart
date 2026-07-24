@@ -6,6 +6,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
@@ -251,26 +252,94 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     builder: (context) {
       return SafeArea(
-        child: ListView(
-          shrinkWrap: true,
+        child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          children: [
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: Icon(iconForFileSystemEntryType(entry.type)),
-              title: Text(entry.name),
-              subtitle: Text(typeLabelForFileSystemEntry(entry)),
-            ),
-            const Divider(),
-            _PropertyRow(label: 'Path', value: entry.path),
-            _PropertyRow(
-              label: 'Modified',
-              value: formatFileModifiedAt(entry.modifiedAt),
-            ),
-            _PropertyRow(label: 'Size', value: detailForFileSystemEntry(entry)),
-          ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header with icon and name
+              Row(
+                children: [
+                  Icon(
+                    iconForFileSystemEntryType(entry.type),
+                    size: 48,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.name,
+                          style: Theme.of(context).textTheme.titleLarge,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          typeLabelForFileSystemEntry(entry),
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+              
+              // Properties section
+              _PropertiesSection(
+                title: 'File Information',
+                children: [
+                  _PropertyRow(label: 'Type', value: typeLabelForFileSystemEntry(entry)),
+                  if (entry.isFolder && entry.childrenCount != null)
+                    _PropertyRow(label: 'Items', value: '${entry.childrenCount} items'),
+                  if (!entry.isFolder && entry.sizeBytes != null)
+                    _PropertyRow(label: 'Size', value: detailForFileSystemEntry(entry)),
+                  _PropertyRow(
+                    label: 'Modified',
+                    value: formatFileModifiedAt(entry.modifiedAt),
+                  ),
+                ],
+              ),
+              
+              const SizedBox(height: 16),
+              _PropertiesSection(
+                title: 'Location',
+                children: [
+                  _PropertyRow(label: 'Path', value: entry.path),
+                ],
+              ),
+              
+              const SizedBox(height: 24),
+              
+              // Actions
+              FilledButton.icon(
+                onPressed: () {
+                  _copyPathToClipboard(context, entry.path);
+                },
+                icon: const Icon(Icons.copy_rounded),
+                label: const Text('Copy path'),
+              ),
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.close_rounded),
+                label: const Text('Close'),
+              ),
+            ],
+          ),
         ),
       );
     },
@@ -288,10 +357,59 @@ class _PropertyRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      subtitle: Text(value),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+        ],
+      ),
     );
   }
+}
+
+class _PropertiesSection extends StatelessWidget {
+  const _PropertiesSection({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                color: Theme.of(context).colorScheme.primary,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+        const SizedBox(height: 12),
+        ...children,
+      ],
+    );
+  }
+}
+
+void _copyPathToClipboard(BuildContext context, String path) {
+  Clipboard.setData(ClipboardData(text: path));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Path copied to clipboard')),
+  );
 }

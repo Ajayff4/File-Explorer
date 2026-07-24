@@ -50,6 +50,78 @@ void main() {
     );
     expect(recentPaths, contains(_MultiVolumeStorageRepository.sdCardPath));
   });
+
+  test('openParentDirectory navigates up while listing is loading', () async {
+    final repository = _MultiVolumeStorageRepository();
+    final container = ProviderContainer(
+      overrides: [
+        storageRepositoryProvider.overrideWithValue(repository),
+        recentLocationStoreProvider.overrideWithValue(
+          InMemoryRecentLocationStore(),
+        ),
+        storagePermissionRepositoryProvider.overrideWithValue(
+          const FakeStoragePermissionRepository(
+            initialState: StoragePermissionState.fullAccess(
+              accessMode: StorageAccessMode.allFiles,
+              message: 'Full storage access is enabled',
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    final subfolderPath =
+        '${_MultiVolumeStorageRepository.primaryPath}/Documents/Notes';
+    container.read(explorerControllerProvider.notifier).state =
+        container.read(explorerControllerProvider).copyWith(
+              currentPath: subfolderPath,
+              listing: const AsyncValue.loading(),
+            );
+
+    await container
+        .read(explorerControllerProvider.notifier)
+        .openParentDirectory();
+
+    expect(
+      container.read(explorerControllerProvider).currentPath,
+      '${_MultiVolumeStorageRepository.primaryPath}/Documents',
+    );
+  });
+
+  test('openParentDirectory stops at volume root', () async {
+    final repository = _MultiVolumeStorageRepository();
+    final container = ProviderContainer(
+      overrides: [
+        storageRepositoryProvider.overrideWithValue(repository),
+        recentLocationStoreProvider.overrideWithValue(
+          InMemoryRecentLocationStore(),
+        ),
+        storagePermissionRepositoryProvider.overrideWithValue(
+          const FakeStoragePermissionRepository(
+            initialState: StoragePermissionState.fullAccess(
+              accessMode: StorageAccessMode.allFiles,
+              message: 'Full storage access is enabled',
+            ),
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    await container
+        .read(explorerControllerProvider.notifier)
+        .openParentDirectory();
+
+    expect(
+      container.read(explorerControllerProvider).currentPath,
+      _MultiVolumeStorageRepository.primaryPath,
+    );
+  });
 }
 
 Future<void> _waitForExplorerLoad(ProviderContainer container) async {

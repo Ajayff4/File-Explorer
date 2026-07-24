@@ -1,43 +1,69 @@
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_navigation.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-final appRouter = GoRouter(
-  initialLocation: AppRoutes.home,
-  routes: [
-    ShellRoute(
-      builder: (context, state, child) {
-        return AppShell(location: state.uri.path, child: child);
-      },
-      routes: [
-        GoRoute(
-          path: AppRoutes.home,
-          builder: (context, state) => const HomeScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.explorer,
-          builder: (context, state) => const ExplorerScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.search,
-          builder: (context, state) => const SearchScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.transfers,
-          builder: (context, state) => const TransferManagerScreen(),
-        ),
-        GoRoute(
-          path: AppRoutes.settings,
-          builder: (context, state) => const SettingsScreen(),
-        ),
-      ],
-    ),
-  ],
-);
+final appRouterProvider = Provider<GoRouter>((ref) {
+  final router = GoRouter(
+    initialLocation: AppRoutes.home,
+    routes: [
+      ShellRoute(
+        builder: (context, state, child) {
+          return AppShell(location: state.uri.path, child: child);
+        },
+        routes: [
+          GoRoute(
+            path: AppRoutes.home,
+            builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.explorer,
+            onExit: _handleExplorerBack,
+            builder: (context, state) => const ExplorerScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.search,
+            builder: (context, state) => const SearchScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.transfers,
+            builder: (context, state) => const TransferManagerScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.settings,
+            builder: (context, state) => const SettingsScreen(),
+          ),
+        ],
+      ),
+    ],
+  );
+  ref.onDispose(router.dispose);
+  return router;
+});
+
+Future<bool> _handleExplorerBack(BuildContext context, GoRouterState state) async {
+  final container = ProviderScope.containerOf(context);
+  final explorerState = container.read(explorerControllerProvider);
+  final notifier = container.read(explorerControllerProvider.notifier);
+
+  if (explorerState.isSelectionMode) {
+    notifier.exitSelectionMode();
+    return false;
+  }
+
+  if (canNavigateUpInExplorer(explorerState)) {
+    await notifier.openParentDirectory();
+    return false;
+  }
+
+  return true;
+}
 
 class AppRoutes {
   const AppRoutes._();

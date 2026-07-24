@@ -1,6 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
@@ -127,20 +128,27 @@ class _TransferStationTile extends StatelessWidget {
   }
 }
 
-class _StoragePanel extends StatelessWidget {
+class _StoragePanel extends ConsumerWidget {
   const _StoragePanel({required this.summary});
 
   final StorageSummary? summary;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
     final storageSummary = summary;
+    final explorerState = ref.watch(explorerControllerProvider);
+    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () => context.go(AppRoutes.explorer),
+        onTap: () {
+          // Reset to storage root when clicking from home
+          final rootPath = selectedVolume?.path ?? '/';
+          ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
+          context.go(AppRoutes.explorer);
+        },
         child: Padding(
           padding: const EdgeInsets.all(18),
           child: Column(
@@ -190,18 +198,33 @@ class _StoragePanel extends StatelessWidget {
   }
 }
 
-class _ShortcutGrid extends StatelessWidget {
+StorageVolume? _selectedVolumeFor(ExplorerState state) {
+  final listingVolume = state.listing.valueOrNull?.volume;
+  if (listingVolume != null) {
+    return listingVolume;
+  }
+
+  final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+  for (final volume in volumes) {
+    if (state.currentPath.startsWith(volume.path)) {
+      return volume;
+    }
+  }
+  return volumes.isEmpty ? null : volumes.first;
+}
+
+class _ShortcutGrid extends ConsumerWidget {
   const _ShortcutGrid();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     const shortcuts = [
-      _Shortcut('Images', Icons.image_outlined, 'Coming soon'),
-      _Shortcut('Video', Icons.movie_outlined, 'Coming soon'),
-      _Shortcut('Audio', Icons.music_note_outlined, 'Coming soon'),
-      _Shortcut('Apps', Icons.apps_outlined, 'Coming soon'),
-      _Shortcut('Archives', Icons.inventory_2_outlined, 'Coming soon'),
-      _Shortcut('Network', Icons.wifi_tethering_outlined, 'Coming soon'),
+      _Shortcut('Images', Icons.image_outlined, FileSystemEntryType.image),
+      _Shortcut('Video', Icons.movie_outlined, FileSystemEntryType.video),
+      _Shortcut('Audio', Icons.music_note_outlined, FileSystemEntryType.audio),
+      _Shortcut('Apps', Icons.apps_outlined, FileSystemEntryType.app),
+      _Shortcut('Archives', Icons.inventory_2_outlined, FileSystemEntryType.archive),
+      _Shortcut('Documents', Icons.description_outlined, FileSystemEntryType.document),
     ];
 
     return LayoutBuilder(
@@ -222,7 +245,10 @@ class _ShortcutGrid extends StatelessWidget {
             return Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
-                onTap: () => context.go(AppRoutes.explorer),
+                onTap: () {
+                  ref.read(explorerFilterTypeProvider.notifier).state = shortcut.filterType;
+                  context.go(AppRoutes.explorer);
+                },
                 child: Padding(
                   padding: const EdgeInsets.all(10),
                   child: Column(
@@ -238,7 +264,7 @@ class _ShortcutGrid extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        shortcut.detail,
+                        'Browse',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.bodySmall,
@@ -393,9 +419,9 @@ class _EmptyFavoritesTile extends StatelessWidget {
 }
 
 class _Shortcut {
-  const _Shortcut(this.label, this.icon, this.detail);
+  const _Shortcut(this.label, this.icon, this.filterType);
 
   final String label;
   final IconData icon;
-  final String detail;
+  final FileSystemEntryType filterType;
 }

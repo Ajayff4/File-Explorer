@@ -22,6 +22,8 @@ class ExplorerState {
     this.listing = const AsyncValue.loading(),
     this.permission = const AsyncValue.data(StoragePermissionState.checking()),
     this.summary = const AsyncValue.loading(),
+    this.selectedPaths = const {},
+    this.isSelectionMode = false,
   });
 
   final String currentPath;
@@ -29,6 +31,8 @@ class ExplorerState {
   final AsyncValue<DirectoryListing> listing;
   final AsyncValue<StoragePermissionState> permission;
   final AsyncValue<StorageSummary> summary;
+  final Set<String> selectedPaths;
+  final bool isSelectionMode;
 
   ExplorerState copyWith({
     String? currentPath,
@@ -36,6 +40,8 @@ class ExplorerState {
     AsyncValue<DirectoryListing>? listing,
     AsyncValue<StoragePermissionState>? permission,
     AsyncValue<StorageSummary>? summary,
+    Set<String>? selectedPaths,
+    bool? isSelectionMode,
   }) {
     return ExplorerState(
       currentPath: currentPath ?? this.currentPath,
@@ -43,6 +49,8 @@ class ExplorerState {
       listing: listing ?? this.listing,
       permission: permission ?? this.permission,
       summary: summary ?? this.summary,
+      selectedPaths: selectedPaths ?? this.selectedPaths,
+      isSelectionMode: isSelectionMode ?? this.isSelectionMode,
     );
   }
 }
@@ -127,6 +135,8 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     state = state.copyWith(
       currentPath: path,
       listing: const AsyncValue.loading(),
+      selectedPaths: {},
+      isSelectionMode: false,
     );
 
     final listing =
@@ -162,7 +172,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
   Future<void> openParentDirectory() async {
     final currentPath = state.currentPath;
-    final volumeRoot = state.listing.valueOrNull?.volume?.path;
+    final volumeRoot = _volumeForCurrentPath()?.path;
 
     if (volumeRoot != null && currentPath == volumeRoot) {
       return;
@@ -176,6 +186,57 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
   Future<void> refresh() {
     return openDirectory(state.currentPath);
+  }
+
+  void toggleSelection(String path) {
+    final currentSelected = state.selectedPaths;
+    if (currentSelected.contains(path)) {
+      state = state.copyWith(
+        selectedPaths: currentSelected.where((p) => p != path).toSet(),
+        isSelectionMode: currentSelected.length > 1,
+      );
+    } else {
+      state = state.copyWith(
+        selectedPaths: {...currentSelected, path},
+        isSelectionMode: true,
+      );
+    }
+  }
+
+  void selectAll(List<String> paths) {
+    state = state.copyWith(
+      selectedPaths: paths.toSet(),
+      isSelectionMode: true,
+    );
+  }
+
+  void clearSelection() {
+    state = state.copyWith(
+      selectedPaths: {},
+      isSelectionMode: false,
+    );
+  }
+
+  void exitSelectionMode() {
+    state = state.copyWith(
+      selectedPaths: {},
+      isSelectionMode: false,
+    );
+  }
+
+  StorageVolume? _volumeForCurrentPath() {
+    final listingVolume = state.listing.valueOrNull?.volume;
+    if (listingVolume != null) {
+      return listingVolume;
+    }
+
+    final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+    for (final volume in volumes) {
+      if (state.currentPath.startsWith(volume.path)) {
+        return volume;
+      }
+    }
+    return volumes.isEmpty ? null : volumes.first;
   }
 
   StorageVolume? _primaryVolumeFrom(List<StorageVolume> volumes) {

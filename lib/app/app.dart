@@ -10,6 +10,7 @@ class FileExplorerApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(searchIndexInvalidationProvider);
+    final router = ref.watch(appRouterProvider);
 
     return MaterialApp.router(
       title: 'File Explorer',
@@ -17,7 +18,7 @@ class FileExplorerApp extends ConsumerWidget {
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
       themeMode: ThemeMode.dark,
-      routerConfig: appRouter,
+      routerConfig: router,
     );
   }
 }

@@ -81,13 +81,24 @@ class LocalStorageRepository implements StorageRepository {
         ? FileSystemEntryType.folder
         : _typeFromPath(entity.path);
 
+    int? childrenCount;
+    if (stat.type == FileSystemEntityType.directory) {
+      try {
+        final dir = Directory(entity.path);
+        final children = await dir.list().length;
+        childrenCount = children;
+      } on FileSystemException {
+        childrenCount = null;
+      }
+    }
+
     return FileSystemEntry(
       name: p.basename(entity.path),
       path: entity.path,
       type: type,
       modifiedAt: stat.modified,
       sizeBytes: stat.type == FileSystemEntityType.file ? stat.size : null,
-      childrenCount: null,
+      childrenCount: childrenCount,
     );
   }
 
