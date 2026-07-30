@@ -12,15 +12,25 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 class EntryActionsButton extends ConsumerWidget {
-  const EntryActionsButton({required this.entry, super.key});
+  const EntryActionsButton({
+    required this.entry,
+    this.storageVolume,
+    super.key,
+  });
 
   final FileSystemEntry entry;
+  final StorageVolume? storageVolume;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       tooltip: 'More',
-      onPressed: () => _showEntryActions(context, ref, entry),
+      onPressed: () => _showEntryActions(
+        context,
+        ref,
+        entry,
+        storageVolume,
+      ),
       icon: const Icon(Icons.more_vert_rounded),
     );
   }
@@ -30,6 +40,7 @@ void _showEntryActions(
   BuildContext context,
   WidgetRef ref,
   FileSystemEntry entry,
+  StorageVolume? storageVolume,
 ) {
   showModalBottomSheet<void>(
     context: context,
@@ -37,6 +48,7 @@ void _showEntryActions(
     builder: (sheetContext) {
       return _EntryActionsSheet(
         entry: entry,
+        storageVolume: storageVolume,
         parentContext: context,
       );
     },
@@ -46,10 +58,12 @@ void _showEntryActions(
 class _EntryActionsSheet extends ConsumerWidget {
   const _EntryActionsSheet({
     required this.entry,
+    required this.storageVolume,
     required this.parentContext,
   });
 
   final FileSystemEntry entry;
+  final StorageVolume? storageVolume;
   final BuildContext parentContext;
 
   @override
@@ -123,7 +137,7 @@ class _EntryActionsSheet extends ConsumerWidget {
             ),
             onTap: () {
               Navigator.of(context).pop();
-              _showEntryProperties(parentContext, entry);
+              _showEntryProperties(parentContext, entry, storageVolume);
             },
           ),
         ],
@@ -248,7 +262,11 @@ void _showQueuedSnackBar(
   );
 }
 
-void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
+void _showEntryProperties(
+  BuildContext context,
+  FileSystemEntry entry,
+  StorageVolume? storageVolume,
+) {
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -299,18 +317,28 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
               const Divider(),
               const SizedBox(height: 16),
 
-              // Properties section
               _PropertiesSection(
                 title: 'File Information',
                 children: [
                   _PropertyRow(
-                      label: 'Type', value: typeLabelForFileSystemEntry(entry)),
+                    label: 'Type',
+                    value: typeLabelForFileSystemEntry(entry),
+                  ),
                   if (entry.isFolder && entry.childrenCount != null)
                     _PropertyRow(
-                        label: 'Items', value: '${entry.childrenCount} items'),
+                      label: 'Items',
+                      value: _itemCountLabel(entry.childrenCount!),
+                    ),
                   if (!entry.isFolder && entry.sizeBytes != null)
                     _PropertyRow(
-                        label: 'Size', value: detailForFileSystemEntry(entry)),
+                      label: 'Size',
+                      value: detailForFileSystemEntry(entry),
+                    ),
+                  if (!entry.isFolder && entry.sizeBytes != null)
+                    _PropertyRow(
+                      label: 'Bytes',
+                      value: '${entry.sizeBytes} bytes',
+                    ),
                   _PropertyRow(
                     label: 'Modified',
                     value: formatFileModifiedAt(entry.modifiedAt),
@@ -322,6 +350,13 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
               _PropertiesSection(
                 title: 'Location',
                 children: [
+                  if (storageVolume != null)
+                    _PropertyRow(label: 'Storage', value: storageVolume.label),
+                  if (storageVolume != null)
+                    _PropertyRow(
+                        label: 'Storage root', value: storageVolume.path),
+                  _PropertyRow(
+                      label: 'Parent folder', value: p.dirname(entry.path)),
                   _PropertyRow(label: 'Path', value: entry.path),
                 ],
               ),
@@ -350,6 +385,117 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
       );
     },
   );
+}
+
+String _itemCountLabel(int count) {
+  return count == 1 ? '1 item' : '$count items';
+}
+
+class EntryPropertiesPanel extends StatelessWidget {
+  const EntryPropertiesPanel({
+    required this.entry,
+    this.storageVolume,
+    super.key,
+  });
+
+  final FileSystemEntry entry;
+  final StorageVolume? storageVolume;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  iconForFileSystemEntryType(entry.type),
+                  size: 48,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.name,
+                        style: Theme.of(context).textTheme.titleLarge,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        typeLabelForFileSystemEntry(entry),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            const Divider(),
+            const SizedBox(height: 16),
+            _PropertiesSection(
+              title: 'File Information',
+              children: [
+                _PropertyRow(
+                  label: 'Type',
+                  value: typeLabelForFileSystemEntry(entry),
+                ),
+                if (entry.isFolder && entry.childrenCount != null)
+                  _PropertyRow(
+                    label: 'Items',
+                    value: _itemCountLabel(entry.childrenCount!),
+                  ),
+                if (!entry.isFolder && entry.sizeBytes != null)
+                  _PropertyRow(
+                    label: 'Size',
+                    value: detailForFileSystemEntry(entry),
+                  ),
+                if (!entry.isFolder && entry.sizeBytes != null)
+                  _PropertyRow(
+                    label: 'Bytes',
+                    value: '${entry.sizeBytes} bytes',
+                  ),
+                _PropertyRow(
+                  label: 'Modified',
+                  value: formatFileModifiedAt(entry.modifiedAt),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _PropertiesSection(
+              title: 'Location',
+              children: [
+                if (storageVolume != null)
+                  _PropertyRow(label: 'Storage', value: storageVolume!.label),
+                if (storageVolume != null)
+                  _PropertyRow(
+                    label: 'Storage root',
+                    value: storageVolume!.path,
+                  ),
+                _PropertyRow(
+                  label: 'Parent folder',
+                  value: p.dirname(entry.path),
+                ),
+                _PropertyRow(label: 'Path', value: entry.path),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _PropertyRow extends StatelessWidget {

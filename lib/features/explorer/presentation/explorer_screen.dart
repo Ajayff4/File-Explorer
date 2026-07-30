@@ -660,6 +660,7 @@ class _EntryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
+    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return ListView.separated(
       padding: const EdgeInsets.all(12),
@@ -709,7 +710,12 @@ class _EntryList extends ConsumerWidget {
                         .read(explorerControllerProvider.notifier)
                         .toggleSelection(entry.path);
                   },
-            trailing: isSelectionMode ? null : EntryActionsButton(entry: entry),
+            trailing: isSelectionMode
+                ? null
+                : EntryActionsButton(
+                    entry: entry,
+                    storageVolume: selectedVolume,
+                  ),
           ),
         );
       },
@@ -727,6 +733,7 @@ class _EntryGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
+    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return GridView.builder(
       padding: const EdgeInsets.all(12),
@@ -807,7 +814,10 @@ class _EntryGrid extends ConsumerWidget {
                 Positioned(
                   top: 4,
                   right: 4,
-                  child: EntryActionsButton(entry: entry),
+                  child: EntryActionsButton(
+                    entry: entry,
+                    storageVolume: selectedVolume,
+                  ),
                 ),
             ],
           ),

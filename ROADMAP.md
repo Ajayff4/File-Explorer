@@ -16,55 +16,45 @@ The app is an early but usable file-manager vertical slice.
 
 ## What Works Now
 
-- Responsive shell with mobile bottom navigation and wider-screen navigation rail.
-- Home dashboard with storage summary, shortcuts, favorites, recents, and transfer station tile.
-- Explorer screen with:
-  - Android/local storage browsing where permissions allow it.
-  - Storage root selector.
-  - Breadcrumb.
-  - Parent navigation.
-  - Refresh.
-  - List/grid view toggle.
-  - Hidden-file filtering.
-  - Folder-first sorting by name, modified date, size, and type.
-  - Current-folder favorite toggle.
-- Android storage foundation:
-  - Storage permission state model.
-  - Permission education/recovery card.
-  - Android storage volume MethodChannel.
-  - Android `StatFs` storage summary lookup.
-  - Android all-files access status bridge.
-- Transfers:
-  - Copy, move, rename, and recursive delete queue.
-  - Copy/move destination selection with `Paste here`.
-  - Progress/status UI.
-  - Retry, cancel, clear-finished flows.
-  - Destination conflict policies: `Skip`, `Replace`, `Keep both`.
-  - Drift-backed transfer queue/history persistence.
-  - Interrupted running tasks restore as failed.
-- Favorites:
-  - Persisted favorite folders.
-  - Home favorite list.
-  - Explorer star action.
-- Recents:
-  - Persisted recent locations.
-  - Folder/file history model.
-  - Home recent section respects the folders-only setting.
-- Search:
-  - Search screen and route.
-  - Current-folder vs storage-root scope.
-  - File type filters.
-  - Debounced searches.
-  - Persisted search index.
-  - Manual reindex.
-  - Transfer-driven index invalidation.
-- Settings:
-  - Persisted settings store.
-  - Typed `AppSettings`.
-  - Settings screen groups Explorer, Transfers, and Search toggles.
-  - Settings are wired into hidden files, delete confirmation, folders-only history, indexed search, and transfer station visibility.
-- Branding:
-  - Launcher icons generated for Android, iOS, web, Windows, and macOS from the provided logo.
+| Status | Area | Task |
+| --- | --- | --- |
+| ✅ | Shell | Responsive mobile bottom navigation and wider-screen navigation rail. |
+| ✅ | Home | Dashboard with storage summary, shortcuts, favorites, recents, and transfer station tile. |
+| ✅ | Explorer | Android/local storage browsing where permissions allow it. |
+| ✅ | Explorer | Storage root selector. |
+| ✅ | Explorer | Breadcrumb and parent navigation. |
+| ✅ | Explorer | Refresh. |
+| ✅ | Explorer | List/grid view toggle. |
+| ✅ | Explorer | Hidden-file filtering. |
+| ✅ | Explorer | Folder-first sorting by name, modified date, size, and type. |
+| ✅ | Explorer | Current-folder favorite toggle. |
+| ✅ | Explorer | Multi-select, select-all, clear-selection, and batch copy/move/delete. |
+| ✅ | Explorer | File type browsing from Home shortcuts with filtered folder counts. |
+| ✅ | Explorer | Properties sheet with type, size, bytes, modified date, item count, storage, parent folder, and full path. |
+| ✅ | Android storage | Storage permission state model. |
+| ✅ | Android storage | Permission education/recovery card. |
+| ✅ | Android storage | Android storage volume MethodChannel. |
+| ✅ | Android storage | Android `StatFs` storage summary lookup. |
+| ✅ | Android storage | Android all-files access status bridge. |
+| ✅ | Transfers | Copy, move, rename, and recursive delete queue. |
+| ✅ | Transfers | Copy/move destination selection with `Paste here`. |
+| ✅ | Transfers | Progress/status UI. |
+| ✅ | Transfers | Retry, cancel, clear-finished flows. |
+| ✅ | Transfers | Destination conflict policies: `Skip`, `Replace`, `Keep both`. |
+| ✅ | Transfers | Drift-backed transfer queue/history persistence. |
+| ✅ | Transfers | Interrupted running tasks restore as failed. |
+| ✅ | Favorites | Persisted favorite folders, Home list, and Explorer star action. |
+| ✅ | Recents | Persisted recent folders/files and Home recent section setting support. |
+| ✅ | Search | Search screen and route. |
+| ✅ | Search | Current-folder vs storage-root scope. |
+| ✅ | Search | File type filters and type-only discovery. |
+| ✅ | Search | Debounced searches. |
+| ✅ | Search | Persisted search index. |
+| ✅ | Search | Manual reindex. |
+| ✅ | Search | Transfer-driven index invalidation. |
+| ✅ | Settings | Persisted settings store and typed `AppSettings`. |
+| ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
+| ✅ | Branding | Launcher icons generated for Android, iOS, web, Windows, and macOS from the provided logo. |
 
 ## Last Verified
 
@@ -117,42 +107,33 @@ adb install -r build/app/outputs/flutter-apk/app-debug.apk
 
 Recommended next slices, in order:
 
-1. Real Android device verification
-   - Install the latest debug APK.
-   - Confirm app icon appears correctly.
-   - Confirm storage permission flow.
-   - Confirm primary storage browsing.
-   - Confirm copy, move, rename, delete on safe test folders.
-   - Check type-filter folder scan performance on large directory trees.
-
-2. File properties polish
-   - Expand properties bottom sheet with storage volume/location details.
-   - Add shared formatting helpers if duplicated display logic appears.
-
-3. Documentation cleanup
-   - Remove stale "multi-select pending" wording from planning notes.
-
-4. Home dashboard cleanup
-   - Mark fake shortcut counts clearly as sample-only for web/test builds.
-   - Keep media/category scanning behind repository/controller boundaries.
-
-5. Android permission hardening
-   - Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed.
-   - Add clearer recovery path when user denies all-files access.
-
-6. UI polish from screenshots
-   - Align spacing, density, and dashboard layout with reference screenshots.
-   - Keep the visual style black/purple but avoid hard-coding one-off colors inside feature widgets.
+| Status | Priority | Area | Task |
+| --- | --- | --- | --- |
+| [ ] | 1 | Android verification | Install latest debug APK. |
+| [ ] | 1 | Android verification | Confirm app icon appears correctly. |
+| [ ] | 1 | Android verification | Confirm storage permission flow. |
+| [ ] | 1 | Android verification | Confirm primary storage browsing. |
+| [ ] | 1 | Android verification | Confirm copy, move, rename, delete on safe test folders. |
+| [ ] | 1 | Android verification | Check type-filter folder scan performance on large directory trees. |
+| [ ] | 2 | Documentation | Remove stale "multi-select pending" wording from planning notes. |
+| [ ] | 3 | Home | Mark fake shortcut counts clearly as sample-only for web/test builds. |
+| [ ] | 3 | Home | Keep media/category scanning behind repository/controller boundaries. |
+| [ ] | 4 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
+| [ ] | 4 | Android permissions | Add clearer recovery path when user denies all-files access. |
+| [ ] | 5 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
+| [ ] | 5 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
 
 ## Later Roadmap
 
-- Media libraries: images, videos, audio, documents, apps.
-- Thumbnail cache.
-- Storage analyzer.
-- Recycle bin.
-- Archive browsing/extract/compress.
-- Network providers as optional future modules, not first-release core.
-- Desktop readiness: context menus, keyboard shortcuts, adaptive split/dual-pane layout, drag and drop.
+| Status | Area | Task |
+| --- | --- | --- |
+| [ ] | Media | Libraries for images, videos, audio, documents, and apps. |
+| [ ] | Media | Thumbnail cache. |
+| [ ] | Storage | Storage analyzer. |
+| [ ] | Storage | Recycle bin. |
+| [ ] | Archives | Archive browsing, extract, and compress. |
+| [ ] | Network | Optional network providers, not first-release core. |
+| [ ] | Desktop | Context menus, keyboard shortcuts, adaptive split/dual-pane layout, and drag and drop. |
 
 ## Guardrails
 

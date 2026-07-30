@@ -17,6 +17,9 @@ Progress log for the Flutter application.
   - Made fake storage folder type checks reflect sample folders instead of always returning true.
   - Streamed recursive folder scans so type checks can stop on the first match without materializing full directory listings.
   - Fixed filtered folder counts so folder tiles show matching files for the active type instead of total child entries.
+- Polished file properties:
+  - Added storage label, storage root, parent folder, full path, formatted size, raw byte count, modified date, and item count rows.
+  - Added widget coverage for storage/location property rows.
 - Updated README status so Settings is no longer described as a placeholder.
 
 ### Verified

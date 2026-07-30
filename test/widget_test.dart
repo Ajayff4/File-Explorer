@@ -4,8 +4,10 @@ import 'package:file_explorer/features/explorer/data/repositories/storage_reposi
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -68,5 +70,41 @@ void main() {
     expect(find.text('420 items'), findsOneWidget);
     expect(find.text('428 items'), findsNothing);
     expect(find.text('Downloads'), findsNothing);
+  });
+
+  testWidgets('properties sheet shows storage and location details',
+      (tester) async {
+    final entry = FileSystemEntry(
+      name: 'photo.jpg',
+      path: '${FakeStorageRepository.rootPath}/DCIM/photo.jpg',
+      type: FileSystemEntryType.image,
+      modifiedAt: DateTime(2026),
+      sizeBytes: 2 * 1024 * 1024,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: EntryPropertiesPanel(
+            entry: entry,
+            storageVolume: const StorageVolume(
+              id: 'primary',
+              label: 'Internal storage',
+              path: FakeStorageRepository.rootPath,
+              isPrimary: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Storage'), findsOneWidget);
+    expect(find.text('Internal storage'), findsOneWidget);
+    expect(find.text('Storage root'), findsOneWidget);
+    expect(find.text(FakeStorageRepository.rootPath), findsOneWidget);
+    expect(find.text('Parent folder'), findsOneWidget);
+    expect(find.text('${FakeStorageRepository.rootPath}/DCIM'), findsOneWidget);
+    expect(find.text('Bytes'), findsOneWidget);
+    expect(find.text('${entry.sizeBytes} bytes'), findsOneWidget);
   });
 }
