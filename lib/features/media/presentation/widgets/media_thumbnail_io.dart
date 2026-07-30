@@ -1,9 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:video_thumbnail/video_thumbnail.dart';
+
+const _apkIconChannel = MethodChannel('com.ajayff4.fileexplorer/apk_icon');
 
 Widget mediaThumbnailFor({
   required FileSystemEntry entry,
@@ -20,8 +22,55 @@ Widget mediaThumbnailFor({
         path: entry.path,
         fallback: fallback,
       ),
+    FileSystemEntryType.app => _ApkIconThumbnail(
+        path: entry.path,
+        fallback: fallback,
+      ),
     _ => Center(child: fallback),
   };
+}
+
+class _ApkIconThumbnail extends StatelessWidget {
+  const _ApkIconThumbnail({
+    required this.path,
+    required this.fallback,
+  });
+
+  final String path;
+  final Widget fallback;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<Uint8List?>(
+      future: _loadApkIcon(path),
+      builder: (context, snapshot) {
+        final bytes = snapshot.data;
+        if (bytes == null) {
+          return Center(child: fallback);
+        }
+
+        return Image.memory(
+          bytes,
+          fit: BoxFit.contain,
+          gaplessPlayback: true,
+          errorBuilder: (_, __, ___) => Center(child: fallback),
+        );
+      },
+    );
+  }
+}
+
+Future<Uint8List?> _loadApkIcon(String path) async {
+  try {
+    return await _apkIconChannel.invokeMethod<Uint8List>(
+      'getApkIcon',
+      {'path': path},
+    );
+  } on PlatformException {
+    return null;
+  } on MissingPluginException {
+    return null;
+  }
 }
 
 class _VideoThumbnail extends StatelessWidget {

@@ -270,14 +270,14 @@ class _ShortcutGrid extends ConsumerWidget {
     final countsAsync = ref.watch(categoryCounts(rootPath));
 
     const shortcuts = [
-      _Shortcut('Images', Icons.image_outlined, FileSystemEntryType.image),
-      _Shortcut('Video', Icons.movie_outlined, FileSystemEntryType.video),
-      _Shortcut('Audio', Icons.music_note_outlined, FileSystemEntryType.audio),
-      _Shortcut('Apps', Icons.apps_outlined, FileSystemEntryType.app),
+      _Shortcut('Images', Icons.image_outlined, MediaLibraryKind.images),
+      _Shortcut('Video', Icons.movie_outlined, MediaLibraryKind.videos),
+      _Shortcut('Audio', Icons.music_note_outlined, MediaLibraryKind.audio),
+      _Shortcut('Apps', Icons.apps_outlined, MediaLibraryKind.apps),
       _Shortcut(
-          'Archives', Icons.inventory_2_outlined, FileSystemEntryType.archive),
-      _Shortcut('Documents', Icons.description_outlined,
-          FileSystemEntryType.document),
+          'Archives', Icons.inventory_2_outlined, MediaLibraryKind.archives),
+      _Shortcut(
+          'Documents', Icons.description_outlined, MediaLibraryKind.documents),
     ];
 
     return LayoutBuilder(
@@ -299,14 +299,7 @@ class _ShortcutGrid extends ConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
-                  // Navigate to Explorer at storage root with type filter enabled
-                  // so Explorer shows folder structure but only files of selected type.
-                  ref.read(explorerFilterTypeProvider.notifier).state =
-                      shortcut.filterType;
-                  ref
-                      .read(explorerControllerProvider.notifier)
-                      .openDirectory(rootPath);
-                  context.go(AppRoutes.explorer);
+                  context.go(AppRoutes.media(shortcut.libraryKind));
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(10),
@@ -496,9 +489,11 @@ class _EmptyFavoritesTile extends StatelessWidget {
 }
 
 class _Shortcut {
-  const _Shortcut(this.label, this.icon, this.filterType);
+  const _Shortcut(this.label, this.icon, this.libraryKind);
 
   final String label;
   final IconData icon;
-  final FileSystemEntryType filterType;
+  final MediaLibraryKind libraryKind;
+
+  FileSystemEntryType get filterType => libraryKind.type;
 }

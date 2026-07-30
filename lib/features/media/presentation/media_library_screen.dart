@@ -1,15 +1,13 @@
 import 'package:file_explorer/app/router/app_router.dart';
-import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
-import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
-import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -45,6 +43,12 @@ enum MediaLibraryKind {
     label: 'Apps',
     type: FileSystemEntryType.app,
     icon: Icons.apps_rounded,
+  ),
+  archives(
+    routeSegment: 'archives',
+    label: 'Archives',
+    type: FileSystemEntryType.archive,
+    icon: Icons.inventory_2_rounded,
   );
 
   const MediaLibraryKind({
@@ -93,19 +97,13 @@ final mediaLibrarySortOptionProvider = StateProvider<MediaSortOption>((ref) {
 final mediaLibraryResultsProvider =
     FutureProvider.family<List<SearchResult>, MediaLibraryRequest>(
   (ref, request) async {
-    final repository = ref.watch(storageRepositoryProvider);
-    final results = <SearchResult>[];
-    await _collectMediaResults(
-      repository: repository,
-      path: request.rootPath,
+    final repository = ref.watch(mediaLibraryRepositoryProvider);
+    return repository.findByType(
+      rootPath: request.rootPath,
       type: request.kind.type,
-      results: results,
-      visitedPaths: <String>{},
-      depth: 0,
-      maxDepth: 5,
-      maxResults: 300,
+      maxDepth: 64,
+      maxResults: 50000,
     );
-    return results;
   },
 );
 
@@ -184,9 +182,12 @@ class _MediaResultsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sortedResults = sortMediaResults(results, option: sortOption);
+    final groups = _sortMediaGroups(
+      _groupMediaResults(results),
+      option: sortOption,
+    );
 
-    if (sortedResults.isEmpty) {
+    if (groups.isEmpty) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -209,18 +210,18 @@ class _MediaResultsView extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: sortedResults.length + 1,
+      itemCount: groups.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _MediaScopeHeader(
             kind: kind,
             rootPath: rootPath,
-            count: sortedResults.length,
+            count: groups.length,
             sortOption: sortOption,
           );
         }
-        return _MediaResultTile(kind: kind, result: sortedResults[index - 1]);
+        return _MediaFolderTile(kind: kind, group: groups[index - 1]);
       },
     );
   }
@@ -272,7 +273,7 @@ class _MediaScopeHeader extends StatelessWidget {
     return ListTile(
       contentPadding: EdgeInsets.zero,
       leading: Icon(kind.icon),
-      title: Text(count == 1 ? '1 item' : '$count items'),
+      title: Text(count == 1 ? '1 folder' : '$count folders'),
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -288,15 +289,15 @@ class _MediaScopeHeader extends StatelessWidget {
   }
 }
 
-class _MediaResultTile extends ConsumerWidget {
-  const _MediaResultTile({required this.kind, required this.result});
+class _MediaFolderTile extends ConsumerWidget {
+  const _MediaFolderTile({required this.kind, required this.group});
 
   final MediaLibraryKind kind;
-  final SearchResult result;
+  final _MediaFolderGroup group;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final entry = result.entry;
+    final entry = group.cover.entry;
 
     return Card(
       child: ListTile(
@@ -306,30 +307,32 @@ class _MediaResultTile extends ConsumerWidget {
           fallbackColor: colorForFileSystemEntry(context, entry),
         ),
         title: Text(
-          entry.name,
+          group.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
         subtitle: Text(
-          result.parentPath,
+          group.path,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        trailing: Text(formatBytes(entry.sizeBytes ?? 0)),
+        trailing: Text(
+          group.count == 1 ? '1 item' : '${group.count} items',
+        ),
         onTap: () {
           final settings = ref.read(settingsControllerProvider).settings;
-          if (!settings.showFoldersOnlyInHistory) {
-            ref.read(recentsControllerProvider.notifier).recordLocation(
-                  path: entry.path,
-                  label: entry.name,
-                  isFolder: false,
-                );
-          }
           ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
           ref.read(explorerControllerProvider.notifier).openDirectory(
-                p.dirname(entry.path),
+                group.path,
                 recordRecent: settings.showFoldersOnlyInHistory,
               );
+          if (!settings.showFoldersOnlyInHistory) {
+            ref.read(recentsControllerProvider.notifier).recordLocation(
+                  path: group.path,
+                  label: group.name,
+                  isFolder: true,
+                );
+          }
           context.go(AppRoutes.explorer);
         },
       ),
@@ -368,62 +371,86 @@ class _MediaErrorState extends StatelessWidget {
   }
 }
 
-Future<void> _collectMediaResults({
-  required StorageRepository repository,
-  required String path,
-  required FileSystemEntryType type,
-  required List<SearchResult> results,
-  required Set<String> visitedPaths,
-  required int depth,
-  required int maxDepth,
-  required int maxResults,
-}) async {
-  if (depth > maxDepth ||
-      visitedPaths.contains(path) ||
-      results.length >= maxResults) {
-    return;
-  }
-  visitedPaths.add(path);
+class _MediaFolderGroup {
+  const _MediaFolderGroup({
+    required this.path,
+    required this.name,
+    required this.results,
+  });
 
-  final listing = await repository.listDirectory(path);
+  final String path;
+  final String name;
+  final List<SearchResult> results;
 
-  for (final entry in listing.entries) {
-    if (results.length >= maxResults) {
-      break;
-    }
-    if (entry.type == type) {
-      results.add(
-        SearchResult(
-          entry: entry,
-          parentPath: path,
-          depth: depth,
-        ),
-      );
-    }
-  }
-
-  for (final folder in listing.entries.where((entry) => entry.isFolder)) {
-    if (results.length >= maxResults) {
-      break;
-    }
-    try {
-      await _collectMediaResults(
-        repository: repository,
-        path: folder.path,
-        type: type,
-        results: results,
-        visitedPaths: visitedPaths,
-        depth: depth + 1,
-        maxDepth: maxDepth,
-        maxResults: maxResults,
-      );
-    } on Object {
-      continue;
-    }
-  }
+  SearchResult get cover => results.first;
+  int get count => results.length;
+  int get totalBytes =>
+      results.fold(0, (total, result) => total + (result.entry.sizeBytes ?? 0));
+  DateTime get modifiedAt => results
+      .map((result) => result.entry.modifiedAt)
+      .reduce((latest, current) => current.isAfter(latest) ? current : latest);
 }
 
-List<SearchResult> sortMediaResults(
+List<_MediaFolderGroup> _groupMediaResults(List<SearchResult> results) {
+  final byPath = <String, List<SearchResult>>{};
+  for (final result in results) {
+    byPath.putIfAbsent(result.parentPath, () => []).add(result);
+  }
+
+  return [
+    for (final entry in byPath.entries)
+      _MediaFolderGroup(
+        path: entry.key,
+        name: p.basename(entry.key),
+        results: _sortMediaResults(
+          entry.value,
+          option: MediaSortOption.modifiedNewest,
+        ),
+      ),
+  ];
+}
+
+List<_MediaFolderGroup> _sortMediaGroups(
+  List<_MediaFolderGroup> groups, {
+  required MediaSortOption option,
+}) {
+  return groups.toList(growable: false)
+    ..sort((left, right) {
+      final primary = switch (option) {
+        MediaSortOption.nameAscending => _compareGroupNames(left, right),
+        MediaSortOption.nameDescending => _compareGroupNames(right, left),
+        MediaSortOption.modifiedNewest =>
+          right.modifiedAt.compareTo(left.modifiedAt),
+        MediaSortOption.modifiedOldest =>
+          left.modifiedAt.compareTo(right.modifiedAt),
+        MediaSortOption.sizeLargest => right.totalBytes.compareTo(
+            left.totalBytes,
+          ),
+        MediaSortOption.sizeSmallest => left.totalBytes.compareTo(
+            right.totalBytes,
+          ),
+        MediaSortOption.typeAscending =>
+          left.cover.entry.type.index.compareTo(right.cover.entry.type.index),
+      };
+
+      if (primary != 0) {
+        return primary;
+      }
+      return _compareGroupNames(left, right);
+    });
+}
+
+int _compareGroupNames(_MediaFolderGroup left, _MediaFolderGroup right) {
+  final nameComparison = left.name.toLowerCase().compareTo(
+        right.name.toLowerCase(),
+      );
+  if (nameComparison != 0) {
+    return nameComparison;
+  }
+  return left.path.compareTo(right.path);
+}
+
+List<SearchResult> _sortMediaResults(
   List<SearchResult> results, {
   required MediaSortOption option,
 }) {

@@ -1,15 +1,21 @@
 package com.ajayff4.fileexplorer
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 class MainActivity: FlutterActivity() {
     private val storageChannel = "com.ajayff4.fileexplorer/storage"
+    private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -28,6 +34,21 @@ class MainActivity: FlutterActivity() {
                     }
                     "isAllFilesAccessGranted" -> {
                         result.success(isAllFilesAccessGranted())
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, apkIconChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getApkIcon" -> {
+                        val path = call.argument<String>("path")
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else {
+                            result.success(getApkIcon(path))
+                        }
                     }
                     else -> result.notImplemented()
                 }
@@ -127,5 +148,36 @@ class MainActivity: FlutterActivity() {
         } else {
             true
         }
+    }
+
+    private fun getApkIcon(path: String): ByteArray? {
+        return try {
+            val packageInfo = packageManager.getPackageArchiveInfo(path, 0) ?: return null
+            val appInfo = packageInfo.applicationInfo ?: return null
+            appInfo.sourceDir = path
+            appInfo.publicSourceDir = path
+            val drawable = packageManager.getApplicationIcon(appInfo)
+            val bitmap = drawableToBitmap(drawable)
+            ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
+                stream.toByteArray()
+            }
+        } catch (error: Exception) {
+            null
+        }
+    }
+
+    private fun drawableToBitmap(drawable: Drawable): Bitmap {
+        if (drawable is BitmapDrawable && drawable.bitmap != null) {
+            return drawable.bitmap
+        }
+
+        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
+        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        return bitmap
     }
 }

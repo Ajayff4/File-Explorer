@@ -55,7 +55,10 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Flat libraries for images, videos, audio, documents, and apps. |
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
+| ✅ | Media | Home category shortcuts open flattened folder groups for matching files. |
 | ✅ | Media | Date, size, type, and name sorting controls in media libraries. |
+| ✅ | Media | Media/category scanning behind repository boundaries. |
+| ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press item actions instead of visible per-item overflow buttons. |
@@ -103,9 +106,6 @@ Recommended next slices, in order:
 
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
-| [ ] | 1 | Documentation | Remove stale "multi-select pending" wording from planning notes. |
-| [ ] | 2 | Home | Keep media/category scanning behind repository/controller boundaries. |
-| [ ] | 3 | Media | Add native thumbnails for app library rows. |
 | [ ] | 4 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
 | [ ] | 4 | Android permissions | Add clearer recovery path when user denies all-files access. |
 | [ ] | 5 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |

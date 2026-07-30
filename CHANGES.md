@@ -41,6 +41,9 @@ Progress log for the Flutter application.
 - Added extension-aware icons for known files:
   - PDF, Office documents, spreadsheets, presentations, text, code/data, archives, APK/AAB, and installer files now get more specific icons.
   - Known file icons use type colors, such as red PDFs, blue documents, green sheets/CSV, and red presentations.
+- Moved media library scanning behind a repository boundary so presentation widgets no longer walk storage directly.
+- Updated Home category shortcuts to open flattened folder groups, so matching folders nested deep in storage appear at the first level of the category view.
+- Added Android APK icon extraction over MethodChannel so app files can show their real app icon with fallback.
 - Updated README status so Settings is no longer described as a placeholder.
 
 ### Verified

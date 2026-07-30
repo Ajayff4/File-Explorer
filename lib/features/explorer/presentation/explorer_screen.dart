@@ -5,7 +5,6 @@ import 'package:file_explorer/features/explorer/domain/repositories/storage_repo
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
-import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
@@ -70,18 +69,18 @@ class ExplorerScreen extends ConsumerWidget {
       }
     });
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop) {
-          if (isSelectionMode) {
-            ref.read(explorerControllerProvider.notifier).exitSelectionMode();
-          } else if (_canNavigateUp(explorerState)) {
-            ref.read(explorerControllerProvider.notifier).openParentDirectory();
-          } else {
-            context.go(AppRoutes.home);
-          }
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (isSelectionMode) {
+          ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+        } else if (_canNavigateUp(explorerState)) {
+          await ref
+              .read(explorerControllerProvider.notifier)
+              .openParentDirectory();
+        } else {
+          context.go(AppRoutes.home);
         }
+        return true;
       },
       child: Scaffold(
         appBar: AppBar(
@@ -663,7 +662,6 @@ class _EntryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
-    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return ListView.separated(
       padding: const EdgeInsets.all(12),
@@ -713,17 +711,9 @@ class _EntryList extends ConsumerWidget {
             onLongPress: isSelectionMode
                 ? null
                 : () {
-                    showEntryActionsSheet(
-                      context: context,
-                      ref: ref,
-                      entry: entry,
-                      storageVolume: selectedVolume,
-                      onSelect: () {
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .toggleSelection(entry.path);
-                      },
-                    );
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
                   },
           ),
         );
@@ -742,7 +732,6 @@ class _EntryGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
-    final selectedVolume = _selectedVolumeFor(explorerState);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -770,19 +759,6 @@ class _EntryGrid extends ConsumerWidget {
                     .read(explorerControllerProvider.notifier)
                     .toggleSelection(entry.path);
               },
-              onShowActions: () {
-                showEntryActionsSheet(
-                  context: context,
-                  ref: ref,
-                  entry: entry,
-                  storageVolume: selectedVolume,
-                  onSelect: () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
-                  },
-                );
-              },
               onOpenFolder: entry.isFolder
                   ? () {
                       ref
@@ -804,7 +780,6 @@ class _GridEntryTile extends StatelessWidget {
     required this.isSelected,
     required this.isSelectionMode,
     required this.onToggleSelection,
-    required this.onShowActions,
     required this.onOpenFolder,
   });
 
@@ -812,7 +787,6 @@ class _GridEntryTile extends StatelessWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final VoidCallback onToggleSelection;
-  final VoidCallback onShowActions;
   final VoidCallback? onOpenFolder;
 
   @override
@@ -825,7 +799,7 @@ class _GridEntryTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: isSelectionMode ? onToggleSelection : onOpenFolder,
-        onLongPress: isSelectionMode ? null : onShowActions,
+        onLongPress: isSelectionMode ? null : onToggleSelection,
         child: Stack(
           children: [
             Padding(
@@ -869,7 +843,8 @@ class _GridEntryVisual extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (entry.type == FileSystemEntryType.image ||
-        entry.type == FileSystemEntryType.video) {
+        entry.type == FileSystemEntryType.video ||
+        entry.type == FileSystemEntryType.app) {
       return MediaThumbnail(
         entry: entry,
         fallbackIcon: iconForFileSystemEntry(entry),
