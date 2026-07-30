@@ -209,4 +209,13 @@ class _MultiVolumeStorageRepository implements StorageRepository {
       FileSystemEntryType.other: 4,
     };
   }
+
+  @override
+  Future<bool> folderContainsFileType(
+    String folderPath,
+    FileSystemEntryType type,
+  ) async {
+    // For testing, folders always contain files of any type
+    return true;
+  }
 }

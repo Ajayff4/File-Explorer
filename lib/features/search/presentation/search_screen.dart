@@ -1,6 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
@@ -144,7 +145,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           ),
           const SizedBox(height: 16),
-          if (!searchState.hasQuery)
+          if (!searchState.hasQuery && searchState.filteredTypes.isEmpty)
             const _SearchHint()
           else if (searchState.isSearching)
             _SearchLoadingState(isIndexing: searchState.isIndexing)
@@ -156,7 +157,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             _ResultCountHeader(count: searchState.results.length),
             const SizedBox(height: 8),
             ...searchState.results.map(
-              (result) => _SearchResultTile(result: result),
+              (result) => _SearchResultTile(
+                result: result,
+                activeFilter: searchState.filteredTypes.isEmpty
+                    ? null
+                    : searchState.filteredTypes.first,
+              ),
             ),
           ],
         ],
@@ -243,9 +249,13 @@ class _ResultCountHeader extends StatelessWidget {
 }
 
 class _SearchResultTile extends ConsumerWidget {
-  const _SearchResultTile({required this.result});
+  const _SearchResultTile({
+    required this.result,
+    this.activeFilter,
+  });
 
   final SearchResult result;
+  final FileSystemEntryType? activeFilter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -276,6 +286,10 @@ class _SearchResultTile extends ConsumerWidget {
                   label: entry.name,
                   isFolder: false,
                 );
+          }
+          // Preserve the active type filter when opening in Explorer
+          if (activeFilter != null) {
+            ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;
           }
           ref.read(explorerControllerProvider.notifier).openDirectory(
                 parentPathForSearchResult(result),

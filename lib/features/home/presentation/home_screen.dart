@@ -260,7 +260,10 @@ class _ShortcutGrid extends ConsumerWidget {
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
+                  // Navigate to Explorer at storage root with type filter enabled
+                  // so Explorer shows folder structure but only files of selected type.
                   ref.read(explorerFilterTypeProvider.notifier).state = shortcut.filterType;
+                  ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
                   context.go(AppRoutes.explorer);
                 },
                 child: Padding(

@@ -145,7 +145,98 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       filteredTypes: copiedTypes,
       clearError: true,
     );
-    return searchNow(query: state.query, rootPath: rootPath);
+    // If there's a query, run the normal query search. If not, run a
+    // type-only search which collects folders containing matching types.
+    if (state.query.trim().isNotEmpty) {
+      return searchNow(query: state.query, rootPath: rootPath);
+    }
+    return _runTypeOnlySearch(rootPath: rootPath, filteredTypes: copiedTypes);
+  }
+
+  Future<void> _runTypeOnlySearch({
+    required String rootPath,
+    required Set<FileSystemEntryType> filteredTypes,
+  }) async {
+    final requestId = ++_requestSequence;
+    state = state.copyWith(
+      rootPath: rootPath,
+      filteredTypes: filteredTypes,
+      isSearching: true,
+      clearError: true,
+      results: const [],
+    );
+
+    try {
+      final results = <SearchResult>[];
+      await _collectMatchingEntries(
+        rootPath,
+        filteredTypes,
+        results,
+        depth: 0,
+        visitedPaths: <String>{},
+      );
+      if (!mounted || requestId != _requestSequence) return;
+      results.sort(_compareResults);
+      state = state.copyWith(
+        results: results.take(_maxResults).toList(growable: false),
+        isSearching: false,
+        clearError: true,
+      );
+    } catch (error) {
+      if (!mounted || requestId != _requestSequence) return;
+      state = state.copyWith(
+        results: const [],
+        isSearching: false,
+        error: error,
+      );
+    }
+  }
+
+  /// Recursively collect all files and folders matching the filtered types.
+  Future<void> _collectMatchingEntries(
+    String path,
+    Set<FileSystemEntryType> filteredTypes,
+    List<SearchResult> results, {
+    required int depth,
+    required Set<String> visitedPaths,
+  }) async {
+    if (depth > _maxDepth || visitedPaths.contains(path) || results.length >= _maxResults) {
+      return;
+    }
+    visitedPaths.add(path);
+
+    final listing = await _repository.listDirectory(path);
+
+    // Add matching folders and files at this level
+    for (final entry in listing.entries) {
+      if (results.length >= _maxResults) break;
+      
+      if (filteredTypes.contains(entry.type)) {
+        results.add(
+          SearchResult(
+            entry: entry,
+            parentPath: path,
+            depth: depth,
+          ),
+        );
+      }
+    }
+
+    // Recurse into folders
+    for (final folder in listing.entries.where((e) => e.isFolder)) {
+      if (results.length >= _maxResults) break;
+      try {
+        await _collectMatchingEntries(
+          folder.path,
+          filteredTypes,
+          results,
+          depth: depth + 1,
+          visitedPaths: visitedPaths,
+        );
+      } on Object {
+        continue;
+      }
+    }
   }
 
   Future<void> reindex({

@@ -88,6 +88,52 @@ class LocalStorageRepository implements StorageRepository {
     return counts;
   }
 
+  @override
+  Future<bool> folderContainsFileType(
+    String folderPath,
+    FileSystemEntryType type,
+  ) async {
+    return _folderContainsFileTypeRecursive(folderPath, type, maxDepth: 4);
+  }
+
+  Future<bool> _folderContainsFileTypeRecursive(
+    String path,
+    FileSystemEntryType type, {
+    required int maxDepth,
+  }) async {
+    if (maxDepth <= 0) return false;
+
+    try {
+      final directory = Directory(path);
+      final entities = await directory.list().toList();
+
+      for (final entity in entities) {
+        try {
+          if (entity is File) {
+            if (_typeFromPath(entity.path) == type) {
+              return true;
+            }
+          } else if (entity is Directory) {
+            // Recurse into subdirectories
+            if (await _folderContainsFileTypeRecursive(
+              entity.path,
+              type,
+              maxDepth: maxDepth - 1,
+            )) {
+              return true;
+            }
+          }
+        } on FileSystemException {
+          // Skip unreadable entries
+        }
+      }
+    } on FileSystemException {
+      // If we can't read the directory, return false
+    }
+
+    return false;
+  }
+
   Future<void> _countEntriesRecursive(
     String path,
     Map<FileSystemEntryType, int> counts, {

@@ -44,6 +44,14 @@ Progress log for the Flutter application.
   - Clearing the active `explorerFilterTypeProvider` when opening a storage root from Home.
   - Clearing the filter when selecting a different storage volume in the Explorer volume switcher.
   - Ensures tapping a storage root shows the full listing instead of a previously-applied type filter view.
+- Added type-only search discovery (ES-style file type shortcuts):
+  - Home shortcuts now open Explorer at storage root with type filter enabled.
+  - Explorer filter logic updated to always show folders (navigation containers) but only matching file types.
+  - Folder structure/hierarchy is preserved; you navigate through real folders.
+  - At each folder level, only files of the selected type are visible (plus all subfolders).
+  - Type filter persists when navigating into subfolders, so nested folders also show only matching files.
+  - Flat list approach removed; performance-optimized by filtering at render time instead of collecting all matches.
+  - Storage root shortcut still clears filter to show full listing.
 
 ### Verified
 

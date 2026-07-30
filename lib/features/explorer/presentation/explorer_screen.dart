@@ -1,5 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
@@ -222,7 +224,15 @@ class ExplorerScreen extends ConsumerWidget {
                     
                     // Apply file type filter if set
                     if (filterType != null) {
-                      entries = entries.where((entry) => entry.type == filterType).toList();
+                      // Use FutureBuilder to handle async folder filtering
+                      return _FilteredEntryListView(
+                        entries: entries,
+                        filterType: filterType,
+                        sortOption: sortOption,
+                        viewMode: viewMode,
+                        isSelectionMode: isSelectionMode,
+                        storage: ref.watch(storageRepositoryProvider),
+                      );
                     }
                     
                     entries = sortExplorerEntries(entries, option: sortOption);
@@ -913,5 +923,67 @@ class _SelectionActionBar extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+/// Widget that handles asynchronous filtering of entries based on folder content
+class _FilteredEntryListView extends StatelessWidget {
+  const _FilteredEntryListView({
+    required this.entries,
+    required this.filterType,
+    required this.sortOption,
+    required this.viewMode,
+    required this.isSelectionMode,
+    required this.storage,
+  });
+
+  final List<FileSystemEntry> entries;
+  final FileSystemEntryType filterType;
+  final ExplorerSortOption sortOption;
+  final ExplorerViewMode viewMode;
+  final bool isSelectionMode;
+  final StorageRepository storage;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<FileSystemEntry>>(
+      future: _filterEntriesByContent(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final filteredEntries = snapshot.data ?? [];
+        final sorted = sortExplorerEntries(filteredEntries, option: sortOption);
+
+        if (sorted.isEmpty) {
+          return _EmptyDirectory(filterType: filterType);
+        }
+
+        return viewMode == ExplorerViewMode.list
+            ? _EntryList(entries: sorted, isSelectionMode: isSelectionMode)
+            : _EntryGrid(entries: sorted, isSelectionMode: isSelectionMode);
+      },
+    );
+  }
+
+  Future<List<FileSystemEntry>> _filterEntriesByContent() async {
+    final filtered = <FileSystemEntry>[];
+
+    for (final entry in entries) {
+      if (!entry.isFolder) {
+        // Include files that match the filter type
+        if (entry.type == filterType) {
+          filtered.add(entry);
+        }
+      } else {
+        // For folders, check if they contain files of the selected type
+        final contains = await storage.folderContainsFileType(entry.path, filterType);
+        if (contains) {
+          filtered.add(entry);
+        }
+      }
+    }
+
+    return filtered;
   }
 }

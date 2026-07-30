@@ -96,4 +96,13 @@ class FakeStorageRepository implements StorageRepository {
       FileSystemEntryType.other: 91,
     };
   }
+
+  @override
+  Future<bool> folderContainsFileType(
+    String folderPath,
+    FileSystemEntryType type,
+  ) async {
+    // For fake storage, always return true to allow demonstration of folder structure
+    return true;
+  }
 }
