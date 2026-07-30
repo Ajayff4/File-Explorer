@@ -8,19 +8,21 @@ class MediaThumbnail extends StatelessWidget {
     required this.entry,
     required this.fallbackIcon,
     this.fallbackColor,
+    this.dimension = 48,
     super.key,
   });
 
   final FileSystemEntry entry;
   final IconData fallbackIcon;
   final Color? fallbackColor;
+  final double dimension;
 
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
       borderRadius: BorderRadius.circular(6),
       child: SizedBox.square(
-        dimension: 48,
+        dimension: dimension,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerHighest,

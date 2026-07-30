@@ -2,6 +2,23 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 
+class FileEntryColors {
+  const FileEntryColors._();
+
+  static const pdf = Color(0xFFE53935);
+  static const document = Color(0xFF1E88E5);
+  static const spreadsheet = Color(0xFF43A047);
+  static const presentation = Color(0xFFE53935);
+  static const text = Color(0xFF78909C);
+  static const data = Color(0xFFFFB300);
+  static const code = Color(0xFF7E57C2);
+  static const archive = Color(0xFF8D6E63);
+  static const app = Color(0xFF66BB6A);
+  static const image = Color(0xFFEC407A);
+  static const video = Color(0xFFAB47BC);
+  static const audio = Color(0xFF26A69A);
+}
+
 IconData iconForFileSystemEntryType(FileSystemEntryType type) {
   return switch (type) {
     FileSystemEntryType.folder => Icons.folder_rounded,
@@ -45,7 +62,7 @@ IconData iconForFileSystemEntry(FileSystemEntry entry) {
     'bz2' ||
     'xz' =>
       Icons.inventory_2_rounded,
-    'apk' || 'aab' => Icons.android_rounded,
+    'apk' || 'apks' || 'xapk' || 'apkm' || 'aab' => Icons.android_rounded,
     'exe' || 'msi' || 'deb' || 'rpm' => Icons.apps_rounded,
     _ => iconForFileSystemEntryType(entry.type),
   };
@@ -59,12 +76,12 @@ Color colorForFileSystemEntry(BuildContext context, FileSystemEntry entry) {
 
   final extension = _extensionFor(entry.name);
   return switch (extension) {
-    'pdf' => const Color(0xFFE53935),
-    'doc' || 'docx' || 'odt' || 'rtf' => const Color(0xFF1E88E5),
-    'xls' || 'xlsx' || 'ods' || 'csv' => const Color(0xFF43A047),
-    'ppt' || 'pptx' || 'odp' => const Color(0xFFE53935),
-    'txt' || 'md' || 'log' => const Color(0xFF78909C),
-    'json' || 'xml' || 'yaml' || 'yml' => const Color(0xFFFFB300),
+    'pdf' => FileEntryColors.pdf,
+    'doc' || 'docx' || 'odt' || 'rtf' => FileEntryColors.document,
+    'xls' || 'xlsx' || 'ods' || 'csv' => FileEntryColors.spreadsheet,
+    'ppt' || 'pptx' || 'odp' => FileEntryColors.presentation,
+    'txt' || 'md' || 'log' => FileEntryColors.text,
+    'json' || 'xml' || 'yaml' || 'yml' => FileEntryColors.data,
     'html' ||
     'css' ||
     'js' ||
@@ -73,7 +90,7 @@ Color colorForFileSystemEntry(BuildContext context, FileSystemEntry entry) {
     'kt' ||
     'java' ||
     'py' =>
-      const Color(0xFF7E57C2),
+      FileEntryColors.code,
     'zip' ||
     'rar' ||
     '7z' ||
@@ -81,16 +98,16 @@ Color colorForFileSystemEntry(BuildContext context, FileSystemEntry entry) {
     'gz' ||
     'bz2' ||
     'xz' =>
-      const Color(0xFF8D6E63),
-    'apk' || 'aab' => const Color(0xFF66BB6A),
+      FileEntryColors.archive,
+    'apk' || 'apks' || 'xapk' || 'apkm' || 'aab' => FileEntryColors.app,
     'exe' || 'msi' || 'deb' || 'rpm' => colorScheme.primary,
     _ => switch (entry.type) {
-        FileSystemEntryType.image => const Color(0xFFEC407A),
-        FileSystemEntryType.video => const Color(0xFFAB47BC),
-        FileSystemEntryType.audio => const Color(0xFF26A69A),
-        FileSystemEntryType.document => const Color(0xFF1E88E5),
-        FileSystemEntryType.archive => const Color(0xFF8D6E63),
-        FileSystemEntryType.app => const Color(0xFF66BB6A),
+        FileSystemEntryType.image => FileEntryColors.image,
+        FileSystemEntryType.video => FileEntryColors.video,
+        FileSystemEntryType.audio => FileEntryColors.audio,
+        FileSystemEntryType.document => FileEntryColors.document,
+        FileSystemEntryType.archive => FileEntryColors.archive,
+        FileSystemEntryType.app => FileEntryColors.app,
         _ => colorScheme.onSurfaceVariant,
       },
   };

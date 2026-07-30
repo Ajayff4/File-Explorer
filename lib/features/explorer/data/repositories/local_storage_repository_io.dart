@@ -263,7 +263,15 @@ class LocalStorageRepository implements StorageRepository {
       '.tar' ||
       '.gz' =>
         FileSystemEntryType.archive,
-      '.apk' || '.app' || '.exe' || '.deb' => FileSystemEntryType.app,
+      '.apk' ||
+      '.apks' ||
+      '.xapk' ||
+      '.apkm' ||
+      '.aab' ||
+      '.app' ||
+      '.exe' ||
+      '.deb' =>
+        FileSystemEntryType.app,
       _ => FileSystemEntryType.other,
     };
   }

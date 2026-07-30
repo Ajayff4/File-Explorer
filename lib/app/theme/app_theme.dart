@@ -54,8 +54,22 @@ class AppTheme {
       cardTheme: CardTheme(
         color: cardColor,
         elevation: 0,
+        margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        minLeadingWidth: 40,
+        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(8)),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          minimumSize: const Size.square(40),
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(

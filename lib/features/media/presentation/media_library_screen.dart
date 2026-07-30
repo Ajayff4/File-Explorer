@@ -208,21 +208,43 @@ class _MediaResultsView extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.all(16),
-      itemCount: groups.length + 1,
-      separatorBuilder: (context, index) => const SizedBox(height: 8),
-      itemBuilder: (context, index) {
-        if (index == 0) {
-          return _MediaScopeHeader(
-            kind: kind,
-            rootPath: rootPath,
-            count: groups.length,
-            sortOption: sortOption,
-          );
-        }
-        return _MediaFolderTile(kind: kind, group: groups[index - 1]);
-      },
+    final crossAxisCount = switch (kind) {
+      MediaLibraryKind.images || MediaLibraryKind.videos => 3,
+      _ => 4,
+    };
+    final tileExtent = crossAxisCount == 3 ? 156.0 : 124.0;
+
+    return CustomScrollView(
+      slivers: [
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          sliver: SliverToBoxAdapter(
+            child: _MediaScopeHeader(
+              kind: kind,
+              rootPath: rootPath,
+              count: groups.length,
+              sortOption: sortOption,
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          sliver: SliverGrid.builder(
+            itemCount: groups.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: crossAxisCount,
+              mainAxisExtent: tileExtent,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 8,
+            ),
+            itemBuilder: (context, index) => _MediaFolderTile(
+              kind: kind,
+              group: groups[index],
+              isLarge: crossAxisCount == 3,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -290,53 +312,73 @@ class _MediaScopeHeader extends StatelessWidget {
 }
 
 class _MediaFolderTile extends ConsumerWidget {
-  const _MediaFolderTile({required this.kind, required this.group});
+  const _MediaFolderTile({
+    required this.kind,
+    required this.group,
+    required this.isLarge,
+  });
 
   final MediaLibraryKind kind;
   final _MediaFolderGroup group;
+  final bool isLarge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = group.cover.entry;
 
-    return Card(
-      child: ListTile(
-        leading: MediaThumbnail(
-          entry: entry,
-          fallbackIcon: iconForFileSystemEntry(entry),
-          fallbackColor: colorForFileSystemEntry(context, entry),
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => _openFolder(context, ref),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(4, isLarge ? 6 : 8, 4, 6),
+          child: Column(
+            children: [
+              MediaThumbnail(
+                entry: entry,
+                fallbackIcon: iconForFileSystemEntry(entry),
+                fallbackColor: colorForFileSystemEntry(context, entry),
+                dimension: isLarge ? 96 : 52,
+              ),
+              SizedBox(height: isLarge ? 6 : 8),
+              Text(
+                group.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+              const Spacer(),
+              Text(
+                group.count == 1 ? '1 item' : '${group.count} items',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.labelSmall,
+              ),
+            ],
+          ),
         ),
-        title: Text(
-          group.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Text(
-          group.path,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        trailing: Text(
-          group.count == 1 ? '1 item' : '${group.count} items',
-        ),
-        onTap: () {
-          final settings = ref.read(settingsControllerProvider).settings;
-          ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
-          ref.read(explorerControllerProvider.notifier).openDirectory(
-                group.path,
-                recordRecent: settings.showFoldersOnlyInHistory,
-              );
-          if (!settings.showFoldersOnlyInHistory) {
-            ref.read(recentsControllerProvider.notifier).recordLocation(
-                  path: group.path,
-                  label: group.name,
-                  isFolder: true,
-                );
-          }
-          context.go(AppRoutes.explorer);
-        },
       ),
     );
+  }
+
+  void _openFolder(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(settingsControllerProvider).settings;
+    ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
+    ref.read(explorerControllerProvider.notifier).openDirectory(
+          group.path,
+          recordRecent: settings.showFoldersOnlyInHistory,
+        );
+    if (!settings.showFoldersOnlyInHistory) {
+      ref.read(recentsControllerProvider.notifier).recordLocation(
+            path: group.path,
+            label: group.name,
+            isFolder: true,
+          );
+    }
+    context.go(AppRoutes.explorer);
   }
 }
 

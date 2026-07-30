@@ -44,6 +44,16 @@ Progress log for the Flutter application.
 - Moved media library scanning behind a repository boundary so presentation widgets no longer walk storage directly.
 - Updated Home category shortcuts to open flattened folder groups, so matching folders nested deep in storage appear at the first level of the category view.
 - Added Android APK icon extraction over MethodChannel so app files can show their real app icon with fallback.
+  - `.apks`, `.xapk`, `.apkm`, and `.aab` now classify as app files and use Android app fallback icons.
+- Updated category folder layouts:
+  - Image and video categories use a three-column grid with larger thumbnails.
+  - Other file categories use a compact four-column grid.
+- Completed pending Android permission polish:
+  - Permission checks now use the native all-files status bridge before falling back to `permission_handler` status.
+  - Denied, permanently denied, and restricted states now show clearer recovery guidance.
+- Completed pending UI polish:
+  - Tightened mobile card/list density and icon button tap sizing.
+  - Centralized file-type colors while keeping the black/purple theme direction.
 - Updated README status so Settings is no longer described as a placeholder.
 
 ### Verified

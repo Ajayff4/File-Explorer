@@ -1,5 +1,7 @@
 package com.ajayff4.fileexplorer
 
+import android.content.pm.PackageInfo
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
@@ -152,11 +154,11 @@ class MainActivity: FlutterActivity() {
 
     private fun getApkIcon(path: String): ByteArray? {
         return try {
-            val packageInfo = packageManager.getPackageArchiveInfo(path, 0) ?: return null
+            val packageInfo = getPackageArchiveInfo(path) ?: return null
             val appInfo = packageInfo.applicationInfo ?: return null
             appInfo.sourceDir = path
             appInfo.publicSourceDir = path
-            val drawable = packageManager.getApplicationIcon(appInfo)
+            val drawable = appInfo.loadIcon(packageManager)
             val bitmap = drawableToBitmap(drawable)
             ByteArrayOutputStream().use { stream ->
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream)
@@ -167,13 +169,25 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
+    private fun getPackageArchiveInfo(path: String): PackageInfo? {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            packageManager.getPackageArchiveInfo(
+                path,
+                PackageManager.PackageInfoFlags.of(0),
+            )
+        } else {
+            packageManager.getPackageArchiveInfo(path, 0)
+        }
+    }
+
     private fun drawableToBitmap(drawable: Drawable): Bitmap {
         if (drawable is BitmapDrawable && drawable.bitmap != null) {
             return drawable.bitmap
         }
 
-        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 96
-        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 96
+        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 144
+        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 144
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bitmap)
         drawable.setBounds(0, 0, canvas.width, canvas.height)

@@ -16,13 +16,14 @@ class StoragePermissionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    final recoveryText = _recoveryTextFor(state);
 
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: Card(
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,6 +47,35 @@ class StoragePermissionCard extends StatelessWidget {
                   'File Explorer needs explicit access before it can browse shared storage. You stay in control, and no broad permission is requested on launch.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
+                if (recoveryText != null) ...[
+                  const SizedBox(height: 12),
+                  DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: colors.primaryContainer.withOpacity(0.35),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            size: 20,
+                            color: colors.primary,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              recoveryText,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 18),
                 Wrap(
                   spacing: 8,
@@ -55,7 +85,7 @@ class StoragePermissionCard extends StatelessWidget {
                       FilledButton.icon(
                         onPressed: onRequestFullAccess,
                         icon: const Icon(Icons.admin_panel_settings_rounded),
-                        label: const Text('Allow access'),
+                        label: Text(_primaryActionLabelFor(state)),
                       ),
                     OutlinedButton.icon(
                       onPressed: onRetry,
@@ -71,4 +101,23 @@ class StoragePermissionCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String? _recoveryTextFor(StoragePermissionState state) {
+  return switch (state.status) {
+    StoragePermissionStatus.denied =>
+      'Android will open the All files access screen. Enable File Explorer there, then return here and tap Check again.',
+    StoragePermissionStatus.permanentlyDenied =>
+      'Access is disabled in system settings. Open settings, enable All files access for File Explorer, then return and tap Check again.',
+    StoragePermissionStatus.restricted =>
+      'This device is restricting shared storage access. Check work profile, parental controls, or device policy settings.',
+    _ => null,
+  };
+}
+
+String _primaryActionLabelFor(StoragePermissionState state) {
+  return switch (state.status) {
+    StoragePermissionStatus.permanentlyDenied => 'Open settings',
+    _ => 'Allow access',
+  };
 }

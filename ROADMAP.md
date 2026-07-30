@@ -36,6 +36,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Android storage | Android storage volume MethodChannel. |
 | ✅ | Android storage | Android `StatFs` storage summary lookup. |
 | ✅ | Android storage | Android all-files access status bridge. |
+| ✅ | Android permissions | Native all-files status check supplements `permission_handler`. |
+| ✅ | Android permissions | Denied/restricted states show clearer settings recovery guidance. |
 | ✅ | Transfers | Copy, move, rename, and recursive delete queue. |
 | ✅ | Transfers | Copy/move destination selection with `Paste here`. |
 | ✅ | Transfers | Progress/status UI. |
@@ -56,12 +58,15 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
 | ✅ | Media | Home category shortcuts open flattened folder groups for matching files. |
+| ✅ | Media | Image/video category folders use three-column grid; other categories use four-column grid. |
 | ✅ | Media | Date, size, type, and name sorting controls in media libraries. |
 | ✅ | Media | Media/category scanning behind repository boundaries. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press item actions instead of visible per-item overflow buttons. |
+| ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
+| ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
@@ -106,16 +111,14 @@ Recommended next slices, in order:
 
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
-| [ ] | 4 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
-| [ ] | 4 | Android permissions | Add clearer recovery path when user denies all-files access. |
-| [ ] | 5 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
-| [ ] | 5 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
+| ✅ | - | General | Immediate development checklist clear. |
 
 ## Later Roadmap
 
 | Status | Area | Task |
 | --- | --- | --- |
 | [ ] | Media | Thumbnail cache. |
+| [ ] | Media | Tune category scan performance with progress and cancellation. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
 | [ ] | Archives | Archive browsing, extract, and compress. |
