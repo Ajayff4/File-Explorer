@@ -200,7 +200,9 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     required int depth,
     required Set<String> visitedPaths,
   }) async {
-    if (depth > _maxDepth || visitedPaths.contains(path) || results.length >= _maxResults) {
+    if (depth > _maxDepth ||
+        visitedPaths.contains(path) ||
+        results.length >= _maxResults) {
       return;
     }
     visitedPaths.add(path);
@@ -210,7 +212,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     // Add matching folders and files at this level
     for (final entry in listing.entries) {
       if (results.length >= _maxResults) break;
-      
+
       if (filteredTypes.contains(entry.type)) {
         results.add(
           SearchResult(

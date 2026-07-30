@@ -79,6 +79,34 @@ void main() {
     expect(controller.state.results.single.entry.path, '/storage/report.txt');
   });
 
+  test('type-only filter finds matching descendants without a query', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('Pictures', '/root/Pictures'),
+        _folder('Docs', '/root/Docs'),
+      ],
+      '/root/Pictures': [
+        _image('photo.png', '/root/Pictures/photo.png'),
+      ],
+      '/root/Docs': [
+        _file('report.txt', '/root/Docs/report.txt'),
+      ],
+    });
+    final controller = FileSearchController(repository);
+
+    await controller.setFilteredTypes(
+      filteredTypes: const {FileSystemEntryType.image},
+      rootPath: '/root',
+    );
+
+    expect(controller.state.query, isEmpty);
+    expect(controller.state.isSearching, isFalse);
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      ['/root/Pictures/photo.png'],
+    );
+  });
+
   test('builds index once and reuses it for later searches', () async {
     final repository = _TreeStorageRepository({
       '/root': [
@@ -206,19 +234,37 @@ class _TreeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(
+      String rootPath) async {
     // Count entries for testing
     final counts = <FileSystemEntryType, int>{};
     for (final type in FileSystemEntryType.values) {
       counts[type] = 0;
     }
-    
+
     // Recursively count all entries
     final allEntries = _entriesByPath.values.expand((e) => e);
     for (final entry in allEntries) {
       counts[entry.type] = (counts[entry.type] ?? 0) + 1;
     }
     return counts;
+  }
+
+  @override
+  Future<bool> folderContainsFileType(
+    String folderPath,
+    FileSystemEntryType type,
+  ) async {
+    final entries = _entriesByPath[folderPath] ?? const <FileSystemEntry>[];
+    for (final entry in entries) {
+      if (entry.type == type) {
+        return true;
+      }
+      if (entry.isFolder && await folderContainsFileType(entry.path, type)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   void replaceEntries(String path, List<FileSystemEntry> entries) {

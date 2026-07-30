@@ -76,9 +76,10 @@ class LocalStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(
+      String rootPath) async {
     final counts = <FileSystemEntryType, int>{};
-    
+
     // Initialize all types to 0
     for (final type in FileSystemEntryType.values) {
       counts[type] = 0;
@@ -105,9 +106,8 @@ class LocalStorageRepository implements StorageRepository {
 
     try {
       final directory = Directory(path);
-      final entities = await directory.list().toList();
 
-      for (final entity in entities) {
+      await for (final entity in directory.list()) {
         try {
           if (entity is File) {
             if (_typeFromPath(entity.path) == type) {
@@ -143,14 +143,15 @@ class LocalStorageRepository implements StorageRepository {
 
     try {
       final directory = Directory(path);
-      final entities = await directory.list().toList();
 
-      for (final entity in entities) {
+      await for (final entity in directory.list()) {
         try {
           if (entity is Directory) {
-            counts[FileSystemEntryType.folder] = (counts[FileSystemEntryType.folder] ?? 0) + 1;
+            counts[FileSystemEntryType.folder] =
+                (counts[FileSystemEntryType.folder] ?? 0) + 1;
             // Recurse into subdirectories
-            await _countEntriesRecursive(entity.path, counts, maxDepth: maxDepth - 1);
+            await _countEntriesRecursive(entity.path, counts,
+                maxDepth: maxDepth - 1);
           } else if (entity is File) {
             final type = _typeFromPath(entity.path);
             counts[type] = (counts[type] ?? 0) + 1;

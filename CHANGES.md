@@ -2,6 +2,35 @@
 
 Progress log for the Flutter application.
 
+## 2026-07-30
+
+### Completed
+
+- Documented current roadmap gaps and aligned the immediate task list with the actual app state.
+- Restored local verification after the type-filter browsing changes:
+  - Formatted `lib` and `test`.
+  - Fixed the Explorer breadcrumb analyzer lint.
+  - Updated search test repositories to implement `folderContainsFileType()`.
+- Hardened type-filter browsing coverage:
+  - Added widget coverage for Home category shortcuts opening Explorer with an active type filter.
+  - Added controller coverage for type-only search returning matching descendants without a text query.
+  - Made fake storage folder type checks reflect sample folders instead of always returning true.
+  - Streamed recursive folder scans so type checks can stop on the first match without materializing full directory listings.
+  - Fixed filtered folder counts so folder tiles show matching files for the active type instead of total child entries.
+- Updated README status so Settings is no longer described as a placeholder.
+
+### Verified
+
+- `dart format lib test`
+- `flutter analyze`
+- Targeted `flutter test test/features/search/file_search_controller_test.dart test/widget_test.dart`
+- `flutter test`
+
+### Pending Verification
+
+- Real device/emulator testing of storage and transfer workflows.
+- Performance testing for type-filter folder scans on large directory trees.
+
 ## 2026-07-24
 
 ### Completed
@@ -50,7 +79,8 @@ Progress log for the Flutter application.
   - Folder structure/hierarchy is preserved; you navigate through real folders.
   - At each folder level, only files of the selected type are visible (plus all subfolders).
   - Type filter persists when navigating into subfolders, so nested folders also show only matching files.
-  - Flat list approach removed; performance-optimized by filtering at render time instead of collecting all matches.
+  - Explorer flat list approach removed; performance-optimized by filtering at render time instead of collecting all matches.
+  - Search still supports type-only flat discovery results when filters are used without a text query.
   - Storage root shortcut still clears filter to show full listing.
 
 ### Verified

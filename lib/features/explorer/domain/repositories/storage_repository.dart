@@ -13,5 +13,6 @@ abstract interface class StorageRepository {
 
   /// Check if a folder contains files of a specific type (recursive with depth limit).
   /// Used to determine if a folder should be shown when a type filter is active.
-  Future<bool> folderContainsFileType(String folderPath, FileSystemEntryType type);
+  Future<bool> folderContainsFileType(
+      String folderPath, FileSystemEntryType type);
 }

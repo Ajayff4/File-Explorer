@@ -283,9 +283,12 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
                         const SizedBox(height: 4),
                         Text(
                           typeLabelForFileSystemEntry(entry),
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant,
+                                  ),
                         ),
                       ],
                     ),
@@ -295,23 +298,26 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
               const SizedBox(height: 24),
               const Divider(),
               const SizedBox(height: 16),
-              
+
               // Properties section
               _PropertiesSection(
                 title: 'File Information',
                 children: [
-                  _PropertyRow(label: 'Type', value: typeLabelForFileSystemEntry(entry)),
+                  _PropertyRow(
+                      label: 'Type', value: typeLabelForFileSystemEntry(entry)),
                   if (entry.isFolder && entry.childrenCount != null)
-                    _PropertyRow(label: 'Items', value: '${entry.childrenCount} items'),
+                    _PropertyRow(
+                        label: 'Items', value: '${entry.childrenCount} items'),
                   if (!entry.isFolder && entry.sizeBytes != null)
-                    _PropertyRow(label: 'Size', value: detailForFileSystemEntry(entry)),
+                    _PropertyRow(
+                        label: 'Size', value: detailForFileSystemEntry(entry)),
                   _PropertyRow(
                     label: 'Modified',
                     value: formatFileModifiedAt(entry.modifiedAt),
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
               _PropertiesSection(
                 title: 'Location',
@@ -319,9 +325,9 @@ void _showEntryProperties(BuildContext context, FileSystemEntry entry) {
                   _PropertyRow(label: 'Path', value: entry.path),
                 ],
               ),
-              
+
               const SizedBox(height: 24),
-              
+
               // Actions
               FilledButton.icon(
                 onPressed: () {

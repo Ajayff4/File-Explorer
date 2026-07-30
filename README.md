@@ -18,8 +18,8 @@ The project now has a usable early file-manager vertical slice:
 - Transfer conflict actions: `Skip`, `Replace`, and `Keep both`.
 - Persistent transfer queue/history with Drift.
 - Persistent favorite folders and recent folders.
-- Search screen with current/storage scope, type filters, and persisted search index.
-- Settings screen placeholder.
+- Search screen with current/storage scope, type filters, type-only discovery, and persisted search index.
+- Settings screen with persisted Explorer, Transfers, and Search toggles.
 - Fake storage fallback for web and unsupported environments.
 
 ## Requirements

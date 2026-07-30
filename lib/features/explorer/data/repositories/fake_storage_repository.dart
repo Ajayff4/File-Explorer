@@ -83,17 +83,44 @@ class FakeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
-    // Return sample data for fake storage
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(
+      String rootPath) async {
+    final sampleFolderCounts = <String, Map<FileSystemEntryType, int>>{
+      FakeStorageRepository.rootPath: {
+        FileSystemEntryType.folder: 82,
+        FileSystemEntryType.image: 1204,
+        FileSystemEntryType.video: 47,
+        FileSystemEntryType.audio: 156,
+        FileSystemEntryType.document: 38,
+        FileSystemEntryType.archive: 12,
+        FileSystemEntryType.app: 64,
+        FileSystemEntryType.other: 91,
+      },
+      '${FakeStorageRepository.rootPath}/DCIM/Camera': {
+        FileSystemEntryType.image: 420,
+        FileSystemEntryType.video: 8,
+      },
+      '${FakeStorageRepository.rootPath}/Download': {
+        FileSystemEntryType.archive: 12,
+        FileSystemEntryType.app: 41,
+        FileSystemEntryType.document: 38,
+      },
+      '${FakeStorageRepository.rootPath}/Documents': {
+        FileSystemEntryType.document: 38,
+      },
+      '${FakeStorageRepository.rootPath}/Movies': {
+        FileSystemEntryType.video: 39,
+      },
+    };
+
+    final counts = _emptyCounts();
+    counts.addAll(sampleFolderCounts[rootPath] ?? const {});
+    return counts;
+  }
+
+  Map<FileSystemEntryType, int> _emptyCounts() {
     return {
-      FileSystemEntryType.folder: 82,
-      FileSystemEntryType.image: 1204,
-      FileSystemEntryType.video: 47,
-      FileSystemEntryType.audio: 156,
-      FileSystemEntryType.document: 38,
-      FileSystemEntryType.archive: 12,
-      FileSystemEntryType.app: 64,
-      FileSystemEntryType.other: 91,
+      for (final type in FileSystemEntryType.values) type: 0,
     };
   }
 
@@ -102,7 +129,24 @@ class FakeStorageRepository implements StorageRepository {
     String folderPath,
     FileSystemEntryType type,
   ) async {
-    // For fake storage, always return true to allow demonstration of folder structure
-    return true;
+    final sampleTypesByFolder = <String, Set<FileSystemEntryType>>{
+      '$rootPath/DCIM/Camera': {
+        FileSystemEntryType.image,
+        FileSystemEntryType.video,
+      },
+      '$rootPath/Download': {
+        FileSystemEntryType.archive,
+        FileSystemEntryType.app,
+        FileSystemEntryType.document,
+      },
+      '$rootPath/Documents': {
+        FileSystemEntryType.document,
+      },
+      '$rootPath/Movies': {
+        FileSystemEntryType.video,
+      },
+    };
+
+    return sampleTypesByFolder[folderPath]?.contains(type) ?? false;
   }
 }

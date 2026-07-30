@@ -73,7 +73,7 @@ void main() {
 
     await _waitForExplorerLoad(container);
 
-    final subfolderPath =
+    const subfolderPath =
         '${_MultiVolumeStorageRepository.primaryPath}/Documents/Notes';
     container.read(explorerControllerProvider.notifier).state =
         container.read(explorerControllerProvider).copyWith(
@@ -197,7 +197,8 @@ class _MultiVolumeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<Map<FileSystemEntryType, int>> countEntriesByType(String rootPath) async {
+  Future<Map<FileSystemEntryType, int>> countEntriesByType(
+      String rootPath) async {
     return {
       FileSystemEntryType.folder: 5,
       FileSystemEntryType.image: 10,

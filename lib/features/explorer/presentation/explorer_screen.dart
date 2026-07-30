@@ -86,7 +86,9 @@ class ExplorerScreen extends ConsumerWidget {
               ? IconButton(
                   tooltip: 'Exit selection',
                   onPressed: () {
-                    ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .exitSelectionMode();
                   },
                   icon: const Icon(Icons.close_rounded),
                 )
@@ -116,15 +118,22 @@ class ExplorerScreen extends ConsumerWidget {
               IconButton(
                 tooltip: 'Select all',
                 onPressed: () {
-                  final entries = listing.valueOrNull?.entries.map((e) => e.path).toList() ?? [];
-                  ref.read(explorerControllerProvider.notifier).selectAll(entries);
+                  final entries = listing.valueOrNull?.entries
+                          .map((e) => e.path)
+                          .toList() ??
+                      [];
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectAll(entries);
                 },
                 icon: const Icon(Icons.select_all_rounded),
               ),
               IconButton(
                 tooltip: 'Clear selection',
                 onPressed: () {
-                  ref.read(explorerControllerProvider.notifier).clearSelection();
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .clearSelection();
                 },
                 icon: const Icon(Icons.clear_rounded),
               ),
@@ -186,127 +195,138 @@ class ExplorerScreen extends ConsumerWidget {
             ],
           ],
         ),
-      body: Column(
-        children: [
-          _BreadcrumbBar(path: explorerState.currentPath),
-          if (awaitingDestinationTask != null)
-            _PasteDestinationBanner(
-              task: awaitingDestinationTask,
-              destinationPath: explorerState.currentPath,
-            ),
-          if (listing.valueOrNull?.generatedFromSampleData ?? false)
-            const _SampleDataBanner(),
-          Expanded(
-            child: permission.when(
-              data: (permissionState) {
-                if (!permissionState.canBrowse) {
-                  return StoragePermissionCard(
-                    state: permissionState,
-                    onRequestFullAccess: () {
-                      ref
-                          .read(explorerControllerProvider.notifier)
-                          .requestFullStorageAccess();
-                    },
-                    onRetry: () {
-                      ref
-                          .read(explorerControllerProvider.notifier)
-                          .loadInitialDirectory();
-                    },
-                  );
-                }
-
-                return listing.when(
-                  data: (directoryListing) {
-                    var entries = visibleExplorerEntries(
-                      directoryListing.entries,
-                      showHiddenFiles: settings.showHiddenFiles,
+        body: Column(
+          children: [
+            _BreadcrumbBar(path: explorerState.currentPath),
+            if (awaitingDestinationTask != null)
+              _PasteDestinationBanner(
+                task: awaitingDestinationTask,
+                destinationPath: explorerState.currentPath,
+              ),
+            if (listing.valueOrNull?.generatedFromSampleData ?? false)
+              const _SampleDataBanner(),
+            Expanded(
+              child: permission.when(
+                data: (permissionState) {
+                  if (!permissionState.canBrowse) {
+                    return StoragePermissionCard(
+                      state: permissionState,
+                      onRequestFullAccess: () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .requestFullStorageAccess();
+                      },
+                      onRetry: () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .loadInitialDirectory();
+                      },
                     );
-                    
-                    // Apply file type filter if set
-                    if (filterType != null) {
-                      // Use FutureBuilder to handle async folder filtering
-                      return _FilteredEntryListView(
-                        entries: entries,
-                        filterType: filterType,
-                        sortOption: sortOption,
-                        viewMode: viewMode,
-                        isSelectionMode: isSelectionMode,
-                        storage: ref.watch(storageRepositoryProvider),
+                  }
+
+                  return listing.when(
+                    data: (directoryListing) {
+                      var entries = visibleExplorerEntries(
+                        directoryListing.entries,
+                        showHiddenFiles: settings.showHiddenFiles,
                       );
-                    }
-                    
-                    entries = sortExplorerEntries(entries, option: sortOption);
-                    
-                    if (entries.isEmpty) {
-                      return _EmptyDirectory(filterType: filterType);
-                    }
-                    return viewMode == ExplorerViewMode.list
-                        ? _EntryList(entries: entries, isSelectionMode: isSelectionMode)
-                        : _EntryGrid(entries: entries, isSelectionMode: isSelectionMode);
-                  },
-                  error: (error, stackTrace) => _DirectoryError(
-                    error: error,
-                    onRetry: () {
-                      ref.read(explorerControllerProvider.notifier).refresh();
+
+                      // Apply file type filter if set
+                      if (filterType != null) {
+                        // Use FutureBuilder to handle async folder filtering
+                        return _FilteredEntryListView(
+                          entries: entries,
+                          filterType: filterType,
+                          sortOption: sortOption,
+                          viewMode: viewMode,
+                          isSelectionMode: isSelectionMode,
+                          storage: ref.watch(storageRepositoryProvider),
+                        );
+                      }
+
+                      entries =
+                          sortExplorerEntries(entries, option: sortOption);
+
+                      if (entries.isEmpty) {
+                        return _EmptyDirectory(filterType: filterType);
+                      }
+                      return viewMode == ExplorerViewMode.list
+                          ? _EntryList(
+                              entries: entries,
+                              isSelectionMode: isSelectionMode)
+                          : _EntryGrid(
+                              entries: entries,
+                              isSelectionMode: isSelectionMode);
                     },
-                  ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                );
-              },
-              error: (error, stackTrace) => _DirectoryError(
-                error: error,
-                onRetry: () {
+                    error: (error, stackTrace) => _DirectoryError(
+                      error: error,
+                      onRetry: () {
+                        ref.read(explorerControllerProvider.notifier).refresh();
+                      },
+                    ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                  );
+                },
+                error: (error, stackTrace) => _DirectoryError(
+                  error: error,
+                  onRetry: () {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .loadInitialDirectory();
+                  },
+                ),
+                loading: () => const Center(child: CircularProgressIndicator()),
+              ),
+            ),
+            if (isSelectionMode)
+              _SelectionActionBar(
+                selectedCount: selectedCount,
+                onCopy: () {
+                  final selectedPaths = explorerState.selectedPaths.toList();
+                  final displayName = selectedCount == 1
+                      ? selectedPaths.first
+                      : '$selectedCount items';
+                  ref.read(transferControllerProvider.notifier).queueOperation(
+                        operation: TransferOperation.copy,
+                        sourcePaths: selectedPaths,
+                        displayName: displayName,
+                      );
                   ref
                       .read(explorerControllerProvider.notifier)
-                      .loadInitialDirectory();
+                      .exitSelectionMode();
+                },
+                onMove: () {
+                  final selectedPaths = explorerState.selectedPaths.toList();
+                  final displayName = selectedCount == 1
+                      ? selectedPaths.first
+                      : '$selectedCount items';
+                  ref.read(transferControllerProvider.notifier).queueOperation(
+                        operation: TransferOperation.move,
+                        sourcePaths: selectedPaths,
+                        displayName: displayName,
+                      );
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .exitSelectionMode();
+                },
+                onDelete: () {
+                  final selectedPaths = explorerState.selectedPaths.toList();
+                  final displayName = selectedCount == 1
+                      ? selectedPaths.first
+                      : '$selectedCount items';
+                  ref.read(transferControllerProvider.notifier).queueOperation(
+                        operation: TransferOperation.delete,
+                        sourcePaths: selectedPaths,
+                        displayName: displayName,
+                      );
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .exitSelectionMode();
                 },
               ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-            ),
-          ),
-          if (isSelectionMode)
-            _SelectionActionBar(
-              selectedCount: selectedCount,
-              onCopy: () {
-                final selectedPaths = explorerState.selectedPaths.toList();
-                final displayName = selectedCount == 1 
-                    ? selectedPaths.first 
-                    : '$selectedCount items';
-                ref.read(transferControllerProvider.notifier).queueOperation(
-                      operation: TransferOperation.copy,
-                      sourcePaths: selectedPaths,
-                      displayName: displayName,
-                    );
-                ref.read(explorerControllerProvider.notifier).exitSelectionMode();
-              },
-              onMove: () {
-                final selectedPaths = explorerState.selectedPaths.toList();
-                final displayName = selectedCount == 1 
-                    ? selectedPaths.first 
-                    : '$selectedCount items';
-                ref.read(transferControllerProvider.notifier).queueOperation(
-                      operation: TransferOperation.move,
-                      sourcePaths: selectedPaths,
-                      displayName: displayName,
-                    );
-                ref.read(explorerControllerProvider.notifier).exitSelectionMode();
-              },
-              onDelete: () {
-                final selectedPaths = explorerState.selectedPaths.toList();
-                final displayName = selectedCount == 1 
-                    ? selectedPaths.first 
-                    : '$selectedCount items';
-                ref.read(transferControllerProvider.notifier).queueOperation(
-                      operation: TransferOperation.delete,
-                      sourcePaths: selectedPaths,
-                      displayName: displayName,
-                    );
-                ref.read(explorerControllerProvider.notifier).exitSelectionMode();
-              },
-            ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
@@ -474,7 +494,8 @@ class _BreadcrumbBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final segments = path.split('/').where((segment) => segment.isNotEmpty).toList();
+    final segments =
+        path.split('/').where((segment) => segment.isNotEmpty).toList();
 
     return Material(
       color: Theme.of(context).colorScheme.surface,
@@ -486,7 +507,9 @@ class _BreadcrumbBar extends ConsumerWidget {
             children: [
               InkWell(
                 onTap: () {
-                  ref.read(explorerControllerProvider.notifier).openDirectory('/');
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .openDirectory('/');
                 },
                 child: const Icon(Icons.home_rounded, size: 18),
               ),
@@ -498,22 +521,26 @@ class _BreadcrumbBar extends ConsumerWidget {
                   final index = entry.key;
                   final segment = entry.value;
                   final isLast = index == segments.length - 1;
-                  final segmentPath = '/' + segments.sublist(0, index + 1).join('/');
-                  
+                  final segmentPath =
+                      '/${segments.sublist(0, index + 1).join('/')}';
+
                   return [
                     InkWell(
-                      onTap: isLast 
-                          ? null 
+                      onTap: isLast
+                          ? null
                           : () {
-                              ref.read(explorerControllerProvider.notifier).openDirectory(segmentPath);
+                              ref
+                                  .read(explorerControllerProvider.notifier)
+                                  .openDirectory(segmentPath);
                             },
                       child: Text(
                         segment,
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: isLast 
-                                  ? null 
+                              color: isLast
+                                  ? null
                                   : Theme.of(context).colorScheme.primary,
-                              decoration: isLast ? null : TextDecoration.underline,
+                              decoration:
+                                  isLast ? null : TextDecoration.underline,
                             ),
                       ),
                     ),
@@ -641,17 +668,19 @@ class _EntryList extends ConsumerWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         final isSelected = selectedPaths.contains(entry.path);
-        
+
         return Card(
-          color: isSelected 
-              ? Theme.of(context).colorScheme.secondaryContainer 
+          color: isSelected
+              ? Theme.of(context).colorScheme.secondaryContainer
               : null,
           child: ListTile(
             leading: isSelectionMode
                 ? Checkbox(
                     value: isSelected,
                     onChanged: (_) {
-                      ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                      ref
+                          .read(explorerControllerProvider.notifier)
+                          .toggleSelection(entry.path);
                     },
                   )
                 : Icon(iconForFileSystemEntryType(entry.type)),
@@ -660,7 +689,9 @@ class _EntryList extends ConsumerWidget {
             subtitle: Text(detailForFileSystemEntry(entry)),
             onTap: isSelectionMode
                 ? () {
-                    ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
                   }
                 : entry.isFolder
                     ? () {
@@ -674,7 +705,9 @@ class _EntryList extends ConsumerWidget {
             onLongPress: isSelectionMode
                 ? null
                 : () {
-                    ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
                   },
             trailing: isSelectionMode ? null : EntryActionsButton(entry: entry),
           ),
@@ -706,10 +739,10 @@ class _EntryGrid extends ConsumerWidget {
       itemBuilder: (context, index) {
         final entry = entries[index];
         final isSelected = selectedPaths.contains(entry.path);
-        
+
         return Card(
-          color: isSelected 
-              ? Theme.of(context).colorScheme.secondaryContainer 
+          color: isSelected
+              ? Theme.of(context).colorScheme.secondaryContainer
               : null,
           child: Stack(
             children: [
@@ -717,7 +750,9 @@ class _EntryGrid extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
                 onTap: isSelectionMode
                     ? () {
-                        ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .toggleSelection(entry.path);
                       }
                     : entry.isFolder
                         ? () {
@@ -729,7 +764,9 @@ class _EntryGrid extends ConsumerWidget {
                 onLongPress: isSelectionMode
                     ? null
                     : () {
-                        ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .toggleSelection(entry.path);
                       },
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
@@ -740,7 +777,9 @@ class _EntryGrid extends ConsumerWidget {
                         Checkbox(
                           value: isSelected,
                           onChanged: (_) {
-                            ref.read(explorerControllerProvider.notifier).toggleSelection(entry.path);
+                            ref
+                                .read(explorerControllerProvider.notifier)
+                                .toggleSelection(entry.path);
                           },
                         )
                       else
@@ -805,10 +844,10 @@ class _EmptyDirectory extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final message = filterType != null 
+    final message = filterType != null
         ? 'No ${_typeLabelFor(filterType!)} files found'
         : 'This folder is empty';
-    
+
     return Center(
       child: Text(message),
     );
@@ -925,6 +964,7 @@ class _SelectionActionBar extends StatelessWidget {
     );
   }
 }
+
 /// Widget that handles asynchronous filtering of entries based on folder content
 class _FilteredEntryListView extends StatelessWidget {
   const _FilteredEntryListView({
@@ -976,10 +1016,10 @@ class _FilteredEntryListView extends StatelessWidget {
           filtered.add(entry);
         }
       } else {
-        // For folders, check if they contain files of the selected type
-        final contains = await storage.folderContainsFileType(entry.path, filterType);
-        if (contains) {
-          filtered.add(entry);
+        final counts = await storage.countEntriesByType(entry.path);
+        final matchingCount = counts[filterType] ?? 0;
+        if (matchingCount > 0) {
+          filtered.add(entry.copyWith(childrenCount: matchingCount));
         }
       }
     }

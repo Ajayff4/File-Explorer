@@ -47,7 +47,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
-Future<bool> _handleExplorerBack(BuildContext context, GoRouterState state) async {
+Future<bool> _handleExplorerBack(
+    BuildContext context, GoRouterState state) async {
   final container = ProviderScope.containerOf(context);
   final explorerState = container.read(explorerControllerProvider);
   final notifier = container.read(explorerControllerProvider.notifier);

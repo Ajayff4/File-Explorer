@@ -68,14 +68,23 @@ The app is an early but usable file-manager vertical slice.
 
 ## Last Verified
 
-Recent successful checks:
+Current local check status:
 
 ```bash
+git status --short
+# dirty: roadmap + verification fixes
+
 dart format lib test
+# passed
+
 flutter analyze
+# passed
+
 flutter test
-flutter build apk --debug
+# passed
 ```
+
+Local verification has been restored after the latest type-filter browsing work.
 
 The latest debug APK path, after running a build, is:
 
@@ -114,19 +123,17 @@ Recommended next slices, in order:
    - Confirm storage permission flow.
    - Confirm primary storage browsing.
    - Confirm copy, move, rename, delete on safe test folders.
+   - Check type-filter folder scan performance on large directory trees.
 
-2. Multi-select explorer workflow
-   - Add selection mode to list/grid.
-   - Add select-all/clear-selection.
-   - Reuse the existing transfer queue for batch copy/move/delete.
-   - Keep operation logic in transfer/controller layers, not UI widgets.
-
-3. File properties polish
-   - Expand properties bottom sheet with path, type, size, modified date, children count, and storage location.
+2. File properties polish
+   - Expand properties bottom sheet with storage volume/location details.
    - Add shared formatting helpers if duplicated display logic appears.
 
+3. Documentation cleanup
+   - Remove stale "multi-select pending" wording from planning notes.
+
 4. Home dashboard cleanup
-   - Replace fake shortcut counts with real category summaries or mark them clearly as placeholders in code.
+   - Mark fake shortcut counts clearly as sample-only for web/test builds.
    - Keep media/category scanning behind repository/controller boundaries.
 
 5. Android permission hardening

@@ -16,7 +16,9 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 // Provider for category counts in storage root
-final categoryCounts = FutureProvider.family<Map<FileSystemEntryType, int>, String>((ref, rootPath) async {
+final categoryCounts =
+    FutureProvider.family<Map<FileSystemEntryType, int>, String>(
+        (ref, rootPath) async {
   final repository = ref.watch(storageRepositoryProvider);
   return repository.countEntriesByType(rootPath);
 });
@@ -147,7 +149,7 @@ class _StoragePanel extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedVolume = _selectedVolumeFor(explorerState);
 
-        return Card(
+    return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -237,8 +239,10 @@ class _ShortcutGrid extends ConsumerWidget {
       _Shortcut('Video', Icons.movie_outlined, FileSystemEntryType.video),
       _Shortcut('Audio', Icons.music_note_outlined, FileSystemEntryType.audio),
       _Shortcut('Apps', Icons.apps_outlined, FileSystemEntryType.app),
-      _Shortcut('Archives', Icons.inventory_2_outlined, FileSystemEntryType.archive),
-      _Shortcut('Documents', Icons.description_outlined, FileSystemEntryType.document),
+      _Shortcut(
+          'Archives', Icons.inventory_2_outlined, FileSystemEntryType.archive),
+      _Shortcut('Documents', Icons.description_outlined,
+          FileSystemEntryType.document),
     ];
 
     return LayoutBuilder(
@@ -262,8 +266,11 @@ class _ShortcutGrid extends ConsumerWidget {
                 onTap: () {
                   // Navigate to Explorer at storage root with type filter enabled
                   // so Explorer shows folder structure but only files of selected type.
-                  ref.read(explorerFilterTypeProvider.notifier).state = shortcut.filterType;
-                  ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
+                  ref.read(explorerFilterTypeProvider.notifier).state =
+                      shortcut.filterType;
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .openDirectory(rootPath);
                   context.go(AppRoutes.explorer);
                 },
                 child: Padding(
@@ -296,7 +303,7 @@ class _ShortcutGrid extends ConsumerWidget {
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
-                        loading: () => SizedBox(
+                        loading: () => const SizedBox(
                           width: 14,
                           height: 14,
                           child: CircularProgressIndicator(

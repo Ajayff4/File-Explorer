@@ -27,6 +27,24 @@ class FileSystemEntry {
   final int? childrenCount;
 
   bool get isFolder => type == FileSystemEntryType.folder;
+
+  FileSystemEntry copyWith({
+    String? name,
+    String? path,
+    FileSystemEntryType? type,
+    DateTime? modifiedAt,
+    int? sizeBytes,
+    int? childrenCount,
+  }) {
+    return FileSystemEntry(
+      name: name ?? this.name,
+      path: path ?? this.path,
+      type: type ?? this.type,
+      modifiedAt: modifiedAt ?? this.modifiedAt,
+      sizeBytes: sizeBytes ?? this.sizeBytes,
+      childrenCount: childrenCount ?? this.childrenCount,
+    );
+  }
 }
 
 class StorageSummary {

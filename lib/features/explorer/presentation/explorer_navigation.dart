@@ -25,8 +25,7 @@ StorageVolume? volumeForExplorerPath(
     final volumePath = normalizeExplorerPath(volume.path);
     if (_isSameOrUnderPath(normalizedPath, volumePath) &&
         (bestMatch == null ||
-            volumePath.length >
-                normalizeExplorerPath(bestMatch.path).length)) {
+            volumePath.length > normalizeExplorerPath(bestMatch.path).length)) {
       bestMatch = volume;
     }
   }
