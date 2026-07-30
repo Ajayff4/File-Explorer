@@ -263,7 +263,10 @@ class _SearchResultTile extends ConsumerWidget {
 
     return Card(
       child: ListTile(
-        leading: Icon(iconForFileSystemEntryType(entry.type)),
+        leading: Icon(
+          iconForFileSystemEntry(entry),
+          color: colorForFileSystemEntry(context, entry),
+        ),
         title: Text(
           entry.name,
           maxLines: 1,

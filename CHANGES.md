@@ -28,9 +28,19 @@ Progress log for the Flutter application.
   - Fake storage now returns path-specific sample folders and files for media library testing.
   - Added widget coverage for opening the Images media library from Home.
 - Added first thumbnail slice:
-  - Image media rows now render local image thumbnails with icon fallback.
-  - Web/unsupported platforms keep icon fallback through conditional imports.
+  - Image and video media rows now render local thumbnails with icon fallback.
+  - Explorer list/grid rows reuse image/video thumbnails.
+  - Non-Android builds keep icon fallback through conditional imports for development/test runs.
   - Added widget coverage for thumbnail widgets in the Images library.
+- Polished Explorer item layout:
+  - Grid view now uses compact four-column tiles with purple folder icons.
+  - Long-press opens item actions instead of rendering overflow buttons on every item.
+- Added media library sorting:
+  - Media libraries can sort by name, modified date, size, and type.
+  - Media headers show the active sort order.
+- Added extension-aware icons for known files:
+  - PDF, Office documents, spreadsheets, presentations, text, code/data, archives, APK/AAB, and installer files now get more specific icons.
+  - Known file icons use type colors, such as red PDFs, blue documents, green sheets/CSV, and red presentations.
 - Updated README status so Settings is no longer described as a placeholder.
 
 ### Verified

@@ -11,14 +11,14 @@ The app is an early but usable file-manager vertical slice.
 - Primary theme direction: black and purple.
 - Source logo: `assets/brand/logo.png`.
 - Architecture: feature-first Flutter modules with Riverpod controllers, GoRouter navigation, Drift persistence, and repository boundaries.
-- Android is the primary target for real storage behavior.
-- Web and unsupported platforms use fake/in-memory fallbacks where needed.
+- Android phones are the product target.
+- Fake/in-memory fallbacks exist only for development and automated tests.
 
 ## What Works Now
 
 | Status | Area | Task |
 | --- | --- | --- |
-| ✅ | Shell | Responsive mobile bottom navigation and wider-screen navigation rail. |
+| ✅ | Shell | Mobile bottom navigation. |
 | ✅ | Home | Dashboard with storage summary, shortcuts, favorites, recents, and transfer station tile. |
 | ✅ | Explorer | Android/local storage browsing where permissions allow it. |
 | ✅ | Explorer | Storage root selector. |
@@ -55,10 +55,13 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Flat libraries for images, videos, audio, documents, and apps. |
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
-| ✅ | Media | Image thumbnails in media library rows with icon fallback. |
+| ✅ | Media | Date, size, type, and name sorting controls in media libraries. |
+| ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
+| ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
+| ✅ | Explorer | Long-press item actions instead of visible per-item overflow buttons. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
-| ✅ | Branding | Launcher icons generated for Android, iOS, web, Windows, and macOS from the provided logo. |
+| ✅ | Branding | Android launcher icons generated from the provided logo. |
 
 ## Last Verified
 
@@ -92,20 +95,7 @@ When coming back:
 
 1. Check git status in `project/`.
 2. Commit any completed slice if it is still uncommitted.
-3. Run the normal local verification pass:
-
-```bash
-dart format lib test
-flutter analyze
-flutter test
-```
-
-4. If testing on phone, build and install:
-
-```bash
-flutter build apk --debug
-adb install -r build/app/outputs/flutter-apk/app-debug.apk
-```
+3. Pick the next development slice from Immediate Pending Work.
 
 ## Immediate Pending Work
 
@@ -113,21 +103,13 @@ Recommended next slices, in order:
 
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
-| [ ] | 1 | Android verification | Install latest debug APK. |
-| [ ] | 1 | Android verification | Confirm app icon appears correctly. |
-| [ ] | 1 | Android verification | Confirm storage permission flow. |
-| [ ] | 1 | Android verification | Confirm primary storage browsing. |
-| [ ] | 1 | Android verification | Confirm copy, move, rename, delete on safe test folders. |
-| [ ] | 1 | Android verification | Check type-filter folder scan performance on large directory trees. |
-| [ ] | 2 | Documentation | Remove stale "multi-select pending" wording from planning notes. |
-| [ ] | 3 | Home | Mark fake shortcut counts clearly as sample-only for web/test builds. |
-| [ ] | 3 | Home | Keep media/category scanning behind repository/controller boundaries. |
-| [ ] | 4 | Media | Add native thumbnails for video and app library rows. |
-| [ ] | 4 | Media | Add date/size/type sorting controls to media libraries. |
-| [ ] | 5 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
-| [ ] | 5 | Android permissions | Add clearer recovery path when user denies all-files access. |
-| [ ] | 6 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
-| [ ] | 6 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
+| [ ] | 1 | Documentation | Remove stale "multi-select pending" wording from planning notes. |
+| [ ] | 2 | Home | Keep media/category scanning behind repository/controller boundaries. |
+| [ ] | 3 | Media | Add native thumbnails for app library rows. |
+| [ ] | 4 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
+| [ ] | 4 | Android permissions | Add clearer recovery path when user denies all-files access. |
+| [ ] | 5 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
+| [ ] | 5 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
 
 ## Later Roadmap
 
@@ -138,7 +120,6 @@ Recommended next slices, in order:
 | [ ] | Storage | Recycle bin. |
 | [ ] | Archives | Archive browsing, extract, and compress. |
 | [ ] | Network | Optional network providers, not first-release core. |
-| [ ] | Desktop | Context menus, keyboard shortcuts, adaptive split/dual-pane layout, and drag and drop. |
 
 ## Guardrails
 

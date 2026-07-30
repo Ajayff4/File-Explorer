@@ -72,6 +72,24 @@ typedef MediaLibraryRequest = ({
   String rootPath,
 });
 
+enum MediaSortOption {
+  nameAscending('Name A-Z'),
+  nameDescending('Name Z-A'),
+  modifiedNewest('Newest first'),
+  modifiedOldest('Oldest first'),
+  sizeLargest('Largest first'),
+  sizeSmallest('Smallest first'),
+  typeAscending('Type A-Z');
+
+  const MediaSortOption(this.label);
+
+  final String label;
+}
+
+final mediaLibrarySortOptionProvider = StateProvider<MediaSortOption>((ref) {
+  return MediaSortOption.modifiedNewest;
+});
+
 final mediaLibraryResultsProvider =
     FutureProvider.family<List<SearchResult>, MediaLibraryRequest>(
   (ref, request) async {
@@ -87,7 +105,6 @@ final mediaLibraryResultsProvider =
       maxDepth: 5,
       maxResults: 300,
     );
-    results.sort(_compareResults);
     return results;
   },
 );
@@ -104,6 +121,7 @@ class MediaLibraryScreen extends ConsumerWidget {
         explorerState.currentPath;
     final request = (kind: kind, rootPath: rootPath);
     final resultsAsync = ref.watch(mediaLibraryResultsProvider(request));
+    final sortOption = ref.watch(mediaLibrarySortOptionProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -114,6 +132,7 @@ class MediaLibraryScreen extends ConsumerWidget {
             onPressed: () => _openFilteredExplorer(context, ref, rootPath),
             icon: const Icon(Icons.folder_open_rounded),
           ),
+          _MediaSortMenu(selectedOption: sortOption),
           IconButton(
             tooltip: 'Refresh',
             onPressed: () =>
@@ -132,6 +151,7 @@ class MediaLibraryScreen extends ConsumerWidget {
             kind: kind,
             rootPath: rootPath,
             results: results,
+            sortOption: sortOption,
           ),
         ),
       ),
@@ -154,19 +174,28 @@ class _MediaResultsView extends StatelessWidget {
     required this.kind,
     required this.rootPath,
     required this.results,
+    required this.sortOption,
   });
 
   final MediaLibraryKind kind;
   final String rootPath;
   final List<SearchResult> results;
+  final MediaSortOption sortOption;
 
   @override
   Widget build(BuildContext context) {
-    if (results.isEmpty) {
+    final sortedResults = sortMediaResults(results, option: sortOption);
+
+    if (sortedResults.isEmpty) {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _MediaScopeHeader(kind: kind, rootPath: rootPath, count: 0),
+          _MediaScopeHeader(
+            kind: kind,
+            rootPath: rootPath,
+            count: 0,
+            sortOption: sortOption,
+          ),
           const SizedBox(height: 12),
           Card(
             child: ListTile(
@@ -180,17 +209,46 @@ class _MediaResultsView extends StatelessWidget {
 
     return ListView.separated(
       padding: const EdgeInsets.all(16),
-      itemCount: results.length + 1,
+      itemCount: sortedResults.length + 1,
       separatorBuilder: (context, index) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         if (index == 0) {
           return _MediaScopeHeader(
             kind: kind,
             rootPath: rootPath,
-            count: results.length,
+            count: sortedResults.length,
+            sortOption: sortOption,
           );
         }
-        return _MediaResultTile(kind: kind, result: results[index - 1]);
+        return _MediaResultTile(kind: kind, result: sortedResults[index - 1]);
+      },
+    );
+  }
+}
+
+class _MediaSortMenu extends ConsumerWidget {
+  const _MediaSortMenu({required this.selectedOption});
+
+  final MediaSortOption selectedOption;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return PopupMenuButton<MediaSortOption>(
+      tooltip: 'Sort',
+      icon: const Icon(Icons.sort_rounded),
+      initialValue: selectedOption,
+      onSelected: (option) {
+        ref.read(mediaLibrarySortOptionProvider.notifier).state = option;
+      },
+      itemBuilder: (context) {
+        return [
+          for (final option in MediaSortOption.values)
+            CheckedPopupMenuItem<MediaSortOption>(
+              value: option,
+              checked: option == selectedOption,
+              child: Text(option.label),
+            ),
+        ];
       },
     );
   }
@@ -201,11 +259,13 @@ class _MediaScopeHeader extends StatelessWidget {
     required this.kind,
     required this.rootPath,
     required this.count,
+    required this.sortOption,
   });
 
   final MediaLibraryKind kind;
   final String rootPath;
   final int count;
+  final MediaSortOption sortOption;
 
   @override
   Widget build(BuildContext context) {
@@ -213,10 +273,16 @@ class _MediaScopeHeader extends StatelessWidget {
       contentPadding: EdgeInsets.zero,
       leading: Icon(kind.icon),
       title: Text(count == 1 ? '1 item' : '$count items'),
-      subtitle: Text(
-        rootPath,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Sorted by ${sortOption.label}'),
+          Text(
+            rootPath,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -236,7 +302,8 @@ class _MediaResultTile extends ConsumerWidget {
       child: ListTile(
         leading: MediaThumbnail(
           entry: entry,
-          fallbackIcon: iconForFileSystemEntryType(entry.type),
+          fallbackIcon: iconForFileSystemEntry(entry),
+          fallbackColor: colorForFileSystemEntry(context, entry),
         ),
         title: Text(
           entry.name,
@@ -356,11 +423,42 @@ Future<void> _collectMediaResults({
   }
 }
 
-int _compareResults(SearchResult left, SearchResult right) {
-  if (left.depth != right.depth) {
-    return left.depth.compareTo(right.depth);
-  }
-  return left.entry.name.toLowerCase().compareTo(
+List<SearchResult> sortMediaResults(
+  List<SearchResult> results, {
+  required MediaSortOption option,
+}) {
+  return results.toList(growable: false)
+    ..sort((left, right) {
+      final primary = switch (option) {
+        MediaSortOption.nameAscending => _compareNames(left, right),
+        MediaSortOption.nameDescending => _compareNames(right, left),
+        MediaSortOption.modifiedNewest =>
+          right.entry.modifiedAt.compareTo(left.entry.modifiedAt),
+        MediaSortOption.modifiedOldest =>
+          left.entry.modifiedAt.compareTo(right.entry.modifiedAt),
+        MediaSortOption.sizeLargest => _compareSizes(right, left),
+        MediaSortOption.sizeSmallest => _compareSizes(left, right),
+        MediaSortOption.typeAscending =>
+          left.entry.type.index.compareTo(right.entry.type.index),
+      };
+
+      if (primary != 0) {
+        return primary;
+      }
+      return _compareNames(left, right);
+    });
+}
+
+int _compareNames(SearchResult left, SearchResult right) {
+  final nameComparison = left.entry.name.toLowerCase().compareTo(
         right.entry.name.toLowerCase(),
       );
+  if (nameComparison != 0) {
+    return nameComparison;
+  }
+  return left.entry.path.compareTo(right.entry.path);
+}
+
+int _compareSizes(SearchResult left, SearchResult right) {
+  return (left.entry.sizeBytes ?? 0).compareTo(right.entry.sizeBytes ?? 0);
 }

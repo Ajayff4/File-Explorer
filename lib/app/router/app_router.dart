@@ -1,5 +1,3 @@
-import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
-import 'package:file_explorer/features/explorer/presentation/explorer_navigation.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
@@ -25,7 +23,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(
             path: AppRoutes.explorer,
-            onExit: _handleExplorerBack,
             builder: (context, state) => const ExplorerScreen(),
           ),
           GoRoute(
@@ -55,25 +52,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   ref.onDispose(router.dispose);
   return router;
 });
-
-Future<bool> _handleExplorerBack(
-    BuildContext context, GoRouterState state) async {
-  final container = ProviderScope.containerOf(context);
-  final explorerState = container.read(explorerControllerProvider);
-  final notifier = container.read(explorerControllerProvider.notifier);
-
-  if (explorerState.isSelectionMode) {
-    notifier.exitSelectionMode();
-    return false;
-  }
-
-  if (canNavigateUpInExplorer(explorerState)) {
-    await notifier.openParentDirectory();
-    return false;
-  }
-
-  return true;
-}
 
 class AppRoutes {
   const AppRoutes._();

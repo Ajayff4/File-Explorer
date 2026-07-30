@@ -8,7 +8,7 @@ Package/application ID: `com.ajayff4.fileexplorer`
 
 The project now has a usable early file-manager vertical slice:
 
-- Responsive app shell with mobile bottom navigation and desktop/tablet navigation rail.
+- Mobile app shell with bottom navigation.
 - Home dashboard with storage summary, shortcuts, favorites, and recent folders.
 - Explorer screen with real local/Android storage browsing where permissions allow it.
 - List/grid view toggle, breadcrumb, storage selector, refresh, and folder navigation.
@@ -21,13 +21,12 @@ The project now has a usable early file-manager vertical slice:
 - Search screen with current/storage scope, type filters, type-only discovery, and persisted search index.
 - Media library screens for images, videos, audio, documents, and apps.
 - Settings screen with persisted Explorer, Transfers, and Search toggles.
-- Fake storage fallback for web and unsupported environments.
+- Fake storage exists only for development/tests.
 
 ## Requirements
 
 - Flutter `3.24.3` or compatible.
 - Dart `3.5.3` or compatible.
-- Chrome for web development.
 - Android Studio / Android SDK for Android builds.
 
 Check your setup:
@@ -50,46 +49,6 @@ From repo root:
 ```bash
 cd project
 flutter pub get
-```
-
-## Run On Web
-
-Run directly in Chrome:
-
-```bash
-flutter run -d chrome
-```
-
-Run as a web server on a fixed local URL:
-
-```bash
-flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5174
-```
-
-Then open:
-
-```text
-http://127.0.0.1:5174
-```
-
-Useful while running:
-
-- Press `r` for hot reload.
-- Press `R` for hot restart.
-- Press `q` to quit.
-
-## Run On Desktop
-
-Linux:
-
-```bash
-flutter run -d linux
-```
-
-List all available targets:
-
-```bash
-flutter devices
 ```
 
 ## Run On Android
@@ -125,6 +84,12 @@ Quit the running app session:
 ```text
 q
 ```
+
+Useful while running:
+
+- Press `r` for hot reload.
+- Press `R` for hot restart.
+- Press `q` to quit.
 
 Build and install a debug APK on a connected phone:
 
@@ -163,13 +128,42 @@ sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
   "platform-tools"
 ```
 
-## Build Commands
+## Optional Dev Run Targets
 
-Web release build:
+The product target is Android phones. These commands are only for local
+development/debugging when an Android device is not convenient.
+
+Run in Chrome:
 
 ```bash
-flutter build web
+flutter run -d chrome
 ```
+
+Run as a web server on a fixed local URL:
+
+```bash
+flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5174
+```
+
+Then open:
+
+```text
+http://127.0.0.1:5174
+```
+
+Run on Linux desktop:
+
+```bash
+flutter run -d linux
+```
+
+List all available targets:
+
+```bash
+flutter devices
+```
+
+## Build Commands
 
 Android debug APK:
 
@@ -189,7 +183,13 @@ Android App Bundle:
 flutter build appbundle
 ```
 
-Linux release build:
+Optional web dev build:
+
+```bash
+flutter build web
+```
+
+Optional Linux dev build:
 
 ```bash
 flutter build linux

@@ -71,13 +71,15 @@ class ExplorerScreen extends ConsumerWidget {
     });
 
     return PopScope(
-      canPop: !_canNavigateUp(explorerState) && !isSelectionMode,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop) {
           if (isSelectionMode) {
             ref.read(explorerControllerProvider.notifier).exitSelectionMode();
-          } else {
+          } else if (_canNavigateUp(explorerState)) {
             ref.read(explorerControllerProvider.notifier).openParentDirectory();
+          } else {
+            context.go(AppRoutes.home);
           }
         }
       },
@@ -687,7 +689,8 @@ class _EntryList extends ConsumerWidget {
                   )
                 : MediaThumbnail(
                     entry: entry,
-                    fallbackIcon: iconForFileSystemEntryType(entry.type),
+                    fallbackIcon: iconForFileSystemEntry(entry),
+                    fallbackColor: colorForFileSystemEntry(context, entry),
                   ),
             title:
                 Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -869,20 +872,17 @@ class _GridEntryVisual extends StatelessWidget {
         entry.type == FileSystemEntryType.video) {
       return MediaThumbnail(
         entry: entry,
-        fallbackIcon: iconForFileSystemEntryType(entry.type),
+        fallbackIcon: iconForFileSystemEntry(entry),
+        fallbackColor: colorForFileSystemEntry(context, entry),
       );
     }
-
-    final colorScheme = Theme.of(context).colorScheme;
-    final iconColor =
-        entry.isFolder ? colorScheme.primary : colorScheme.onSurfaceVariant;
 
     return SizedBox.square(
       dimension: 52,
       child: Icon(
-        iconForFileSystemEntryType(entry.type),
+        iconForFileSystemEntry(entry),
         size: 44,
-        color: iconColor,
+        color: colorForFileSystemEntry(context, entry),
       ),
     );
   }

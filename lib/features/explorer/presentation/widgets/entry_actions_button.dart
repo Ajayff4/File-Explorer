@@ -79,7 +79,10 @@ class _EntryActionsSheet extends ConsumerWidget {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(iconForFileSystemEntryType(entry.type)),
+            leading: Icon(
+              iconForFileSystemEntry(entry),
+              color: colorForFileSystemEntry(context, entry),
+            ),
             title: Text(
               entry.name,
               maxLines: 1,
@@ -296,9 +299,9 @@ void _showEntryProperties(
               Row(
                 children: [
                   Icon(
-                    iconForFileSystemEntryType(entry.type),
+                    iconForFileSystemEntry(entry),
                     size: 48,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: colorForFileSystemEntry(context, entry),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
@@ -426,9 +429,9 @@ class EntryPropertiesPanel extends StatelessWidget {
             Row(
               children: [
                 Icon(
-                  iconForFileSystemEntryType(entry.type),
+                  iconForFileSystemEntry(entry),
                   size: 48,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: colorForFileSystemEntry(context, entry),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

@@ -7,11 +7,13 @@ class MediaThumbnail extends StatelessWidget {
   const MediaThumbnail({
     required this.entry,
     required this.fallbackIcon,
+    this.fallbackColor,
     super.key,
   });
 
   final FileSystemEntry entry;
   final IconData fallbackIcon;
+  final Color? fallbackColor;
 
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,7 @@ class MediaThumbnail extends StatelessWidget {
           ),
           child: mediaThumbnailFor(
             entry: entry,
-            fallback: Icon(fallbackIcon),
+            fallback: Icon(fallbackIcon, color: fallbackColor),
           ),
         ),
       ),
