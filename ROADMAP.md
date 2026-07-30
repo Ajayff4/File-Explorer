@@ -52,6 +52,10 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Search | Persisted search index. |
 | ✅ | Search | Manual reindex. |
 | ✅ | Search | Transfer-driven index invalidation. |
+| ✅ | Media | Flat libraries for images, videos, audio, documents, and apps. |
+| ✅ | Media | Home media library entry points. |
+| ✅ | Media | Media item taps open the parent folder with matching type filter. |
+| ✅ | Media | Image thumbnails in media library rows with icon fallback. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Branding | Launcher icons generated for Android, iOS, web, Windows, and macOS from the provided logo. |
@@ -118,16 +122,17 @@ Recommended next slices, in order:
 | [ ] | 2 | Documentation | Remove stale "multi-select pending" wording from planning notes. |
 | [ ] | 3 | Home | Mark fake shortcut counts clearly as sample-only for web/test builds. |
 | [ ] | 3 | Home | Keep media/category scanning behind repository/controller boundaries. |
-| [ ] | 4 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
-| [ ] | 4 | Android permissions | Add clearer recovery path when user denies all-files access. |
-| [ ] | 5 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
-| [ ] | 5 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
+| [ ] | 4 | Media | Add native thumbnails for video and app library rows. |
+| [ ] | 4 | Media | Add date/size/type sorting controls to media libraries. |
+| [ ] | 5 | Android permissions | Replace or supplement permission-handler all-files status with a dedicated Android platform service if deeper result handling is needed. |
+| [ ] | 5 | Android permissions | Add clearer recovery path when user denies all-files access. |
+| [ ] | 6 | UI polish | Align spacing, density, and dashboard layout with reference screenshots. |
+| [ ] | 6 | UI polish | Keep black/purple direction while avoiding hard-coded one-off feature colors. |
 
 ## Later Roadmap
 
 | Status | Area | Task |
 | --- | --- | --- |
-| [ ] | Media | Libraries for images, videos, audio, documents, and apps. |
 | [ ] | Media | Thumbnail cache. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |

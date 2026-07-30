@@ -25,23 +25,24 @@ class EntryActionsButton extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return IconButton(
       tooltip: 'More',
-      onPressed: () => _showEntryActions(
-        context,
-        ref,
-        entry,
-        storageVolume,
+      onPressed: () => showEntryActionsSheet(
+        context: context,
+        ref: ref,
+        entry: entry,
+        storageVolume: storageVolume,
       ),
       icon: const Icon(Icons.more_vert_rounded),
     );
   }
 }
 
-void _showEntryActions(
-  BuildContext context,
-  WidgetRef ref,
-  FileSystemEntry entry,
+void showEntryActionsSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FileSystemEntry entry,
   StorageVolume? storageVolume,
-) {
+  VoidCallback? onSelect,
+}) {
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
@@ -50,6 +51,7 @@ void _showEntryActions(
         entry: entry,
         storageVolume: storageVolume,
         parentContext: context,
+        onSelect: onSelect,
       );
     },
   );
@@ -60,11 +62,13 @@ class _EntryActionsSheet extends ConsumerWidget {
     required this.entry,
     required this.storageVolume,
     required this.parentContext,
+    required this.onSelect,
   });
 
   final FileSystemEntry entry;
   final StorageVolume? storageVolume;
   final BuildContext parentContext;
+  final VoidCallback? onSelect;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -84,6 +88,15 @@ class _EntryActionsSheet extends ConsumerWidget {
             subtitle: Text(detailForFileSystemEntry(entry)),
           ),
           const Divider(),
+          if (onSelect != null)
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline_rounded),
+              title: const Text('Select'),
+              onTap: () {
+                Navigator.of(context).pop();
+                onSelect?.call();
+              },
+            ),
           for (final operation in [
             TransferOperation.copy,
             TransferOperation.move,

@@ -19,6 +19,7 @@ The project now has a usable early file-manager vertical slice:
 - Persistent transfer queue/history with Drift.
 - Persistent favorite folders and recent folders.
 - Search screen with current/storage scope, type filters, type-only discovery, and persisted search index.
+- Media library screens for images, videos, audio, documents, and apps.
 - Settings screen with persisted Explorer, Transfers, and Search toggles.
 - Fake storage fallback for web and unsupported environments.
 

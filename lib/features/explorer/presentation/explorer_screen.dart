@@ -8,6 +8,7 @@ import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart'
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
@@ -684,7 +685,10 @@ class _EntryList extends ConsumerWidget {
                           .toggleSelection(entry.path);
                     },
                   )
-                : Icon(iconForFileSystemEntryType(entry.type)),
+                : MediaThumbnail(
+                    entry: entry,
+                    fallbackIcon: iconForFileSystemEntryType(entry.type),
+                  ),
             title:
                 Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
             subtitle: Text(detailForFileSystemEntry(entry)),
@@ -706,16 +710,18 @@ class _EntryList extends ConsumerWidget {
             onLongPress: isSelectionMode
                 ? null
                 : () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
+                    showEntryActionsSheet(
+                      context: context,
+                      ref: ref,
+                      entry: entry,
+                      storageVolume: selectedVolume,
+                      onSelect: () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .toggleSelection(entry.path);
+                      },
+                    );
                   },
-            trailing: isSelectionMode
-                ? null
-                : EntryActionsButton(
-                    entry: entry,
-                    storageVolume: selectedVolume,
-                  ),
           ),
         );
       },
@@ -735,94 +741,149 @@ class _EntryGrid extends ConsumerWidget {
     final selectedPaths = explorerState.selectedPaths;
     final selectedVolume = _selectedVolumeFor(explorerState);
 
-    return GridView.builder(
-      padding: const EdgeInsets.all(12),
-      itemCount: entries.length,
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-        maxCrossAxisExtent: 180,
-        mainAxisSpacing: 8,
-        crossAxisSpacing: 8,
-      ),
-      itemBuilder: (context, index) {
-        final entry = entries[index];
-        final isSelected = selectedPaths.contains(entry.path);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnCount = (constraints.maxWidth / 92).floor().clamp(4, 8);
 
-        return Card(
-          color: isSelected
-              ? Theme.of(context).colorScheme.secondaryContainer
-              : null,
-          child: Stack(
-            children: [
-              InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: isSelectionMode
-                    ? () {
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .toggleSelection(entry.path);
-                      }
-                    : entry.isFolder
-                        ? () {
-                            ref
-                                .read(explorerControllerProvider.notifier)
-                                .openDirectory(entry.path);
-                          }
-                        : null,
-                onLongPress: isSelectionMode
-                    ? null
-                    : () {
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .toggleSelection(entry.path);
-                      },
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 28, 12, 12),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (isSelectionMode)
-                        Checkbox(
-                          value: isSelected,
-                          onChanged: (_) {
-                            ref
-                                .read(explorerControllerProvider.notifier)
-                                .toggleSelection(entry.path);
-                          },
-                        )
-                      else
-                        Icon(iconForFileSystemEntryType(entry.type), size: 36),
-                      const SizedBox(height: 12),
-                      Text(
-                        entry.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        detailForFileSystemEntry(entry),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              if (!isSelectionMode)
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: EntryActionsButton(
-                    entry: entry,
-                    storageVolume: selectedVolume,
-                  ),
-                ),
-            ],
+        return GridView.builder(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+          itemCount: entries.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columnCount,
+            mainAxisExtent: 118,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 8,
           ),
+          itemBuilder: (context, index) {
+            final entry = entries[index];
+            final isSelected = selectedPaths.contains(entry.path);
+
+            return _GridEntryTile(
+              entry: entry,
+              isSelected: isSelected,
+              isSelectionMode: isSelectionMode,
+              onToggleSelection: () {
+                ref
+                    .read(explorerControllerProvider.notifier)
+                    .toggleSelection(entry.path);
+              },
+              onShowActions: () {
+                showEntryActionsSheet(
+                  context: context,
+                  ref: ref,
+                  entry: entry,
+                  storageVolume: selectedVolume,
+                  onSelect: () {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
+                  },
+                );
+              },
+              onOpenFolder: entry.isFolder
+                  ? () {
+                      ref
+                          .read(explorerControllerProvider.notifier)
+                          .openDirectory(entry.path);
+                    }
+                  : null,
+            );
+          },
         );
       },
+    );
+  }
+}
+
+class _GridEntryTile extends StatelessWidget {
+  const _GridEntryTile({
+    required this.entry,
+    required this.isSelected,
+    required this.isSelectionMode,
+    required this.onToggleSelection,
+    required this.onShowActions,
+    required this.onOpenFolder,
+  });
+
+  final FileSystemEntry entry;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final VoidCallback onToggleSelection;
+  final VoidCallback onShowActions;
+  final VoidCallback? onOpenFolder;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: isSelected ? colorScheme.secondaryContainer : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: isSelectionMode ? onToggleSelection : onOpenFolder,
+        onLongPress: isSelectionMode ? null : onShowActions,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+              child: Column(
+                children: [
+                  _GridEntryVisual(entry: entry),
+                  const SizedBox(height: 8),
+                  Text(
+                    entry.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+            if (isSelectionMode)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Checkbox(
+                  visualDensity: VisualDensity.compact,
+                  value: isSelected,
+                  onChanged: (_) => onToggleSelection(),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GridEntryVisual extends StatelessWidget {
+  const _GridEntryVisual({required this.entry});
+
+  final FileSystemEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entry.type == FileSystemEntryType.image ||
+        entry.type == FileSystemEntryType.video) {
+      return MediaThumbnail(
+        entry: entry,
+        fallbackIcon: iconForFileSystemEntryType(entry.type),
+      );
+    }
+
+    final colorScheme = Theme.of(context).colorScheme;
+    final iconColor =
+        entry.isFolder ? colorScheme.primary : colorScheme.onSurfaceVariant;
+
+    return SizedBox.square(
+      dimension: 52,
+      child: Icon(
+        iconForFileSystemEntryType(entry.type),
+        size: 44,
+        color: iconColor,
+      ),
     );
   }
 }

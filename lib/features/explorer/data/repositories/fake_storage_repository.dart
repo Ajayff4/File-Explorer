@@ -32,6 +32,7 @@ class FakeStorageRepository implements StorageRepository {
   @override
   Future<DirectoryListing> listDirectory(String path) async {
     final now = DateTime.now();
+    final summary = await getPrimaryStorageSummary();
     return DirectoryListing(
       path: path,
       generatedFromSampleData: true,
@@ -39,38 +40,42 @@ class FakeStorageRepository implements StorageRepository {
         id: 'sample-internal',
         label: 'Internal storage',
         path: rootPath,
-        summary: await getPrimaryStorageSummary(),
+        summary: summary,
         isPrimary: true,
       ),
-      entries: [
+      entries: _listingEntries(path, now),
+    );
+  }
+
+  List<FileSystemEntry> _listingEntries(String path, DateTime now) {
+    if (path == '$rootPath/DCIM/Camera') {
+      return [
         FileSystemEntry(
-          name: 'Camera',
-          path: '$rootPath/DCIM/Camera',
-          type: FileSystemEntryType.folder,
+          name: 'IMG_20260730.jpg',
+          path: '$rootPath/DCIM/Camera/IMG_20260730.jpg',
+          type: FileSystemEntryType.image,
           modifiedAt: now.subtract(const Duration(minutes: 18)),
-          childrenCount: 428,
+          sizeBytes: 4 * 1024 * 1024,
         ),
         FileSystemEntry(
-          name: 'Downloads',
-          path: '$rootPath/Download',
-          type: FileSystemEntryType.folder,
-          modifiedAt: now.subtract(const Duration(hours: 2)),
-          childrenCount: 91,
-        ),
-        FileSystemEntry(
-          name: 'Holiday_clip.mp4',
-          path: '$rootPath/Movies/Holiday_clip.mp4',
-          type: FileSystemEntryType.video,
-          modifiedAt: now.subtract(const Duration(hours: 4)),
-          sizeBytes: 734 * 1024 * 1024,
-        ),
-        FileSystemEntry(
-          name: 'Invoice_Q3.pdf',
-          path: '$rootPath/Documents/Invoice_Q3.pdf',
-          type: FileSystemEntryType.document,
-          modifiedAt: now.subtract(const Duration(days: 1)),
+          name: 'Screenshot.png',
+          path: '$rootPath/DCIM/Camera/Screenshot.png',
+          type: FileSystemEntryType.image,
+          modifiedAt: now.subtract(const Duration(hours: 3)),
           sizeBytes: 2 * 1024 * 1024,
         ),
+        FileSystemEntry(
+          name: 'Camera_clip.mp4',
+          path: '$rootPath/DCIM/Camera/Camera_clip.mp4',
+          type: FileSystemEntryType.video,
+          modifiedAt: now.subtract(const Duration(hours: 5)),
+          sizeBytes: 120 * 1024 * 1024,
+        ),
+      ];
+    }
+
+    if (path == '$rootPath/Download') {
+      return [
         FileSystemEntry(
           name: 'Archive_backup.zip',
           path: '$rootPath/Download/Archive_backup.zip',
@@ -78,8 +83,77 @@ class FakeStorageRepository implements StorageRepository {
           modifiedAt: now.subtract(const Duration(days: 3)),
           sizeBytes: 1260 * 1024 * 1024,
         ),
-      ],
-    );
+        FileSystemEntry(
+          name: 'FileExplorer.apk',
+          path: '$rootPath/Download/FileExplorer.apk',
+          type: FileSystemEntryType.app,
+          modifiedAt: now.subtract(const Duration(days: 4)),
+          sizeBytes: 34 * 1024 * 1024,
+        ),
+        FileSystemEntry(
+          name: 'Readme.txt',
+          path: '$rootPath/Download/Readme.txt',
+          type: FileSystemEntryType.document,
+          modifiedAt: now.subtract(const Duration(days: 5)),
+          sizeBytes: 24 * 1024,
+        ),
+      ];
+    }
+
+    if (path == '$rootPath/Documents') {
+      return [
+        FileSystemEntry(
+          name: 'Invoice_Q3.pdf',
+          path: '$rootPath/Documents/Invoice_Q3.pdf',
+          type: FileSystemEntryType.document,
+          modifiedAt: now.subtract(const Duration(days: 1)),
+          sizeBytes: 2 * 1024 * 1024,
+        ),
+      ];
+    }
+
+    if (path == '$rootPath/Movies') {
+      return [
+        FileSystemEntry(
+          name: 'Holiday_clip.mp4',
+          path: '$rootPath/Movies/Holiday_clip.mp4',
+          type: FileSystemEntryType.video,
+          modifiedAt: now.subtract(const Duration(hours: 4)),
+          sizeBytes: 734 * 1024 * 1024,
+        ),
+      ];
+    }
+
+    return [
+      FileSystemEntry(
+        name: 'Camera',
+        path: '$rootPath/DCIM/Camera',
+        type: FileSystemEntryType.folder,
+        modifiedAt: now.subtract(const Duration(minutes: 18)),
+        childrenCount: 428,
+      ),
+      FileSystemEntry(
+        name: 'Downloads',
+        path: '$rootPath/Download',
+        type: FileSystemEntryType.folder,
+        modifiedAt: now.subtract(const Duration(hours: 2)),
+        childrenCount: 91,
+      ),
+      FileSystemEntry(
+        name: 'Documents',
+        path: '$rootPath/Documents',
+        type: FileSystemEntryType.folder,
+        modifiedAt: now.subtract(const Duration(days: 1)),
+        childrenCount: 38,
+      ),
+      FileSystemEntry(
+        name: 'Movies',
+        path: '$rootPath/Movies',
+        type: FileSystemEntryType.folder,
+        modifiedAt: now.subtract(const Duration(hours: 4)),
+        childrenCount: 39,
+      ),
+    ];
   }
 
   @override

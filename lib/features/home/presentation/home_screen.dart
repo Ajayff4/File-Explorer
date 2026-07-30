@@ -7,6 +7,7 @@ import 'package:file_explorer/features/favorites/domain/entities/favorite_locati
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
+import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
@@ -62,6 +63,8 @@ class HomeScreen extends ConsumerWidget {
               _StoragePanel(summary: summary),
               const SizedBox(height: 16),
               const _ShortcutGrid(),
+              const SizedBox(height: 16),
+              const _MediaLibraryStrip(),
               if (settings.showTransferStation) ...[
                 const SizedBox(height: 16),
                 _TransferStationTile(state: transferState),
@@ -108,6 +111,38 @@ class HomeScreen extends ConsumerWidget {
                         recent: recent,
                       ),
                     ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MediaLibraryStrip extends StatelessWidget {
+  const _MediaLibraryStrip();
+
+  @override
+  Widget build(BuildContext context) {
+    const libraries = MediaLibraryKind.values;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Media libraries', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final library in libraries) ...[
+                ActionChip(
+                  avatar: Icon(library.icon, size: 18),
+                  label: Text(library.label),
+                  onPressed: () => context.go(AppRoutes.media(library)),
+                ),
+                const SizedBox(width: 8),
+              ],
             ],
           ),
         ),

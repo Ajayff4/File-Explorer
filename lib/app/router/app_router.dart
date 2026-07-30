@@ -2,6 +2,7 @@ import 'package:file_explorer/features/explorer/presentation/controllers/explore
 import 'package:file_explorer/features/explorer/presentation/explorer_navigation.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
+import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -30,6 +31,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.search,
             builder: (context, state) => const SearchScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.mediaLibrary,
+            builder: (context, state) => MediaLibraryScreen(
+              kind: MediaLibraryKind.fromRouteSegment(
+                state.pathParameters['kind'],
+              ),
+            ),
           ),
           GoRoute(
             path: AppRoutes.transfers,
@@ -72,8 +81,13 @@ class AppRoutes {
   static const home = '/';
   static const explorer = '/explorer';
   static const search = '/search';
+  static const mediaLibrary = '/media/:kind';
   static const transfers = '/transfers';
   static const settings = '/settings';
+
+  static String media(MediaLibraryKind kind) {
+    return '/media/${kind.routeSegment}';
+  }
 }
 
 class AppShell extends StatelessWidget {
@@ -172,6 +186,9 @@ class AppShell extends StatelessWidget {
       return 1;
     }
     if (location.startsWith(AppRoutes.search)) {
+      return 1;
+    }
+    if (location.startsWith('/media')) {
       return 1;
     }
     if (location.startsWith(AppRoutes.transfers)) {

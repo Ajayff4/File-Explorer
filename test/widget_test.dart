@@ -5,6 +5,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
+import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:flutter/material.dart';
@@ -30,7 +31,7 @@ void main() {
 
     expect(find.text('File Explorer'), findsWidgets);
     expect(find.text('Internal storage'), findsOneWidget);
-    expect(find.text('Images'), findsOneWidget);
+    expect(find.text('Images'), findsWidgets);
   });
 
   testWidgets('home category shortcut opens explorer with type filter',
@@ -70,6 +71,37 @@ void main() {
     expect(find.text('420 items'), findsOneWidget);
     expect(find.text('428 items'), findsNothing);
     expect(find.text('Downloads'), findsNothing);
+  });
+
+  testWidgets('home media library opens flat image library', (tester) async {
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          storageRepositoryProvider.overrideWithValue(
+            const FakeStorageRepository(),
+          ),
+          storagePermissionRepositoryProvider.overrideWithValue(
+            const FakeStoragePermissionRepository(),
+          ),
+        ],
+        child: const FileExplorerApp(),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final imageLibraryChip = find.widgetWithText(ActionChip, 'Images');
+    await tester.scrollUntilVisible(
+      imageLibraryChip,
+      240,
+      scrollable: find.byType(Scrollable).first,
+    );
+    await tester.tap(imageLibraryChip);
+    await tester.pumpAndSettle();
+
+    expect(find.text('IMG_20260730.jpg'), findsOneWidget);
+    expect(find.text('Screenshot.png'), findsOneWidget);
+    expect(find.text('Camera_clip.mp4'), findsNothing);
+    expect(find.byType(MediaThumbnail), findsNWidgets(2));
   });
 
   testWidgets('properties sheet shows storage and location details',

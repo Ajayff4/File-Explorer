@@ -20,6 +20,17 @@ Progress log for the Flutter application.
 - Polished file properties:
   - Added storage label, storage root, parent folder, full path, formatted size, raw byte count, modified date, and item count rows.
   - Added widget coverage for storage/location property rows.
+- Added first media library slice:
+  - Added `/media/:kind` routes for images, videos, audio, documents, and apps.
+  - Added Home media library entry points while keeping Explorer folder-filter shortcuts intact.
+  - Added flat media library screens with result count, storage scope, refresh, and browse-folders action.
+  - Media result taps open the parent folder in Explorer with the matching type filter preserved.
+  - Fake storage now returns path-specific sample folders and files for media library testing.
+  - Added widget coverage for opening the Images media library from Home.
+- Added first thumbnail slice:
+  - Image media rows now render local image thumbnails with icon fallback.
+  - Web/unsupported platforms keep icon fallback through conditional imports.
+  - Added widget coverage for thumbnail widgets in the Images library.
 - Updated README status so Settings is no longer described as a placeholder.
 
 ### Verified
