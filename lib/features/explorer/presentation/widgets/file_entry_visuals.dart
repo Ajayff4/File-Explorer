@@ -19,6 +19,81 @@ class FileEntryColors {
   static const audio = Color(0xFF26A69A);
 }
 
+class FileTypeBadge extends StatelessWidget {
+  const FileTypeBadge({
+    required this.extension,
+    required this.color,
+    this.size = 40,
+    super.key,
+  });
+
+  final String extension;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Center(
+        child: Text(
+          extension.toUpperCase(),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: size * 0.28,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Widget fileIconForEntry(BuildContext context, FileSystemEntry entry, {double size = 40}) {
+  if (entry.isFolder) {
+    return Icon(
+      Icons.folder_rounded,
+      size: size,
+      color: Theme.of(context).colorScheme.primary,
+    );
+  }
+
+  final extension = _extensionFor(entry.name);
+  final color = colorForFileSystemEntry(context, entry);
+
+  if (_shouldShowBadge(extension)) {
+    return FileTypeBadge(
+      extension: extension,
+      color: color,
+      size: size,
+    );
+  }
+
+  return Icon(
+    iconForFileSystemEntry(entry),
+    size: size,
+    color: color,
+  );
+}
+
+bool _shouldShowBadge(String extension) {
+  return const {
+    'pdf', 'doc', 'docx', 'odt', 'rtf',
+    'xls', 'xlsx', 'ods', 'csv',
+    'ppt', 'pptx', 'odp',
+    'txt', 'md', 'log',
+    'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz',
+    'json', 'xml', 'yaml', 'yml',
+    'html', 'css', 'js', 'ts', 'dart', 'kt', 'java', 'py',
+  }.contains(extension);
+}
+
 IconData iconForFileSystemEntryType(FileSystemEntryType type) {
   return switch (type) {
     FileSystemEntryType.folder => Icons.folder_rounded,

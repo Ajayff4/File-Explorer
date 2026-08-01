@@ -5,7 +5,6 @@ import 'package:file_explorer/features/explorer/domain/repositories/storage_repo
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
-import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
@@ -34,6 +33,20 @@ final explorerFilterTypeProvider = StateProvider<FileSystemEntryType?>((ref) {
 });
 
 enum ExplorerViewMode { list, grid }
+
+enum _MoreMenuAction {
+  newFolder,
+  newFile,
+  switchToList,
+  switchToGrid,
+  sortNameAsc,
+  sortNameDesc,
+  sortModifiedNew,
+  sortModifiedOld,
+  sortSizeLarge,
+  sortSizeSmall,
+  sortTypeAsc,
+}
 
 class ExplorerScreen extends ConsumerWidget {
   const ExplorerScreen({super.key});
@@ -109,14 +122,7 @@ class ExplorerScreen extends ConsumerWidget {
                   : null,
           title: isSelectionMode
               ? Text('$selectedCount selected')
-              : explorerState.volumes.when(
-                  data: (volumes) => _VolumeSwitcher(
-                    volumes: volumes,
-                    selectedVolume: selectedVolume,
-                  ),
-                  error: (error, stackTrace) => const Text('Files'),
-                  loading: () => const Text('Files'),
-                ),
+              : Text(p.basename(explorerState.currentPath)),
           actions: [
             if (isSelectionMode) ...[
               IconButton(
@@ -133,13 +139,23 @@ class ExplorerScreen extends ConsumerWidget {
                 icon: const Icon(Icons.select_all_rounded),
               ),
               IconButton(
-                tooltip: 'Clear selection',
+                tooltip: 'Select range',
+                onPressed: selectedCount >= 2
+                    ? () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .selectInterval();
+                      }
+                    : null,
+                icon: const Icon(Icons.linear_scale_rounded),
+              ),
+              TextButton(
                 onPressed: () {
                   ref
                       .read(explorerControllerProvider.notifier)
-                      .clearSelection();
+                      .exitSelectionMode();
                 },
-                icon: const Icon(Icons.clear_rounded),
+                child: const Text('Cancel'),
               ),
             ] else ...[
               if (filterType != null)
@@ -174,26 +190,320 @@ class ExplorerScreen extends ConsumerWidget {
                 },
                 icon: const Icon(Icons.refresh_rounded),
               ),
-              _SortMenu(selectedOption: sortOption),
-              SegmentedButton<ExplorerViewMode>(
-                segments: const [
-                  ButtonSegment(
-                    value: ExplorerViewMode.list,
-                    icon: Icon(Icons.view_list_rounded),
-                    tooltip: 'List view',
+              PopupMenuButton<_MoreMenuAction>(
+                tooltip: 'More',
+                icon: const Icon(Icons.more_vert_rounded),
+                offset: const Offset(0, 48),
+                onSelected: (action) {
+                  switch (action) {
+                    case _MoreMenuAction.newFolder:
+                      _showCreateFolderDialog(
+                        context,
+                        ref,
+                        () => ref.read(explorerControllerProvider.notifier).refresh(),
+                      );
+                      break;
+                    case _MoreMenuAction.newFile:
+                      _showNewFileMenuSheet(context, ref);
+                      break;
+                    case _MoreMenuAction.switchToList:
+                      ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.list;
+                      break;
+                    case _MoreMenuAction.switchToGrid:
+                      ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.grid;
+                      break;
+                    case _MoreMenuAction.sortNameAsc:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.nameAscending;
+                      break;
+                    case _MoreMenuAction.sortNameDesc:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.nameDescending;
+                      break;
+                    case _MoreMenuAction.sortModifiedNew:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.modifiedNewest;
+                      break;
+                    case _MoreMenuAction.sortModifiedOld:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.modifiedOldest;
+                      break;
+                    case _MoreMenuAction.sortSizeLarge:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.sizeLargest;
+                      break;
+                    case _MoreMenuAction.sortSizeSmall:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.sizeSmallest;
+                      break;
+                    case _MoreMenuAction.sortTypeAsc:
+                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.typeAscending;
+                      break;
+                  }
+                },
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: _MoreMenuAction.newFolder,
+                    child: Row(
+                      children: [
+                        Icon(Icons.create_new_folder_rounded),
+                        SizedBox(width: 12),
+                        Text('New folder'),
+                      ],
+                    ),
                   ),
-                  ButtonSegment(
-                    value: ExplorerViewMode.grid,
-                    icon: Icon(Icons.grid_view_rounded),
-                    tooltip: 'Grid view',
+                  const PopupMenuItem(
+                    value: _MoreMenuAction.newFile,
+                    child: Row(
+                      children: [
+                        Icon(Icons.add_rounded),
+                        SizedBox(width: 12),
+                        Text('New file'),
+                        Spacer(),
+                        Icon(Icons.chevron_right_rounded, size: 18),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(height: 8),
+                  PopupMenuItem(
+                    value: viewMode == ExplorerViewMode.list
+                        ? _MoreMenuAction.switchToGrid
+                        : _MoreMenuAction.switchToList,
+                    child: Row(
+                      children: [
+                        Icon(
+                          viewMode == ExplorerViewMode.list
+                              ? Icons.grid_view_rounded
+                              : Icons.view_list_rounded,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          viewMode == ExplorerViewMode.list
+                              ? 'Switch to grid view'
+                              : 'Switch to list view',
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(height: 8),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortNameAsc,
+                    enabled: false,
+                    child: Row(
+                      children: [
+                        Text(
+                          'Sort by',
+                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortNameAsc,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_by_alpha_rounded,
+                          color: sortOption == ExplorerSortOption.nameAscending
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Name (A-Z)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.nameAscending
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.nameAscending
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.nameAscending)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortNameDesc,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.sort_by_alpha_rounded,
+                          color: sortOption == ExplorerSortOption.nameDescending
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Name (Z-A)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.nameDescending
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.nameDescending
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.nameDescending)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortModifiedNew,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          color: sortOption == ExplorerSortOption.modifiedNewest
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Modified (newest)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.modifiedNewest
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.modifiedNewest
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.modifiedNewest)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortModifiedOld,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          color: sortOption == ExplorerSortOption.modifiedOldest
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Modified (oldest)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.modifiedOldest
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.modifiedOldest
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.modifiedOldest)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortSizeLarge,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.data_usage_rounded,
+                          color: sortOption == ExplorerSortOption.sizeLargest
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Size (largest)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.sizeLargest
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.sizeLargest
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.sizeLargest)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortSizeSmall,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.data_usage_rounded,
+                          color: sortOption == ExplorerSortOption.sizeSmallest
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Size (smallest)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.sizeSmallest
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.sizeSmallest
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.sizeSmallest)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.sortTypeAsc,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.category_rounded,
+                          color: sortOption == ExplorerSortOption.typeAscending
+                              ? Theme.of(context).colorScheme.primary
+                              : null,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Type (A-Z)',
+                          style: TextStyle(
+                            color: sortOption == ExplorerSortOption.typeAscending
+                                ? Theme.of(context).colorScheme.primary
+                                : null,
+                            fontWeight: sortOption == ExplorerSortOption.typeAscending
+                                ? FontWeight.w600
+                                : null,
+                          ),
+                        ),
+                        const Spacer(),
+                        if (sortOption == ExplorerSortOption.typeAscending)
+                          Icon(Icons.check_rounded, size: 18,
+                              color: Theme.of(context).colorScheme.primary),
+                      ],
+                    ),
                   ),
                 ],
-                selected: {viewMode},
-                showSelectedIcon: false,
-                onSelectionChanged: (selection) {
-                  ref.read(explorerViewModeProvider.notifier).state =
-                      selection.first;
-                },
               ),
               const SizedBox(width: 8),
             ],
@@ -283,102 +593,9 @@ class ExplorerScreen extends ConsumerWidget {
                 loading: () => const Center(child: CircularProgressIndicator()),
               ),
             ),
-            if (isSelectionMode)
-              _SelectionActionBar(
-                selectedCount: selectedCount,
-                onCopy: () {
-                  final selectedPaths = explorerState.selectedPaths.toList();
-                  final displayName = selectedCount == 1
-                      ? selectedPaths.first
-                      : '$selectedCount items';
-                  ref.read(transferControllerProvider.notifier).queueOperation(
-                        operation: TransferOperation.copy,
-                        sourcePaths: selectedPaths,
-                        displayName: displayName,
-                      );
-                  ref
-                      .read(explorerControllerProvider.notifier)
-                      .exitSelectionMode();
-                },
-                onMove: () {
-                  final selectedPaths = explorerState.selectedPaths.toList();
-                  final displayName = selectedCount == 1
-                      ? selectedPaths.first
-                      : '$selectedCount items';
-                  ref.read(transferControllerProvider.notifier).queueOperation(
-                        operation: TransferOperation.move,
-                        sourcePaths: selectedPaths,
-                        displayName: displayName,
-                      );
-                  ref
-                      .read(explorerControllerProvider.notifier)
-                      .exitSelectionMode();
-                },
-                onDelete: () {
-                  final selectedPaths = explorerState.selectedPaths.toList();
-                  final displayName = selectedCount == 1
-                      ? selectedPaths.first
-                      : '$selectedCount items';
-                  ref.read(transferControllerProvider.notifier).queueOperation(
-                        operation: TransferOperation.delete,
-                        sourcePaths: selectedPaths,
-                        displayName: displayName,
-                      );
-                  ref
-                      .read(explorerControllerProvider.notifier)
-                      .exitSelectionMode();
-                },
-                onCompress: () async {
-                  final selectedPaths = explorerState.selectedPaths.toList();
-                  final displayName = selectedCount == 1
-                      ? selectedPaths.first
-                      : '$selectedCount items';
-                  final queued = await showCompressOptionsSheet(
-                    context: context,
-                    transferController:
-                        ref.read(transferControllerProvider.notifier),
-                    sourcePaths: selectedPaths,
-                    displayName: displayName,
-                    destinationDirectory: explorerState.currentPath,
-                  );
-                  if (queued) {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .exitSelectionMode();
-                  }
-                },
-              ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _SortMenu extends ConsumerWidget {
-  const _SortMenu({required this.selectedOption});
-
-  final ExplorerSortOption selectedOption;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return PopupMenuButton<ExplorerSortOption>(
-      tooltip: 'Sort',
-      icon: const Icon(Icons.sort_rounded),
-      initialValue: selectedOption,
-      onSelected: (option) {
-        ref.read(explorerSortOptionProvider.notifier).state = option;
-      },
-      itemBuilder: (context) {
-        return [
-          for (final option in ExplorerSortOption.values)
-            CheckedPopupMenuItem<ExplorerSortOption>(
-              value: option,
-              checked: option == selectedOption,
-              child: Text(option.label),
-            ),
-        ];
-      },
     );
   }
 }
@@ -524,58 +741,143 @@ class _BreadcrumbBar extends ConsumerWidget {
       color: Theme.of(context).colorScheme.surface,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              InkWell(
-                onTap: () {
-                  ref
-                      .read(explorerControllerProvider.notifier)
-                      .openDirectory('/');
-                },
-                child: const Icon(Icons.home_rounded, size: 18),
-              ),
-              const SizedBox(width: 8),
-              if (segments.isEmpty)
-                Text(path, style: Theme.of(context).textTheme.labelLarge)
-              else
-                ...segments.asMap().entries.expand((entry) {
-                  final index = entry.key;
-                  final segment = entry.value;
-                  final isLast = index == segments.length - 1;
-                  final segmentPath =
-                      '/${segments.sublist(0, index + 1).join('/')}';
-
-                  return [
-                    InkWell(
-                      onTap: isLast
-                          ? null
-                          : () {
-                              ref
-                                  .read(explorerControllerProvider.notifier)
-                                  .openDirectory(segmentPath);
-                            },
-                      child: Text(
-                        segment,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                              color: isLast
-                                  ? null
-                                  : Theme.of(context).colorScheme.primary,
-                              decoration:
-                                  isLast ? null : TextDecoration.underline,
-                            ),
-                      ),
+        child: Row(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                reverse: true,
+                child: Row(
+                  children: [
+                    _ArrowBreadcrumb(
+                      label: '/',
+                      onTap: () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .openDirectory('/');
+                      },
+                      isLast: segments.isEmpty,
                     ),
-                    if (!isLast) const Icon(Icons.chevron_right_rounded),
-                  ];
-                }),
-            ],
-          ),
+                    if (segments.isEmpty)
+                      Transform.translate(
+                        offset: const Offset(-12, 0),
+                        child: _ArrowBreadcrumb(
+                          label: path,
+                          onTap: null,
+                          isLast: true,
+                        ),
+                      )
+                    else
+                      ...segments.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final segment = entry.value;
+                        final isLast = index == segments.length - 1;
+                        final segmentPath =
+                            '/${segments.sublist(0, index + 1).join('/')}';
+
+                        return Transform.translate(
+                          offset: const Offset(-12, 0),
+                          child: _ArrowBreadcrumb(
+                            label: segment,
+                            onTap: isLast
+                                ? null
+                                : () {
+                                    ref
+                                        .read(explorerControllerProvider.notifier)
+                                        .openDirectory(segmentPath);
+                                  },
+                            isLast: isLast,
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _ArrowBreadcrumb extends StatelessWidget {
+  const _ArrowBreadcrumb({
+    required this.label,
+    required this.onTap,
+    required this.isLast,
+  });
+
+  final String label;
+  final VoidCallback? onTap;
+  final bool isLast;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return SizedBox(
+      width: 100,
+      height: 32,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Material(
+              color: isLast ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest,
+              shape: _ArrowShape(),
+              child: InkWell(
+                onTap: onTap,
+                customBorder: _ArrowShape(),
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 16, right: 16),
+                  child: Center(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: isLast ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
+                            fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
+                          ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ArrowShape extends ShapeBorder {
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.zero;
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) {
+    return getOuterPath(rect, textDirection: textDirection);
+  }
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final arrowWidth = 12.0;
+    return Path()
+      ..moveTo(arrowWidth, 0)
+      ..lineTo(rect.width - arrowWidth, 0)
+      ..lineTo(rect.width, rect.height / 2)
+      ..lineTo(rect.width - arrowWidth, rect.height)
+      ..lineTo(arrowWidth, rect.height)
+      ..lineTo(0, rect.height / 2)
+      ..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
 }
 
 class _PasteDestinationBanner extends ConsumerWidget {
@@ -708,8 +1010,7 @@ class _EntryList extends ConsumerWidget {
                   )
                 : MediaThumbnail(
                     entry: entry,
-                    fallbackIcon: iconForFileSystemEntry(entry),
-                    fallbackColor: colorForFileSystemEntry(context, entry),
+                    fallback: fileIconForEntry(context, entry),
                   ),
             title:
                 Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
@@ -723,20 +1024,11 @@ class _EntryList extends ConsumerWidget {
                 : _canOpenEntry(entry)
                     ? () => _openEntry(context, ref, entry, entries)
                     : null,
-            onLongPress: isSelectionMode
-                ? null
-                : () {
-                    showEntryActionsSheet(
-                      context: context,
-                      ref: ref,
-                      entry: entry,
-                      onSelect: () {
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .toggleSelection(entry.path);
-                      },
-                    );
-                  },
+            onLongPress: () {
+              ref
+                  .read(explorerControllerProvider.notifier)
+                  .toggleSelection(entry.path);
+            },
           ),
         );
       },
@@ -790,18 +1082,6 @@ class _EntryGrid extends ConsumerWidget {
                   : _canPreviewEntry(entry)
                       ? () => _openEntry(context, ref, entry, entries)
                       : null,
-              onShowActions: () {
-                showEntryActionsSheet(
-                  context: context,
-                  ref: ref,
-                  entry: entry,
-                  onSelect: () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
-                  },
-                );
-              },
             );
           },
         );
@@ -817,7 +1097,6 @@ class _GridEntryTile extends StatelessWidget {
     required this.isSelectionMode,
     required this.onToggleSelection,
     required this.onOpenFolder,
-    required this.onShowActions,
   });
 
   final FileSystemEntry entry;
@@ -825,7 +1104,6 @@ class _GridEntryTile extends StatelessWidget {
   final bool isSelectionMode;
   final VoidCallback onToggleSelection;
   final VoidCallback? onOpenFolder;
-  final VoidCallback onShowActions;
 
   @override
   Widget build(BuildContext context) {
@@ -837,7 +1115,7 @@ class _GridEntryTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: isSelectionMode ? onToggleSelection : onOpenFolder,
-        onLongPress: isSelectionMode ? null : onShowActions,
+        onLongPress: isSelectionMode ? null : onToggleSelection,
         child: Stack(
           children: [
             Padding(
@@ -894,19 +1172,11 @@ class _GridEntryVisual extends StatelessWidget {
         entry.type == FileSystemEntryType.app) {
       return MediaThumbnail(
         entry: entry,
-        fallbackIcon: iconForFileSystemEntry(entry),
-        fallbackColor: colorForFileSystemEntry(context, entry),
+        fallback: fileIconForEntry(context, entry),
       );
     }
 
-    return SizedBox.square(
-      dimension: 52,
-      child: Icon(
-        iconForFileSystemEntry(entry),
-        size: 44,
-        color: colorForFileSystemEntry(context, entry),
-      ),
-    );
+    return fileIconForEntry(context, entry, size: 52);
   }
 }
 
@@ -1034,70 +1304,6 @@ class _DirectoryError extends StatelessWidget {
   }
 }
 
-class _SelectionActionBar extends StatelessWidget {
-  const _SelectionActionBar({
-    required this.selectedCount,
-    required this.onCopy,
-    required this.onMove,
-    required this.onDelete,
-    required this.onCompress,
-  });
-
-  final int selectedCount;
-  final VoidCallback onCopy;
-  final VoidCallback onMove;
-  final VoidCallback onDelete;
-  final VoidCallback onCompress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 8,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '$selectedCount selected',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(width: 8),
-              IconButton.outlined(
-                tooltip: 'Copy',
-                onPressed: onCopy,
-                icon: const Icon(Icons.copy_rounded),
-              ),
-              const SizedBox(width: 8),
-              IconButton.outlined(
-                tooltip: 'Move',
-                onPressed: onMove,
-                icon: const Icon(Icons.drive_file_move_rounded),
-              ),
-              const SizedBox(width: 8),
-              IconButton.outlined(
-                tooltip: 'Delete',
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_rounded),
-              ),
-              const SizedBox(width: 8),
-              IconButton.outlined(
-                tooltip: 'Compress',
-                onPressed: onCompress,
-                icon: const Icon(Icons.inventory_2_rounded),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 /// Widget that handles asynchronous filtering of entries based on folder content
 class _FilteredEntryListView extends StatelessWidget {
   const _FilteredEntryListView({
@@ -1158,5 +1364,309 @@ class _FilteredEntryListView extends StatelessWidget {
     }
 
     return filtered;
+  }
+}
+
+Future<void> _showCreateFolderDialog(
+  BuildContext context,
+  WidgetRef ref,
+  VoidCallback onCreated,
+) async {
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) {
+      return const _CreateFolderDialog();
+    },
+  );
+
+  if (name == null || name.trim().isEmpty) return;
+
+  final success = await ref
+      .read(explorerControllerProvider.notifier)
+      .createFolder(name.trim());
+
+  if (context.mounted) {
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Folder "$name" created')),
+      );
+      onCreated();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to create folder')),
+      );
+    }
+  }
+}
+
+class _CreateFolderDialog extends StatefulWidget {
+  const _CreateFolderDialog();
+
+  @override
+  State<_CreateFolderDialog> createState() => _CreateFolderDialogState();
+}
+
+class _CreateFolderDialogState extends State<_CreateFolderDialog> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: 'New folder');
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New folder'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'Folder name',
+          hintText: 'Enter folder name',
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+Future<void> _showCreateFileDialog(
+  BuildContext context,
+  WidgetRef ref,
+  String defaultName,
+  String content,
+  VoidCallback onCreated,
+) async {
+  final name = await showDialog<String>(
+    context: context,
+    builder: (context) {
+      return _CreateFileDialog(
+        defaultName: defaultName,
+        title: 'New file',
+      );
+    },
+  );
+
+  if (name == null || name.trim().isEmpty) return;
+
+  final success = await ref
+      .read(explorerControllerProvider.notifier)
+      .createFile(name.trim(), content: content);
+
+  if (context.mounted) {
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File "$name" created')),
+      );
+      onCreated();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to create file')),
+      );
+    }
+  }
+}
+
+class _CreateFileDialog extends StatefulWidget {
+  const _CreateFileDialog({
+    required this.defaultName,
+    required this.title,
+  });
+
+  final String defaultName;
+  final String title;
+
+  @override
+  State<_CreateFileDialog> createState() => _CreateFileDialogState();
+}
+
+class _CreateFileDialogState extends State<_CreateFileDialog> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.defaultName);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(widget.title),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(
+          labelText: 'File name',
+          hintText: 'Enter file name',
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (value) => Navigator.of(context).pop(value),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text),
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
+void _showNewFileMenuSheet(BuildContext context, WidgetRef ref) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Text(
+                'New file',
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ),
+            ListTile(
+              leading: const _FileTypeBadge(
+                extension: 'TXT',
+                color: FileEntryColors.text,
+              ),
+              title: const Text('Text file'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showCreateFileDialog(
+                  sheetContext,
+                  ref,
+                  'untitled.txt',
+                  '',
+                  () => ref.read(explorerControllerProvider.notifier).refresh(),
+                );
+              },
+            ),
+            ListTile(
+              leading: const _FileTypeBadge(
+                extension: 'DOC',
+                color: FileEntryColors.document,
+              ),
+              title: const Text('Word document'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showCreateFileDialog(
+                  sheetContext,
+                  ref,
+                  'untitled.docx',
+                  'Document created with ES File Explorer',
+                  () => ref.read(explorerControllerProvider.notifier).refresh(),
+                );
+              },
+            ),
+            ListTile(
+              leading: const _FileTypeBadge(
+                extension: 'XLS',
+                color: FileEntryColors.spreadsheet,
+              ),
+              title: const Text('Excel spreadsheet'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showCreateFileDialog(
+                  sheetContext,
+                  ref,
+                  'untitled.xlsx',
+                  'Spreadsheet created with ES File Explorer',
+                  () => ref.read(explorerControllerProvider.notifier).refresh(),
+                );
+              },
+            ),
+            ListTile(
+              leading: const _FileTypeBadge(
+                extension: 'PPT',
+                color: FileEntryColors.presentation,
+              ),
+              title: const Text('PowerPoint presentation'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _showCreateFileDialog(
+                  sheetContext,
+                  ref,
+                  'untitled.pptx',
+                  'Presentation created with ES File Explorer',
+                  () => ref.read(explorerControllerProvider.notifier).refresh(),
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+class _FileTypeBadge extends StatelessWidget {
+  const _FileTypeBadge({
+    required this.extension,
+    required this.color,
+    this.size = 24,
+  });
+
+  final String extension;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Center(
+        child: Text(
+          extension,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: size * 0.35,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
   }
 }

@@ -48,26 +48,90 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
         explorerState.listing.valueOrNull?.volume?.path ?? currentPath;
     final rootPath =
         _scope == _SearchScope.storageRoot ? storageRootPath : currentPath;
+    final isSelectionMode = explorerState.isSelectionMode;
+    final selectedCount = explorerState.selectedPaths.length;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Search'),
-        actions: [
-          IconButton(
-            tooltip: 'Reindex',
-            onPressed: searchState.isSearching
-                ? null
-                : () {
-                    ref.read(fileSearchControllerProvider.notifier).reindex(
-                          rootPath: rootPath,
-                        );
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (isSelectionMode) {
+          ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+        } else {
+          context.go(AppRoutes.explorer);
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: isSelectionMode
+              ? IconButton(
+                  tooltip: 'Exit selection',
+                  onPressed: () {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .exitSelectionMode();
                   },
-            icon: const Icon(Icons.update_rounded),
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
+                  icon: const Icon(Icons.close_rounded),
+                )
+              : IconButton(
+                  tooltip: 'Back',
+                  onPressed: () {
+                    context.go(AppRoutes.explorer);
+                  },
+                  icon: const Icon(Icons.arrow_back_rounded),
+                ),
+          title: isSelectionMode
+              ? Text('$selectedCount selected')
+              : const Text('Search'),
+          actions: [
+            if (isSelectionMode) ...[
+              IconButton(
+                tooltip: 'Select all',
+                onPressed: () {
+                  final paths = searchState.results
+                      .map((r) => r.entry.path)
+                      .toList();
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectAll(paths);
+                },
+                icon: const Icon(Icons.select_all_rounded),
+              ),
+              IconButton(
+                tooltip: 'Select range',
+                onPressed: selectedCount >= 2
+                    ? () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .selectInterval();
+                      }
+                    : null,
+                icon: const Icon(Icons.linear_scale_rounded),
+              ),
+              TextButton(
+                onPressed: () {
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .exitSelectionMode();
+                },
+                child: const Text('Cancel'),
+              ),
+            ] else ...[
+              IconButton(
+                tooltip: 'Reindex',
+                onPressed: searchState.isSearching
+                    ? null
+                    : () {
+                        ref.read(fileSearchControllerProvider.notifier).reindex(
+                              rootPath: rootPath,
+                            );
+                      },
+                icon: const Icon(Icons.update_rounded),
+              ),
+            ],
+          ],
+        ),
+        body: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
         children: [
           SearchBar(
             controller: _textController,
@@ -147,27 +211,35 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           ),
           const SizedBox(height: 16),
-          if (!searchState.hasQuery && searchState.filteredTypes.isEmpty)
-            const _SearchHint()
-          else if (searchState.isSearching)
-            _SearchLoadingState(isIndexing: searchState.isIndexing)
-          else if (searchState.error != null)
-            _SearchError(error: searchState.error!)
-          else if (searchState.results.isEmpty)
-            const _NoSearchResults()
-          else ...[
-            _ResultCountHeader(count: searchState.results.length),
-            const SizedBox(height: 8),
-            _SearchResultsGrid(
-              results: searchState.results,
-              activeFilter: searchState.filteredTypes.isEmpty
-                  ? null
-                  : searchState.filteredTypes.first,
-            ),
-          ],
+          ..._buildConditionalChildren(searchState, isSelectionMode),
         ],
       ),
-    );
+    ),
+  );
+}
+}
+
+List<Widget> _buildConditionalChildren(FileSearchState searchState, bool isSelectionMode) {
+  if (!searchState.hasQuery && searchState.filteredTypes.isEmpty) {
+    return [const _SearchHint()];
+  } else if (searchState.isSearching) {
+    return [_SearchLoadingState(isIndexing: searchState.isIndexing)];
+  } else if (searchState.error != null) {
+    return [_SearchError(error: searchState.error!)];
+  } else if (searchState.results.isEmpty) {
+    return [const _NoSearchResults()];
+  } else {
+    return [
+      _ResultCountHeader(count: searchState.results.length),
+      const SizedBox(height: 8),
+      _SearchResultsGrid(
+        results: searchState.results,
+        activeFilter: searchState.filteredTypes.isEmpty
+            ? null
+            : searchState.filteredTypes.first,
+        isSelectionMode: isSelectionMode,
+      ),
+    ];
   }
 }
 
@@ -252,10 +324,12 @@ class _SearchResultsGrid extends StatelessWidget {
   const _SearchResultsGrid({
     required this.results,
     this.activeFilter,
+    required this.isSelectionMode,
   });
 
   final List<SearchResult> results;
   final FileSystemEntryType? activeFilter;
+  final bool isSelectionMode;
 
   @override
   Widget build(BuildContext context) {
@@ -279,6 +353,7 @@ class _SearchResultsGrid extends StatelessWidget {
               result: results[index],
               results: results,
               activeFilter: activeFilter,
+              isSelectionMode: isSelectionMode,
             );
           },
         );
@@ -292,28 +367,48 @@ class _SearchResultGridTile extends ConsumerWidget {
     required this.result,
     required this.results,
     this.activeFilter,
+    required this.isSelectionMode,
   });
 
   final SearchResult result;
   final List<SearchResult> results;
   final FileSystemEntryType? activeFilter;
+  final bool isSelectionMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = result.entry;
+    final selectedPaths = ref.watch(explorerControllerProvider).selectedPaths;
+    final isSelected = selectedPaths.contains(entry.path);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: isSelected
+          ? colorScheme.secondaryContainer
+          : colorScheme.surfaceContainerHighest,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () {
-          if (entry.isFolder) {
-            _openContainingFolder(context, ref);
-          } else {
-            _openFile(context, ref);
-          }
-        },
+        onTap: isSelectionMode
+            ? () {
+                ref
+                    .read(explorerControllerProvider.notifier)
+                    .toggleSelection(entry.path);
+              }
+            : () {
+                if (entry.isFolder) {
+                  _openContainingFolder(context, ref);
+                } else {
+                  _openFile(context, ref);
+                }
+              },
+        onLongPress: isSelectionMode
+            ? null
+            : () {
+                ref
+                    .read(explorerControllerProvider.notifier)
+                    .toggleSelection(entry.path);
+              },
         child: Stack(
           children: [
             Padding(
@@ -325,8 +420,7 @@ class _SearchResultGridTile extends ConsumerWidget {
                     child: Center(
                       child: MediaThumbnail(
                         entry: entry,
-                        fallbackIcon: iconForFileSystemEntry(entry),
-                        fallbackColor: colorForFileSystemEntry(context, entry),
+                        fallback: fileIconForEntry(context, entry, size: 52),
                         dimension: 52,
                       ),
                     ),
@@ -358,7 +452,21 @@ class _SearchResultGridTile extends ConsumerWidget {
                 ],
               ),
             ),
-            if (!entry.isFolder)
+            if (isSelectionMode)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Checkbox(
+                  visualDensity: VisualDensity.compact,
+                  value: isSelected,
+                  onChanged: (_) {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
+                  },
+                ),
+              )
+            else if (!entry.isFolder)
               Positioned(
                 top: 0,
                 right: 0,

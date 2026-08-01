@@ -1,5 +1,7 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/selection_bottom_bar.dart';
 import 'package:file_explorer/features/home/presentation/core_features_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
@@ -104,6 +106,9 @@ class AppShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final selectedIndex = _selectedIndex(location);
+    final explorerState = ref.watch(explorerControllerProvider);
+    final isSelectionMode = explorerState.isSelectionMode;
+    final selectedPaths = explorerState.selectedPaths.toList();
 
     if (width >= 840) {
       return Scaffold(
@@ -152,32 +157,39 @@ class AppShell extends ConsumerWidget {
 
     return Scaffold(
       body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: selectedIndex,
-        onDestinationSelected: (index) => _go(context, ref, index),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded),
-            label: 'Home',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.folder_outlined),
-            selectedIcon: Icon(Icons.folder_rounded),
-            label: 'Files',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.sync_alt_outlined),
-            selectedIcon: Icon(Icons.sync_alt_rounded),
-            label: 'Transfers',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.tune_outlined),
-            selectedIcon: Icon(Icons.tune_rounded),
-            label: 'Settings',
-          ),
-        ],
-      ),
+      bottomNavigationBar: isSelectionMode
+          ? SelectionBottomBar(
+              selectedPaths: selectedPaths,
+              onExitSelection: () {
+                ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+              },
+            )
+          : NavigationBar(
+              selectedIndex: selectedIndex,
+              onDestinationSelected: (index) => _go(context, ref, index),
+              destinations: const [
+                NavigationDestination(
+                  icon: Icon(Icons.dashboard_outlined),
+                  selectedIcon: Icon(Icons.dashboard_rounded),
+                  label: 'Home',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.folder_outlined),
+                  selectedIcon: Icon(Icons.folder_rounded),
+                  label: 'Files',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.sync_alt_outlined),
+                  selectedIcon: Icon(Icons.sync_alt_rounded),
+                  label: 'Transfers',
+                ),
+                NavigationDestination(
+                  icon: Icon(Icons.tune_outlined),
+                  selectedIcon: Icon(Icons.tune_rounded),
+                  label: 'Settings',
+                ),
+              ],
+            ),
     );
   }
 

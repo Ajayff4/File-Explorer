@@ -219,4 +219,14 @@ class _MultiVolumeStorageRepository implements StorageRepository {
     // For testing, folders always contain files of any type
     return true;
   }
+
+  @override
+  Future<bool> createFolder(String path) async {
+    return true;
+  }
+
+  @override
+  Future<bool> createFile(String path, {String content = ''}) async {
+    return true;
+  }
 }

@@ -15,4 +15,12 @@ abstract interface class StorageRepository {
   /// Used to determine if a folder should be shown when a type filter is active.
   Future<bool> folderContainsFileType(
       String folderPath, FileSystemEntryType type);
+
+  /// Create a new folder at the specified path.
+  /// Returns true if successful, false otherwise.
+  Future<bool> createFolder(String path);
+
+  /// Create a new file at the specified path with optional initial content.
+  /// Returns true if successful, false otherwise.
+  Future<bool> createFile(String path, {String content = ''});
 }

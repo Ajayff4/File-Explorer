@@ -84,42 +84,52 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final visualPreview = _entry.type == FileSystemEntryType.image ||
         _entry.type == FileSystemEntryType.video;
 
-    return Scaffold(
-      backgroundColor: visualPreview ? Colors.black : null,
-      appBar: fullscreenVideo
-          ? null
-          : AppBar(
-              title: Text(
-                _entry.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppRoutes.explorer);
+        }
+        return true;
+      },
+      child: Scaffold(
+        backgroundColor: visualPreview ? Colors.black : null,
+        appBar: fullscreenVideo
+            ? null
+            : AppBar(
+                title: Text(
+                  _entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-      body: ColoredBox(
-        color: colorScheme.surface,
-        child: Column(
-          children: [
-            Expanded(
-              child: _MediaPreview(
-                key: ValueKey(_entry.path),
-                entry: _entry,
-                hasPlaylist: _playlist.length > 1,
-                shuffle: _shuffle,
-                landscape: _landscape,
-                onPrevious: _openPrevious,
-                onNext: _openNext,
-                onToggleShuffle: _toggleShuffle,
-                onToggleLandscape: _toggleLandscape,
-                onShowInfo: () => _showEntryInfo(context),
-                onDelete: _confirmDeleteCurrentEntry,
-                onShare: _shareCurrentEntry,
-                onRename: _requestRenameCurrentEntry,
-                onOpenWith: _openCurrentEntryWithSystem,
-                onSetWallpaper: _showWallpaperPlaceholder,
+        body: ColoredBox(
+          color: colorScheme.surface,
+          child: Column(
+            children: [
+              Expanded(
+                child: _MediaPreview(
+                  key: ValueKey(_entry.path),
+                  entry: _entry,
+                  hasPlaylist: _playlist.length > 1,
+                  shuffle: _shuffle,
+                  landscape: _landscape,
+                  onPrevious: _openPrevious,
+                  onNext: _openNext,
+                  onToggleShuffle: _toggleShuffle,
+                  onToggleLandscape: _toggleLandscape,
+                  onShowInfo: () => _showEntryInfo(context),
+                  onDelete: _confirmDeleteCurrentEntry,
+                  onShare: _shareCurrentEntry,
+                  onRename: _requestRenameCurrentEntry,
+                  onOpenWith: _openCurrentEntryWithSystem,
+                  onSetWallpaper: _showWallpaperPlaceholder,
+                ),
               ),
-            ),
-            if (!_canPreview(_entry)) _MediaDetails(entry: _entry),
-          ],
+              if (!_canPreview(_entry)) _MediaDetails(entry: _entry),
+            ],
+          ),
         ),
       ),
     );

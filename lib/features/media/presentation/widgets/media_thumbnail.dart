@@ -6,15 +6,13 @@ import 'package:flutter/material.dart';
 class MediaThumbnail extends StatelessWidget {
   const MediaThumbnail({
     required this.entry,
-    required this.fallbackIcon,
-    this.fallbackColor,
+    required this.fallback,
     this.dimension = 48,
     super.key,
   });
 
   final FileSystemEntry entry;
-  final IconData fallbackIcon;
-  final Color? fallbackColor;
+  final Widget fallback;
   final double dimension;
 
   @override
@@ -29,7 +27,7 @@ class MediaThumbnail extends StatelessWidget {
           ),
           child: mediaThumbnailFor(
             entry: entry,
-            fallback: Icon(fallbackIcon, color: fallbackColor),
+            fallback: fallback,
           ),
         ),
       ),

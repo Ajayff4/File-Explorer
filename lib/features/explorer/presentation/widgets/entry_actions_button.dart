@@ -87,11 +87,13 @@ class EntryActionsButton extends ConsumerWidget {
   const EntryActionsButton({
     required this.entry,
     this.storageVolume,
+    this.isSingleSelection = true,
     super.key,
   });
 
   final FileSystemEntry entry;
   final StorageVolume? storageVolume;
+  final bool isSingleSelection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -102,6 +104,7 @@ class EntryActionsButton extends ConsumerWidget {
         ref: ref,
         entry: entry,
         storageVolume: storageVolume,
+        isSingleSelection: isSingleSelection,
       ),
       icon: const Icon(Icons.more_vert_rounded),
     );
@@ -113,7 +116,7 @@ void showEntryActionsSheet({
   required WidgetRef ref,
   required FileSystemEntry entry,
   StorageVolume? storageVolume,
-  VoidCallback? onSelect,
+  bool isSingleSelection = false,
 }) {
   showModalBottomSheet<void>(
     context: context,
@@ -123,7 +126,7 @@ void showEntryActionsSheet({
         entry: entry,
         storageVolume: storageVolume,
         parentContext: context,
-        onSelect: onSelect,
+        isSingleSelection: isSingleSelection,
       );
     },
   );
@@ -134,13 +137,13 @@ class _EntryActionsSheet extends ConsumerWidget {
     required this.entry,
     required this.storageVolume,
     required this.parentContext,
-    required this.onSelect,
+    required this.isSingleSelection,
   });
 
   final FileSystemEntry entry;
   final StorageVolume? storageVolume;
   final BuildContext parentContext;
-  final VoidCallback? onSelect;
+  final bool isSingleSelection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -153,10 +156,7 @@ class _EntryActionsSheet extends ConsumerWidget {
         children: [
           ListTile(
             contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              iconForFileSystemEntry(entry),
-              color: colorForFileSystemEntry(context, entry),
-            ),
+            leading: fileIconForEntry(context, entry),
             title: Text(
               entry.name,
               maxLines: 1,
@@ -165,15 +165,6 @@ class _EntryActionsSheet extends ConsumerWidget {
             subtitle: Text(detailForFileSystemEntry(entry)),
           ),
           const Divider(),
-          if (onSelect != null)
-            ListTile(
-              leading: const Icon(Icons.check_circle_outline_rounded),
-              title: const Text('Select'),
-              onTap: () {
-                Navigator.of(context).pop();
-                onSelect?.call();
-              },
-            ),
           if (!entry.isFolder) ...[
             ListTile(
               leading: const Icon(Icons.share_rounded),
@@ -183,14 +174,15 @@ class _EntryActionsSheet extends ConsumerWidget {
                 _shareEntry(parentContext, entry);
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.open_in_new_rounded),
-              title: const Text('Open with'),
-              onTap: () {
-                Navigator.of(context).pop();
-                _openEntryWithSystem(parentContext, entry);
-              },
-            ),
+            if (isSingleSelection)
+              ListTile(
+                leading: const Icon(Icons.open_in_new_rounded),
+                title: const Text('Open with'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  _openEntryWithSystem(parentContext, entry);
+                },
+              ),
             if (_isExtractableArchive(entry))
               ListTile(
                 leading: const Icon(Icons.archive_rounded),
@@ -285,7 +277,7 @@ class _EntryActionsSheet extends ConsumerWidget {
             ),
             onTap: () {
               Navigator.of(context).pop();
-              _showEntryProperties(parentContext, entry, storageVolume);
+              showEntryProperties(parentContext, entry, storageVolume);
             },
           ),
         ],
@@ -847,7 +839,7 @@ void _showMessageWithMessenger(
   );
 }
 
-void _showEntryProperties(
+void showEntryProperties(
   BuildContext context,
   FileSystemEntry entry,
   StorageVolume? storageVolume,
@@ -857,114 +849,119 @@ void _showEntryProperties(
     showDragHandle: true,
     isScrollControlled: true,
     builder: (context) {
-      return SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Header with icon and name
-              Row(
+      return BackButtonListener(
+        onBackButtonPressed: () async {
+          Navigator.of(context).pop();
+          return true;
+        },
+        child: Scaffold(
+          appBar: AppBar(
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+            title: const Text('Properties'),
+          ),
+          body: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    iconForFileSystemEntry(entry),
-                    size: 48,
-                    color: colorForFileSystemEntry(context, entry),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.name,
-                          style: Theme.of(context).textTheme.titleLarge,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          typeLabelForFileSystemEntry(entry),
-                          style:
-                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  Row(
+                    children: [
+                      fileIconForEntry(context, entry, size: 48),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              entry.name,
+                              style: Theme.of(context).textTheme.titleLarge,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              typeLabelForFileSystemEntry(entry),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurfaceVariant,
                                   ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  const Divider(),
+                  const SizedBox(height: 16),
+
+                  _PropertiesSection(
+                    title: 'File Information',
+                    children: [
+                      _PropertyRow(
+                        label: 'Type',
+                        value: typeLabelForFileSystemEntry(entry),
+                      ),
+                      if (entry.isFolder && entry.childrenCount != null)
+                        _PropertyRow(
+                          label: 'Items',
+                          value: _itemCountLabel(entry.childrenCount!),
+                        ),
+                      if (!entry.isFolder && entry.sizeBytes != null)
+                        _PropertyRow(
+                          label: 'Size',
+                          value: detailForFileSystemEntry(entry),
+                        ),
+                      if (!entry.isFolder && entry.sizeBytes != null)
+                        _PropertyRow(
+                          label: 'Bytes',
+                          value: '${entry.sizeBytes} bytes',
+                        ),
+                      _PropertyRow(
+                        label: 'Modified',
+                        value: formatFileModifiedAt(entry.modifiedAt),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+                  _PropertiesSection(
+                    title: 'Location',
+                    children: [
+                      if (storageVolume != null)
+                        _PropertyRow(
+                            label: 'Storage', value: storageVolume.label),
+                      if (storageVolume != null)
+                        _PropertyRow(
+                            label: 'Storage root', value: storageVolume.path),
+                      _PropertyRow(
+                          label: 'Parent folder',
+                          value: p.dirname(entry.path)),
+                      _PropertyRow(label: 'Path', value: entry.path),
+                    ],
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  FilledButton.icon(
+                    onPressed: () {
+                      _copyPathToClipboard(context, entry.path);
+                    },
+                    icon: const Icon(Icons.copy_rounded),
+                    label: const Text('Copy path'),
                   ),
                 ],
               ),
-              const SizedBox(height: 24),
-              const Divider(),
-              const SizedBox(height: 16),
-
-              _PropertiesSection(
-                title: 'File Information',
-                children: [
-                  _PropertyRow(
-                    label: 'Type',
-                    value: typeLabelForFileSystemEntry(entry),
-                  ),
-                  if (entry.isFolder && entry.childrenCount != null)
-                    _PropertyRow(
-                      label: 'Items',
-                      value: _itemCountLabel(entry.childrenCount!),
-                    ),
-                  if (!entry.isFolder && entry.sizeBytes != null)
-                    _PropertyRow(
-                      label: 'Size',
-                      value: detailForFileSystemEntry(entry),
-                    ),
-                  if (!entry.isFolder && entry.sizeBytes != null)
-                    _PropertyRow(
-                      label: 'Bytes',
-                      value: '${entry.sizeBytes} bytes',
-                    ),
-                  _PropertyRow(
-                    label: 'Modified',
-                    value: formatFileModifiedAt(entry.modifiedAt),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 16),
-              _PropertiesSection(
-                title: 'Location',
-                children: [
-                  if (storageVolume != null)
-                    _PropertyRow(label: 'Storage', value: storageVolume.label),
-                  if (storageVolume != null)
-                    _PropertyRow(
-                        label: 'Storage root', value: storageVolume.path),
-                  _PropertyRow(
-                      label: 'Parent folder', value: p.dirname(entry.path)),
-                  _PropertyRow(label: 'Path', value: entry.path),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // Actions
-              FilledButton.icon(
-                onPressed: () {
-                  _copyPathToClipboard(context, entry.path);
-                },
-                icon: const Icon(Icons.copy_rounded),
-                label: const Text('Copy path'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                },
-                icon: const Icon(Icons.close_rounded),
-                label: const Text('Close'),
-              ),
-            ],
+            ),
           ),
         ),
       );
@@ -997,11 +994,7 @@ class EntryPropertiesPanel extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(
-                  iconForFileSystemEntry(entry),
-                  size: 48,
-                  color: colorForFileSystemEntry(context, entry),
-                ),
+                fileIconForEntry(context, entry, size: 48),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(

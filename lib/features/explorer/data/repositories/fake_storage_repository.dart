@@ -223,4 +223,14 @@ class FakeStorageRepository implements StorageRepository {
 
     return sampleTypesByFolder[folderPath]?.contains(type) ?? false;
   }
+
+  @override
+  Future<bool> createFolder(String path) async {
+    return true;
+  }
+
+  @override
+  Future<bool> createFile(String path, {String content = ''}) async {
+    return true;
+  }
 }

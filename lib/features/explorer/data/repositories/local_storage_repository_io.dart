@@ -97,6 +97,34 @@ class LocalStorageRepository implements StorageRepository {
     return _folderContainsFileTypeRecursive(folderPath, type, maxDepth: 4);
   }
 
+  @override
+  Future<bool> createFolder(String path) async {
+    try {
+      final directory = Directory(path);
+      if (await directory.exists()) {
+        return false;
+      }
+      await directory.create(recursive: true);
+      return true;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
+  @override
+  Future<bool> createFile(String path, {String content = ''}) async {
+    try {
+      final file = File(path);
+      if (await file.exists()) {
+        return false;
+      }
+      await file.writeAsString(content);
+      return true;
+    } on FileSystemException {
+      return false;
+    }
+  }
+
   Future<bool> _folderContainsFileTypeRecursive(
     String path,
     FileSystemEntryType type, {

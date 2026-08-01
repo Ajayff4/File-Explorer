@@ -267,6 +267,16 @@ class _TreeStorageRepository implements StorageRepository {
     return false;
   }
 
+  @override
+  Future<bool> createFolder(String path) async {
+    return true;
+  }
+
+  @override
+  Future<bool> createFile(String path, {String content = ''}) async {
+    return true;
+  }
+
   void replaceEntries(String path, List<FileSystemEntry> entries) {
     _entriesByPath[path] = entries;
   }

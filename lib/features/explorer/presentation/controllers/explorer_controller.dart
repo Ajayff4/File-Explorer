@@ -22,7 +22,7 @@ class ExplorerState {
     this.listing = const AsyncValue.loading(),
     this.permission = const AsyncValue.data(StoragePermissionState.checking()),
     this.summary = const AsyncValue.loading(),
-    this.selectedPaths = const {},
+    this.selectedPaths = const [],
     this.isSelectionMode = false,
   });
 
@@ -31,7 +31,7 @@ class ExplorerState {
   final AsyncValue<DirectoryListing> listing;
   final AsyncValue<StoragePermissionState> permission;
   final AsyncValue<StorageSummary> summary;
-  final Set<String> selectedPaths;
+  final List<String> selectedPaths;
   final bool isSelectionMode;
 
   ExplorerState copyWith({
@@ -40,7 +40,7 @@ class ExplorerState {
     AsyncValue<DirectoryListing>? listing,
     AsyncValue<StoragePermissionState>? permission,
     AsyncValue<StorageSummary>? summary,
-    Set<String>? selectedPaths,
+    List<String>? selectedPaths,
     bool? isSelectionMode,
   }) {
     return ExplorerState(
@@ -135,7 +135,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     state = state.copyWith(
       currentPath: path,
       listing: const AsyncValue.loading(),
-      selectedPaths: {},
+      selectedPaths: const [],
       isSelectionMode: false,
     );
 
@@ -192,12 +192,12 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final currentSelected = state.selectedPaths;
     if (currentSelected.contains(path)) {
       state = state.copyWith(
-        selectedPaths: currentSelected.where((p) => p != path).toSet(),
+        selectedPaths: currentSelected.where((p) => p != path).toList(),
         isSelectionMode: currentSelected.length > 1,
       );
     } else {
       state = state.copyWith(
-        selectedPaths: {...currentSelected, path},
+        selectedPaths: [...currentSelected, path],
         isSelectionMode: true,
       );
     }
@@ -205,23 +205,66 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
   void selectAll(List<String> paths) {
     state = state.copyWith(
-      selectedPaths: paths.toSet(),
+      selectedPaths: paths,
+      isSelectionMode: true,
+    );
+  }
+
+  void selectInterval() {
+    if (state.selectedPaths.length < 2) return;
+    final entries = state.listing.valueOrNull?.entries;
+    if (entries == null || entries.isEmpty) return;
+
+    final allPaths = entries.map((e) => e.path).toList();
+    final indices = state.selectedPaths
+        .map((path) => allPaths.indexOf(path))
+        .where((index) => index != -1)
+        .toList();
+
+    if (indices.length < 2) return;
+
+    final minIndex = indices.reduce((a, b) => a < b ? a : b);
+    final maxIndex = indices.reduce((a, b) => a > b ? a : b);
+    final selected = allPaths.sublist(minIndex, maxIndex + 1);
+
+    state = state.copyWith(
+      selectedPaths: selected,
       isSelectionMode: true,
     );
   }
 
   void clearSelection() {
     state = state.copyWith(
-      selectedPaths: {},
+      selectedPaths: const [],
       isSelectionMode: false,
     );
   }
 
   void exitSelectionMode() {
     state = state.copyWith(
-      selectedPaths: {},
+      selectedPaths: const [],
       isSelectionMode: false,
     );
+  }
+
+  Future<bool> createFolder(String name) async {
+    final repository = _ref.read(storageRepositoryProvider);
+    final path = p.join(state.currentPath, name);
+    final success = await repository.createFolder(path);
+    if (success) {
+      await refresh();
+    }
+    return success;
+  }
+
+  Future<bool> createFile(String name, {String content = ''}) async {
+    final repository = _ref.read(storageRepositoryProvider);
+    final path = p.join(state.currentPath, name);
+    final success = await repository.createFile(path, content: content);
+    if (success) {
+      await refresh();
+    }
+    return success;
   }
 
   StorageVolume? _volumeForCurrentPath() {
