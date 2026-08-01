@@ -91,6 +91,8 @@ class TransferController extends StateNotifier<TransferState> {
     required String displayName,
     String? destinationPath,
     int? totalBytes,
+    String? archivePassword,
+    int? archiveCompressionLevel,
   }) {
     final now = DateTime.now();
     final task = TransferTask(
@@ -103,6 +105,8 @@ class TransferController extends StateNotifier<TransferState> {
       createdAt: now,
       updatedAt: now,
       progress: TransferProgress(totalBytes: totalBytes),
+      archivePassword: archivePassword,
+      archiveCompressionLevel: archiveCompressionLevel,
     );
 
     state = state.copyWith(tasks: [task, ...state.tasks]);

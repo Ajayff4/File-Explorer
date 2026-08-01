@@ -7,6 +7,8 @@ IconData iconForTransferOperation(TransferOperation operation) {
     TransferOperation.move => Icons.drive_file_move_rounded,
     TransferOperation.delete => Icons.delete_outline_rounded,
     TransferOperation.rename => Icons.edit_rounded,
+    TransferOperation.extractArchive => Icons.archive_rounded,
+    TransferOperation.compressArchive => Icons.inventory_2_rounded,
   };
 }
 

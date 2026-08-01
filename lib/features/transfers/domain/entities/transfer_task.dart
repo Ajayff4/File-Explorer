@@ -3,6 +3,8 @@ enum TransferOperation {
   move,
   delete,
   rename,
+  extractArchive,
+  compressArchive,
 }
 
 enum TransferTaskStatus {
@@ -60,6 +62,8 @@ class TransferTask {
     this.destinationPath,
     this.progress = const TransferProgress(),
     this.conflictPolicy = ConflictPolicy.ask,
+    this.archivePassword,
+    this.archiveCompressionLevel,
     this.failureMessage,
     this.failureCode,
   });
@@ -74,6 +78,8 @@ class TransferTask {
   final String? destinationPath;
   final TransferProgress progress;
   final ConflictPolicy conflictPolicy;
+  final String? archivePassword;
+  final int? archiveCompressionLevel;
   final String? failureMessage;
   final TransferFailureCode? failureCode;
 
@@ -113,6 +119,8 @@ class TransferTask {
     String? destinationPath,
     TransferProgress? progress,
     ConflictPolicy? conflictPolicy,
+    String? archivePassword,
+    int? archiveCompressionLevel,
     String? failureMessage,
     TransferFailureCode? failureCode,
     bool clearFailureMessage = false,
@@ -129,6 +137,9 @@ class TransferTask {
       destinationPath: destinationPath ?? this.destinationPath,
       progress: progress ?? this.progress,
       conflictPolicy: conflictPolicy ?? this.conflictPolicy,
+      archivePassword: archivePassword ?? this.archivePassword,
+      archiveCompressionLevel:
+          archiveCompressionLevel ?? this.archiveCompressionLevel,
       failureMessage:
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
       failureCode: clearFailureCode ? null : failureCode ?? this.failureCode,
@@ -143,6 +154,8 @@ extension TransferOperationLabels on TransferOperation {
       TransferOperation.move => 'Move',
       TransferOperation.delete => 'Delete',
       TransferOperation.rename => 'Rename',
+      TransferOperation.extractArchive => 'Extract',
+      TransferOperation.compressArchive => 'Compress',
     };
   }
 
@@ -152,7 +165,10 @@ extension TransferOperationLabels on TransferOperation {
       TransferOperation.move ||
       TransferOperation.rename =>
         true,
-      TransferOperation.delete => false,
+      TransferOperation.extractArchive ||
+      TransferOperation.compressArchive ||
+      TransferOperation.delete =>
+        false,
     };
   }
 }

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
@@ -12,6 +14,74 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
+
+enum _CompressionChoice {
+  zip(
+    label: 'ZIP',
+    subtitle: 'Works with files, folders, and selections',
+    extension: '.zip',
+    icon: Icons.inventory_2_rounded,
+  ),
+  tar(
+    label: 'TAR',
+    subtitle: 'Archive files and folders without compression',
+    extension: '.tar',
+    icon: Icons.folder_zip_rounded,
+  ),
+  gzip(
+    label: 'GZ',
+    subtitle: 'Single-file gzip compression',
+    extension: '.gz',
+    icon: Icons.compress_rounded,
+  ),
+  tarGzip(
+    label: 'TAR.GZ',
+    subtitle: 'Good for folders and multi-file selections',
+    extension: '.tar.gz',
+    icon: Icons.inventory_rounded,
+  );
+
+  const _CompressionChoice({
+    required this.label,
+    required this.subtitle,
+    required this.extension,
+    required this.icon,
+  });
+
+  final String label;
+  final String subtitle;
+  final String extension;
+  final IconData icon;
+}
+
+enum _CompressionLevel {
+  store(label: 'Store', level: 0),
+  fast(label: 'Fast', level: 1),
+  standard(label: 'Standard', level: 6),
+  best(label: 'Best', level: 9);
+
+  const _CompressionLevel({
+    required this.label,
+    required this.level,
+  });
+
+  final String label;
+  final int level;
+}
+
+class _CompressionOptions {
+  const _CompressionOptions({
+    required this.fileName,
+    required this.choice,
+    required this.level,
+    this.password,
+  });
+
+  final String fileName;
+  final _CompressionChoice choice;
+  final _CompressionLevel level;
+  final String? password;
+}
 
 class EntryActionsButton extends ConsumerWidget {
   const EntryActionsButton({
@@ -74,6 +144,8 @@ class _EntryActionsSheet extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final transferController = ref.read(transferControllerProvider.notifier);
+
     return SafeArea(
       child: ListView(
         shrinkWrap: true,
@@ -119,7 +191,38 @@ class _EntryActionsSheet extends ConsumerWidget {
                 _openEntryWithSystem(parentContext, entry);
               },
             ),
+            if (_isExtractableArchive(entry))
+              ListTile(
+                leading: const Icon(Icons.archive_rounded),
+                title: const Text('Extract here'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  if (_isZipArchive(entry)) {
+                    _extractZipEntry(parentContext, transferController, entry);
+                  } else {
+                    _queueEntryOperation(
+                      parentContext,
+                      transferController,
+                      entry,
+                      TransferOperation.extractArchive,
+                      destinationPath: p.dirname(entry.path),
+                    );
+                  }
+                },
+              ),
           ],
+          ListTile(
+            leading: const Icon(Icons.inventory_2_rounded),
+            title: const Text('Compress'),
+            onTap: () {
+              Navigator.of(context).pop();
+              _showEntryCompressOptions(
+                parentContext,
+                transferController,
+                entry,
+              );
+            },
+          ),
           for (final operation in [
             TransferOperation.copy,
             TransferOperation.move,
@@ -131,9 +234,18 @@ class _EntryActionsSheet extends ConsumerWidget {
               onTap: () async {
                 Navigator.of(context).pop();
                 if (operation == TransferOperation.rename) {
-                  await _requestRename(parentContext, ref, entry);
+                  await _requestRename(
+                    parentContext,
+                    transferController,
+                    entry,
+                  );
                 } else {
-                  _queueEntryOperation(parentContext, ref, entry, operation);
+                  _queueEntryOperation(
+                    parentContext,
+                    transferController,
+                    entry,
+                    operation,
+                  );
                 }
               },
             ),
@@ -153,11 +265,11 @@ class _EntryActionsSheet extends ConsumerWidget {
                   .settings
                   .confirmDestructiveActions;
               if (shouldConfirm) {
-                await _confirmDelete(parentContext, ref, entry);
+                await _confirmDelete(parentContext, transferController, entry);
               } else {
                 _queueEntryOperation(
                   parentContext,
-                  ref,
+                  transferController,
                   entry,
                   TransferOperation.delete,
                 );
@@ -179,6 +291,371 @@ class _EntryActionsSheet extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+bool _isExtractableArchive(FileSystemEntry entry) {
+  if (entry.isFolder) {
+    return false;
+  }
+  final name = entry.name.toLowerCase();
+  return name.endsWith('.zip') ||
+      name.endsWith('.gz') ||
+      name.endsWith('.tar') ||
+      name.endsWith('.tar.gz') ||
+      name.endsWith('.tgz');
+}
+
+bool _isZipArchive(FileSystemEntry entry) {
+  return !entry.isFolder && entry.name.toLowerCase().endsWith('.zip');
+}
+
+Future<void> _extractZipEntry(
+  BuildContext context,
+  TransferController transferController,
+  FileSystemEntry entry,
+) async {
+  await Future<void>.delayed(const Duration(milliseconds: 120));
+  if (!context.mounted) {
+    return;
+  }
+  final password = await _requestArchivePassword(context, optional: true);
+  if (password == null || !context.mounted) {
+    return;
+  }
+  _queueEntryOperation(
+    context,
+    transferController,
+    entry,
+    TransferOperation.extractArchive,
+    destinationPath: p.dirname(entry.path),
+    archivePassword: password.isEmpty ? null : password,
+  );
+}
+
+Future<void> _showEntryCompressOptions(
+  BuildContext context,
+  TransferController transferController,
+  FileSystemEntry entry,
+) async {
+  await Future<void>.delayed(const Duration(milliseconds: 120));
+  if (!context.mounted) {
+    return;
+  }
+  await showCompressOptionsSheet(
+    context: context,
+    transferController: transferController,
+    sourcePaths: [entry.path],
+    displayName: entry.name,
+    destinationDirectory: p.dirname(entry.path),
+    totalBytes: entry.sizeBytes,
+    sourceKind: entry.isFolder
+        ? FileSystemEntityType.directory
+        : FileSystemEntityType.file,
+  );
+}
+
+Future<bool> showCompressOptionsSheet({
+  required BuildContext context,
+  required TransferController transferController,
+  required List<String> sourcePaths,
+  required String displayName,
+  required String destinationDirectory,
+  int? totalBytes,
+  FileSystemEntityType? sourceKind,
+}) async {
+  if (sourcePaths.isEmpty) {
+    return false;
+  }
+
+  final singleSourceKind = sourcePaths.length == 1
+      ? sourceKind ??
+          await FileSystemEntity.type(
+            sourcePaths.single,
+            followLinks: false,
+          )
+      : null;
+  if (!context.mounted) {
+    return false;
+  }
+  final choices = _compressionChoicesFor(sourcePaths, singleSourceKind);
+  final defaultFileName = _defaultArchiveName(
+    sourcePaths: sourcePaths,
+    destinationDirectory: destinationDirectory,
+  );
+  final options = await showDialog<_CompressionOptions>(
+    context: context,
+    builder: (context) => _CompressionOptionsDialog(
+      defaultFileName: defaultFileName,
+      choices: choices,
+    ),
+  );
+
+  if (options == null || !context.mounted) {
+    return false;
+  }
+  final destinationPath = p.join(
+    destinationDirectory,
+    '${options.fileName}${options.choice.extension}',
+  );
+  transferController.queueOperation(
+    operation: TransferOperation.compressArchive,
+    sourcePaths: sourcePaths,
+    displayName: displayName,
+    destinationPath: destinationPath,
+    totalBytes: sourcePaths.length == 1 ? totalBytes : null,
+    archivePassword: options.password,
+    archiveCompressionLevel: options.level.level,
+  );
+  _showQueuedSnackBar(context, TransferOperation.compressArchive);
+  return true;
+}
+
+String _defaultArchiveName({
+  required List<String> sourcePaths,
+  required String destinationDirectory,
+}) {
+  if (sourcePaths.length == 1) {
+    return p.basename(sourcePaths.single);
+  }
+  final folderName = p.basename(destinationDirectory);
+  return folderName.isEmpty ? 'Archive' : folderName;
+}
+
+List<_CompressionChoice> _compressionChoicesFor(
+  List<String> sourcePaths,
+  FileSystemEntityType? singleSourceKind,
+) {
+  return [
+    _CompressionChoice.zip,
+    _CompressionChoice.tar,
+    if (sourcePaths.length == 1 &&
+        singleSourceKind == FileSystemEntityType.file)
+      _CompressionChoice.gzip,
+    if (sourcePaths.length > 1 ||
+        singleSourceKind == FileSystemEntityType.directory)
+      _CompressionChoice.tarGzip,
+  ];
+}
+
+Future<String?> _requestArchivePassword(
+  BuildContext context, {
+  bool optional = false,
+}) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => _ArchivePasswordDialog(optional: optional),
+  );
+}
+
+class _CompressionOptionsDialog extends StatefulWidget {
+  const _CompressionOptionsDialog({
+    required this.defaultFileName,
+    required this.choices,
+  });
+
+  final String defaultFileName;
+  final List<_CompressionChoice> choices;
+
+  @override
+  State<_CompressionOptionsDialog> createState() =>
+      _CompressionOptionsDialogState();
+}
+
+class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
+  late final TextEditingController _fileNameController;
+  late final TextEditingController _passwordController;
+  late _CompressionChoice _choice;
+  _CompressionLevel _level = _CompressionLevel.standard;
+
+  @override
+  void initState() {
+    super.initState();
+    _fileNameController = TextEditingController(text: widget.defaultFileName);
+    _passwordController = TextEditingController();
+    _choice = widget.choices.first;
+  }
+
+  @override
+  void dispose() {
+    _fileNameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final supportsPassword = _choice == _CompressionChoice.zip;
+    return AlertDialog(
+      title: const Text('Compress'),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _fileNameController,
+              autofocus: true,
+              decoration: InputDecoration(
+                labelText: 'File name',
+                suffixText: _choice.extension,
+              ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<_CompressionChoice>(
+              value: _choice,
+              decoration: const InputDecoration(labelText: 'Type'),
+              items: [
+                for (final choice in widget.choices)
+                  DropdownMenuItem(
+                    value: choice,
+                    child: Text(choice.label),
+                  ),
+              ],
+              onChanged: (choice) {
+                if (choice == null) {
+                  return;
+                }
+                setState(() {
+                  _choice = choice;
+                  if (choice != _CompressionChoice.zip) {
+                    _passwordController.clear();
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<_CompressionLevel>(
+              value: _level,
+              decoration: const InputDecoration(labelText: 'Compress level'),
+              items: [
+                for (final level in _CompressionLevel.values)
+                  DropdownMenuItem(
+                    value: level,
+                    child: Text(level.label),
+                  ),
+              ],
+              onChanged: (level) {
+                if (level == null) {
+                  return;
+                }
+                setState(() => _level = level);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _passwordController,
+              enabled: supportsPassword,
+              obscureText: true,
+              decoration: InputDecoration(
+                labelText: 'Password',
+                helperText: supportsPassword
+                    ? 'Optional; ZIP only'
+                    : 'Password is supported for ZIP only',
+              ),
+              textInputAction: TextInputAction.done,
+              onSubmitted: (_) => _submit(),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _submit,
+          icon: const Icon(Icons.inventory_2_rounded),
+          label: const Text('Queue'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final fileName = _fileNameController.text.trim();
+    if (fileName.isEmpty ||
+        fileName.contains('/') ||
+        fileName.contains('\\') ||
+        fileName == '.' ||
+        fileName == '..') {
+      return;
+    }
+    final password =
+        _choice == _CompressionChoice.zip ? _passwordController.text : '';
+    Navigator.of(context).pop(
+      _CompressionOptions(
+        fileName: fileName,
+        choice: _choice,
+        level: _level,
+        password: password.isEmpty ? null : password,
+      ),
+    );
+  }
+}
+
+class _ArchivePasswordDialog extends StatefulWidget {
+  const _ArchivePasswordDialog({required this.optional});
+
+  final bool optional;
+
+  @override
+  State<_ArchivePasswordDialog> createState() => _ArchivePasswordDialogState();
+}
+
+class _ArchivePasswordDialogState extends State<_ArchivePasswordDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('ZIP password'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        obscureText: true,
+        decoration: InputDecoration(
+          labelText: 'Password',
+          helperText: widget.optional
+              ? 'Leave blank for ZIP files without a password'
+              : null,
+        ),
+        textInputAction: TextInputAction.done,
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _submit,
+          icon: const Icon(Icons.lock_rounded),
+          label: const Text('Queue'),
+        ),
+      ],
+    );
+  }
+
+  void _submit() {
+    final password = _controller.text;
+    if (!widget.optional && password.isEmpty) {
+      return;
+    }
+    Navigator.of(context).pop(password);
   }
 }
 
@@ -225,24 +702,26 @@ Future<void> _openEntryWithSystem(
 
 void _queueEntryOperation(
   BuildContext context,
-  WidgetRef ref,
+  TransferController transferController,
   FileSystemEntry entry,
   TransferOperation operation, {
   String? destinationPath,
+  String? archivePassword,
 }) {
-  ref.read(transferControllerProvider.notifier).queueOperation(
-        operation: operation,
-        sourcePaths: [entry.path],
-        displayName: entry.name,
-        destinationPath: destinationPath,
-        totalBytes: entry.sizeBytes,
-      );
+  transferController.queueOperation(
+    operation: operation,
+    sourcePaths: [entry.path],
+    displayName: entry.name,
+    destinationPath: destinationPath,
+    totalBytes: entry.sizeBytes,
+    archivePassword: archivePassword,
+  );
   _showQueuedSnackBar(context, operation);
 }
 
 Future<void> _requestRename(
   BuildContext context,
-  WidgetRef ref,
+  TransferController transferController,
   FileSystemEntry entry,
 ) async {
   final controller = TextEditingController(text: entry.name);
@@ -283,7 +762,7 @@ Future<void> _requestRename(
 
   _queueEntryOperation(
     context,
-    ref,
+    transferController,
     entry,
     TransferOperation.rename,
     destinationPath: p.join(p.dirname(entry.path), trimmedName),
@@ -292,7 +771,7 @@ Future<void> _requestRename(
 
 Future<void> _confirmDelete(
   BuildContext context,
-  WidgetRef ref,
+  TransferController transferController,
   FileSystemEntry entry,
 ) async {
   final confirmed = await showDialog<bool>(
@@ -320,7 +799,12 @@ Future<void> _confirmDelete(
     if (!context.mounted) {
       return;
     }
-    _queueEntryOperation(context, ref, entry, TransferOperation.delete);
+    _queueEntryOperation(
+      context,
+      transferController,
+      entry,
+      TransferOperation.delete,
+    );
   }
 }
 

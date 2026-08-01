@@ -45,6 +45,7 @@ dependencies:
     path: third_party/video_thumbnail
   video_player: ^2.9.5
   mime: ^2.0.0
+  archive: ^4.0.9
 
 dev_dependencies:
   flutter_test:

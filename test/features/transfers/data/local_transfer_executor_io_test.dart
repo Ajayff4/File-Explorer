@@ -163,26 +163,292 @@ void main() {
     expect(await destination.readAsString(), 'old');
     expect(await renamedDestination.readAsString(), 'new');
   });
+
+  test('compresses selected files into one zip', () async {
+    final first = File('${tempDir.path}/first.txt');
+    final folder = Directory('${tempDir.path}/docs');
+    final nested = File('${folder.path}/second.txt');
+    await folder.create();
+    await first.writeAsString('one');
+    await nested.writeAsString('two');
+    final destination = '${tempDir.path}/bundle.zip';
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePaths: [first.path, folder.path],
+        destinationPath: destination,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File(destination).exists(), isTrue);
+
+    final extractDir = Directory('${tempDir.path}/extracted');
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: destination,
+        destinationPath: extractDir.path,
+        conflictPolicy: ConflictPolicy.overwrite,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File('${extractDir.path}/first.txt').readAsString(), 'one');
+    expect(
+        await File('${extractDir.path}/docs/second.txt').readAsString(), 'two');
+  });
+
+  test('extracts zip files into the destination directory', () async {
+    final source = File('${tempDir.path}/note.txt');
+    final zip = '${tempDir.path}/note.zip';
+    await source.writeAsString('hello');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: source.path,
+        destinationPath: zip,
+      ),
+      onProgress: (_) {},
+    );
+
+    await source.delete();
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: zip,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await source.readAsString(), 'hello');
+  });
+
+  test('compresses and extracts password protected zip files', () async {
+    final source = File('${tempDir.path}/secret.txt');
+    final zip = '${tempDir.path}/secret.zip';
+    await source.writeAsString('hidden');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: source.path,
+        destinationPath: zip,
+        archivePassword: 'pass123',
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File(zip).exists(), isTrue);
+    await source.delete();
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: zip,
+        archivePassword: 'pass123',
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await source.readAsString(),
+      'hidden',
+    );
+  });
+
+  test('rejects password protected zip files with the wrong password',
+      () async {
+    final source = File('${tempDir.path}/secret.txt');
+    final zip = '${tempDir.path}/secret.zip';
+    await source.writeAsString('hidden');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: source.path,
+        destinationPath: zip,
+        archivePassword: 'pass123',
+      ),
+      onProgress: (_) {},
+    );
+
+    await source.delete();
+
+    expect(
+      () => const LocalTransferExecutor().execute(
+        _task(
+          operation: TransferOperation.extractArchive,
+          sourcePath: zip,
+          archivePassword: 'wrong',
+        ),
+        onProgress: (_) {},
+      ),
+      throwsA(
+        isA<TransferExecutionException>().having(
+          (error) => error.message,
+          'message',
+          contains('enter the ZIP password'),
+        ),
+      ),
+    );
+  });
+
+  test('rejects password protected zip files without a password', () async {
+    final source = File('${tempDir.path}/secret.txt');
+    final zip = '${tempDir.path}/secret.zip';
+    await source.writeAsString('hidden');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: source.path,
+        destinationPath: zip,
+        archivePassword: 'pass123',
+      ),
+      onProgress: (_) {},
+    );
+
+    await source.delete();
+
+    expect(
+      () => const LocalTransferExecutor().execute(
+        _task(
+          operation: TransferOperation.extractArchive,
+          sourcePath: zip,
+        ),
+        onProgress: (_) {},
+      ),
+      throwsA(
+        isA<TransferExecutionException>().having(
+          (error) => error.message,
+          'message',
+          contains('enter the ZIP password'),
+        ),
+      ),
+    );
+  });
+
+  test('compresses and extracts a single file with gzip', () async {
+    final source = File('${tempDir.path}/note.txt');
+    final gzip = '${tempDir.path}/note.txt.gz';
+    await source.writeAsString('hello gzip');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: source.path,
+        destinationPath: gzip,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File(gzip).exists(), isTrue);
+    await source.delete();
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: gzip,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await source.readAsString(), 'hello gzip');
+  });
+
+  test('compresses and extracts a directory with tar gzip', () async {
+    final sourceDir = Directory('${tempDir.path}/docs');
+    final nested = File('${sourceDir.path}/nested/second.txt');
+    final tarGzip = '${tempDir.path}/docs.tar.gz';
+    await nested.parent.create(recursive: true);
+    await nested.writeAsString('hello tar gzip');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: sourceDir.path,
+        destinationPath: tarGzip,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File(tarGzip).exists(), isTrue);
+    await sourceDir.delete(recursive: true);
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: tarGzip,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await File('${tempDir.path}/nested/second.txt').readAsString(),
+      'hello tar gzip',
+    );
+  });
+
+  test('compresses and extracts a directory with tar', () async {
+    final sourceDir = Directory('${tempDir.path}/plain');
+    final nested = File('${sourceDir.path}/nested/third.txt');
+    final tar = '${tempDir.path}/plain.tar';
+    await nested.parent.create(recursive: true);
+    await nested.writeAsString('hello tar');
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.compressArchive,
+        sourcePath: sourceDir.path,
+        destinationPath: tar,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(await File(tar).exists(), isTrue);
+    await sourceDir.delete(recursive: true);
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: tar,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await File('${tempDir.path}/nested/third.txt').readAsString(),
+      'hello tar',
+    );
+  });
 }
 
 TransferTask _task({
   required TransferOperation operation,
-  required String sourcePath,
+  String? sourcePath,
+  List<String>? sourcePaths,
   String? destinationPath,
   int? totalBytes,
   ConflictPolicy conflictPolicy = ConflictPolicy.ask,
+  String? archivePassword,
 }) {
+  final paths = sourcePaths ?? [sourcePath!];
   final now = DateTime(2026);
   return TransferTask(
     id: 'test-task',
     operation: operation,
-    sourcePaths: [sourcePath],
-    displayName: sourcePath,
+    sourcePaths: paths,
+    displayName: paths.join(', '),
     status: TransferTaskStatus.queued,
     createdAt: now,
     updatedAt: now,
     destinationPath: destinationPath,
     progress: TransferProgress(totalBytes: totalBytes),
     conflictPolicy: conflictPolicy,
+    archivePassword: archivePassword,
   );
 }
