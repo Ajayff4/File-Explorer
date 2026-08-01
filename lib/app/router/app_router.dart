@@ -90,7 +90,7 @@ class AppRoutes {
   }
 }
 
-class AppShell extends StatelessWidget {
+class AppShell extends ConsumerWidget {
   const AppShell({
     required this.location,
     required this.child,
@@ -101,7 +101,7 @@ class AppShell extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
     final selectedIndex = _selectedIndex(location);
 
@@ -111,7 +111,7 @@ class AppShell extends StatelessWidget {
           children: [
             NavigationRail(
               selectedIndex: selectedIndex,
-              onDestinationSelected: (index) => _go(context, index),
+              onDestinationSelected: (index) => _go(context, ref, index),
               extended: width >= 1120,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -154,7 +154,7 @@ class AppShell extends StatelessWidget {
       body: child,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selectedIndex,
-        onDestinationSelected: (index) => _go(context, index),
+        onDestinationSelected: (index) => _go(context, ref, index),
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.dashboard_outlined),
@@ -203,7 +203,11 @@ class AppShell extends StatelessWidget {
     return 0;
   }
 
-  void _go(BuildContext context, int index) {
+  void _go(BuildContext context, WidgetRef ref, int index) {
+    if (index == 1) {
+      ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.grid;
+    }
+
     final route = switch (index) {
       1 => AppRoutes.explorer,
       2 => AppRoutes.transfers,

@@ -25,7 +25,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Storage root selector. |
 | ✅ | Explorer | Breadcrumb and parent navigation. |
 | ✅ | Explorer | Refresh. |
-| ✅ | Explorer | List/grid view toggle. |
+| ✅ | Explorer | Grid-first browsing with list/grid view toggle. |
 | ✅ | Explorer | Hidden-file filtering. |
 | ✅ | Explorer | Folder-first sorting by name, modified date, size, and type. |
 | ✅ | Explorer | Current-folder favorite toggle. |
@@ -46,6 +46,14 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Transfers | Destination conflict policies: `Skip`, `Replace`, `Keep both`. |
 | ✅ | Transfers | Drift-backed transfer queue/history persistence. |
 | ✅ | Transfers | Interrupted running tasks restore as failed. |
+| ✅ | Archives | ZIP files can extract here through Transfers. |
+| ✅ | Archives | Extract here writes into the selected/current folder without an extra wrapper folder. |
+| ✅ | Archives | Files, folders, and selected entries can compress to ZIP through Transfers. |
+| ✅ | Archives | ZIP compression supports optional passwords, with ZIP-only guidance for other formats. |
+| ✅ | Archives | Compression dialog supports file name, type, level, and password fields. |
+| ✅ | Archives | Single files can compress/extract with GZ. |
+| ✅ | Archives | Files, folders, and selected entries can compress/extract with TAR. |
+| ✅ | Archives | Folders can compress/extract with TAR.GZ. |
 | ✅ | Favorites | Persisted favorite folders, Home list, and Explorer star action. |
 | ✅ | Recents | Persisted recent folders/files and Home recent section setting support. |
 | ✅ | Search | Search screen and route. |
@@ -57,6 +65,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Search | Transfer-driven index invalidation. |
 | ✅ | Search | File result taps open previews, with a visible `Open folder` action for containing-folder navigation. |
 | ✅ | Search | Search results reuse media thumbnails for images, videos, and apps. |
+| ✅ | Search | Search results render as grid tiles by default. |
 | ✅ | Media | Flat libraries for images, videos, audio, documents, and apps. |
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
@@ -73,6 +82,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press opens item actions with Select, Share, Open with, transfer actions, and Properties. |
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
+| ✅ | UI polish | Grid tiles keep icons, long names, and item counts aligned. |
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
@@ -99,7 +109,7 @@ flutter build apk --debug
 # passed after native media action changes; not rerun for the latest Dart-only menu timing/padding fix by request
 ```
 
-Local analyzer passes after the latest Search open-file/open-folder behavior and media viewer rename-dialog lifecycle, timing, and menu-density fixes. Android debug build is only necessary after native, Gradle, manifest, or platform-channel changes.
+Local analyzer passes after the latest ZIP/TAR/GZ/TAR.GZ archive transfer workflow, Search open-file/open-folder behavior, and media viewer rename-dialog lifecycle, timing, and menu-density fixes. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
 The latest debug APK path, after running a build, is:
 
@@ -122,7 +132,7 @@ Recommended next slices, in order:
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
 | [ ] | 1 | Media | Add category result cache with instant cached render and silent background refresh. |
-| [ ] | 2 | Archives | Add ZIP extract and compress actions through Transfers. |
+| [x] | 2 | Archives | Add ZIP extract and compress actions through Transfers. |
 | [ ] | 3 | Tests | Update stale widget tests for current Home/media behavior. |
 | [x] | 4 | Viewers | Replace dummy image share/rename actions with real implementations. |
 | [x] | 5 | Open with | Unknown files use Android system open-with sheet. |
@@ -150,12 +160,21 @@ Goal: category shortcuts should feel instant after the first scan.
 
 | Status | Task |
 | --- | --- |
-| [ ] | Add `Extract here` for `.zip` files. |
-| [ ] | Add `Compress to ZIP` for selected files/folders. |
-| [ ] | Queue archive operations through Transfers. |
-| [ ] | Show archive progress in Transfers. |
-| [ ] | Reuse transfer conflict policies: `Skip`, `Replace`, `Keep both`. |
-| [ ] | Keep password ZIP, RAR, 7Z, and archive browsing for later. |
+| ✅ | Add `Extract here` for `.zip` files. |
+| ✅ | Add `Compress to ZIP` for files, folders, and selected entries. |
+| ✅ | Add a compression type picker for ZIP, TAR, GZ, and TAR.GZ. |
+| ✅ | Add file name, compression level, and password inputs to compression options. |
+| ✅ | Add password prompts for encrypted ZIP compression and extraction. |
+| ✅ | Queue archive operations through Transfers. |
+| ✅ | Show archive progress in Transfers. |
+| ✅ | Extract archive contents directly into the selected/current folder. |
+| ✅ | Reuse transfer conflict policies: `Skip`, `Replace`, `Keep both`. |
+| ✅ | Add `Compress to GZ` for single files. |
+| ✅ | Add `Compress to TAR` for files, folders, and selected entries. |
+| ✅ | Add `Compress to TAR.GZ` for folders. |
+| ✅ | Add extraction for `.tar`, `.gz`, `.tar.gz`, and `.tgz`. |
+| [ ] | Add archive browsing. |
+| [ ] | Evaluate a separate engine for RAR and 7Z support. |
 
 ### Viewers And Players
 
@@ -185,7 +204,7 @@ Goal: category shortcuts should feel instant after the first scan.
 | [ ] | Media | Tune category scan performance with progress and cancellation. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
-| [ ] | Archives | Archive browsing, extract, and compress. |
+| [ ] | Archives | Archive browsing, RAR, and 7Z support. |
 | [ ] | Network | Optional network providers, not first-release core. |
 
 ## Guardrails

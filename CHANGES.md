@@ -32,10 +32,26 @@ Progress log for the Flutter application.
   - File result taps now open the file preview instead of jumping to the containing folder.
   - Search result rows now expose a visible `Open folder` text action that preserves the previous containing-folder navigation behavior.
   - Search results now use shared media thumbnails for images, videos, and apps, with icon fallback for other file types.
+  - Search results now render as grid tiles by default.
 - Expanded Explorer long-press actions:
   - Long-press now opens the entry actions sheet instead of immediately toggling selection.
   - The actions sheet keeps `Select` available for selection mode.
   - File actions now include `Share` and `Open with` using the shared Android media action channel.
+- Added first archive workflow:
+  - `.zip` files now expose `Extract here` from file actions.
+  - ZIP extraction asks for an optional password from file actions.
+  - Missing or wrong ZIP passwords now show a readable transfer failure instead of a decoder null-check error.
+  - Compression now opens an options dialog with file name, type, compression level, and password fields.
+  - Supported compression types are ZIP, TAR, GZ, and TAR.GZ.
+  - Files, folders, and selected entries can be compressed with ZIP or TAR.
+  - ZIP compression can use the optional password field; other formats show ZIP-only password guidance.
+  - Single files can be compressed with `Compress to GZ`.
+  - Folders can be compressed with `Compress to TAR.GZ`.
+  - Archive extraction now supports `.zip`, `.tar`, `.gz`, `.tar.gz`, and `.tgz`.
+  - Archive extraction writes directly into the selected/current folder instead of creating an extra wrapper folder.
+  - Archive extract/compress operations run through Transfers with progress, retry, cancel, and conflict policy handling.
+  - Archive, rename, and confirmed delete dialogs now queue through a live transfer controller after the actions sheet closes.
+  - Added `archive` as a direct dependency and covered archive extract/compress behavior with transfer executor tests.
 - Polished file details:
   - Replaced the redundant Parent folder row with a `MIME Type` row.
   - Added the `mime` package as a direct dependency.
@@ -43,11 +59,16 @@ Progress log for the Flutter application.
   - Home has a `What this app can do` entry.
   - The feature page has a back action and a richer card grid for the app's core capabilities.
   - Tightened feature-card spacing and centered the leading icon vertically.
+- Polished grid browsing:
+  - Explorer now opens in grid view by default.
+  - Selecting the Files tab resets Explorer to grid view.
+  - Explorer and media grid tiles keep icons, long names, and item counts aligned in fixed slots.
 - Documented Android wireless debugging in `README.md`.
 
 ### Verified
 
 - `flutter analyze`
+- `flutter test test/features/transfers/data/local_transfer_executor_io_test.dart`
 - `flutter build apk --debug` after native media action changes
 
 ### Verification Note

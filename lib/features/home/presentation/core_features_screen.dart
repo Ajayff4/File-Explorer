@@ -146,6 +146,13 @@ const _coreFeatures = [
     color: Color(0xFF1E88E5),
   ),
   _CoreFeature(
+    icon: Icons.inventory_2_rounded,
+    title: 'Archive tools',
+    description:
+        'Compress ZIP, TAR, GZ, and TAR.GZ with level and password options; extract ZIP, TAR, GZ, TGZ, and TAR.GZ.',
+    color: Color(0xFF8D6E63),
+  ),
+  _CoreFeature(
     icon: Icons.search_rounded,
     title: 'Search',
     description:
@@ -169,6 +176,6 @@ const _coreFeatures = [
     icon: Icons.tune_rounded,
     title: 'Settings',
     description: 'Tune Explorer, transfer, search, history, and Home behavior.',
-    color: Color(0xFF8D6E63),
+    color: Color(0xFF7E57C2),
   ),
 ];

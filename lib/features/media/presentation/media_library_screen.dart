@@ -212,7 +212,7 @@ class _MediaResultsView extends StatelessWidget {
       MediaLibraryKind.images || MediaLibraryKind.videos => 3,
       _ => 4,
     };
-    final tileExtent = crossAxisCount == 3 ? 156.0 : 124.0;
+    final tileExtent = crossAxisCount == 3 ? 172.0 : 132.0;
 
     return CustomScrollView(
       slivers: [
@@ -336,26 +336,40 @@ class _MediaFolderTile extends ConsumerWidget {
           padding: EdgeInsets.fromLTRB(4, isLarge ? 6 : 8, 4, 6),
           child: Column(
             children: [
-              MediaThumbnail(
-                entry: entry,
-                fallbackIcon: iconForFileSystemEntry(entry),
-                fallbackColor: colorForFileSystemEntry(context, entry),
-                dimension: isLarge ? 96 : 52,
+              SizedBox(
+                height: isLarge ? 96 : 52,
+                child: Center(
+                  child: MediaThumbnail(
+                    entry: entry,
+                    fallbackIcon: iconForFileSystemEntry(entry),
+                    fallbackColor: colorForFileSystemEntry(context, entry),
+                    dimension: isLarge ? 96 : 52,
+                  ),
+                ),
               ),
               SizedBox(height: isLarge ? 6 : 8),
-              Text(
-                group.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodySmall,
+              SizedBox(
+                height: 34,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Text(
+                    group.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               ),
               const Spacer(),
-              Text(
-                group.count == 1 ? '1 item' : '${group.count} items',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.labelSmall,
+              SizedBox(
+                height: 18,
+                child: Text(
+                  group.count == 1 ? '1 item' : '${group.count} items',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelSmall,
+                ),
               ),
             ],
           ),

@@ -158,14 +158,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           else ...[
             _ResultCountHeader(count: searchState.results.length),
             const SizedBox(height: 8),
-            ...searchState.results.map(
-              (result) => _SearchResultTile(
-                result: result,
-                results: searchState.results,
-                activeFilter: searchState.filteredTypes.isEmpty
-                    ? null
-                    : searchState.filteredTypes.first,
-              ),
+            _SearchResultsGrid(
+              results: searchState.results,
+              activeFilter: searchState.filteredTypes.isEmpty
+                  ? null
+                  : searchState.filteredTypes.first,
             ),
           ],
         ],
@@ -251,8 +248,47 @@ class _ResultCountHeader extends StatelessWidget {
   }
 }
 
-class _SearchResultTile extends ConsumerWidget {
-  const _SearchResultTile({
+class _SearchResultsGrid extends StatelessWidget {
+  const _SearchResultsGrid({
+    required this.results,
+    this.activeFilter,
+  });
+
+  final List<SearchResult> results;
+  final FileSystemEntryType? activeFilter;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columnCount = (constraints.maxWidth / 108).floor().clamp(3, 6);
+
+        return GridView.builder(
+          shrinkWrap: true,
+          primary: false,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: results.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columnCount,
+            mainAxisExtent: 138,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 8,
+          ),
+          itemBuilder: (context, index) {
+            return _SearchResultGridTile(
+              result: results[index],
+              results: results,
+              activeFilter: activeFilter,
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _SearchResultGridTile extends ConsumerWidget {
+  const _SearchResultGridTile({
     required this.result,
     required this.results,
     this.activeFilter,
@@ -266,24 +302,11 @@ class _SearchResultTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = result.entry;
 
-    return Card(
-      child: ListTile(
-        leading: MediaThumbnail(
-          entry: entry,
-          fallbackIcon: iconForFileSystemEntry(entry),
-          fallbackColor: colorForFileSystemEntry(context, entry),
-        ),
-        title: Text(
-          entry.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: _SearchResultSubtitle(
-          parentPath: result.parentPath,
-          onOpenFolder:
-              entry.isFolder ? null : () => _openContainingFolder(context, ref),
-        ),
-        trailing: Text(_detailFor(entry)),
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
         onTap: () {
           if (entry.isFolder) {
             _openContainingFolder(context, ref);
@@ -291,6 +314,64 @@ class _SearchResultTile extends ConsumerWidget {
             _openFile(context, ref);
           }
         },
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 52,
+                    child: Center(
+                      child: MediaThumbnail(
+                        entry: entry,
+                        fallbackIcon: iconForFileSystemEntry(entry),
+                        fallbackColor: colorForFileSystemEntry(context, entry),
+                        dimension: 52,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 34,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        entry.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    height: 18,
+                    child: Text(
+                      _detailFor(entry),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (!entry.isFolder)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: IconButton(
+                  tooltip: 'Open folder',
+                  onPressed: () => _openContainingFolder(context, ref),
+                  visualDensity: VisualDensity.compact,
+                  iconSize: 18,
+                  icon: const Icon(Icons.folder_open_rounded),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -337,45 +418,6 @@ class _SearchResultTile extends ConsumerWidget {
       return '${entry.childrenCount ?? 0} items';
     }
     return formatBytes(entry.sizeBytes ?? 0);
-  }
-}
-
-class _SearchResultSubtitle extends StatelessWidget {
-  const _SearchResultSubtitle({
-    required this.parentPath,
-    required this.onOpenFolder,
-  });
-
-  final String parentPath;
-  final VoidCallback? onOpenFolder;
-
-  @override
-  Widget build(BuildContext context) {
-    final openFolder = onOpenFolder;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          parentPath,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        if (openFolder != null)
-          TextButton.icon(
-            onPressed: openFolder,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(0, 32),
-              padding: EdgeInsets.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              visualDensity: VisualDensity.compact,
-            ),
-            icon: const Icon(Icons.folder_open_rounded, size: 18),
-            label: const Text('Open folder'),
-          ),
-      ],
-    );
   }
 }
 

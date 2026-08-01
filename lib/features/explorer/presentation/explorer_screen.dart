@@ -22,7 +22,7 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 final explorerViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
-  return ExplorerViewMode.list;
+  return ExplorerViewMode.grid;
 });
 
 final explorerSortOptionProvider = StateProvider<ExplorerSortOption>((ref) {
@@ -327,6 +327,25 @@ class ExplorerScreen extends ConsumerWidget {
                   ref
                       .read(explorerControllerProvider.notifier)
                       .exitSelectionMode();
+                },
+                onCompress: () async {
+                  final selectedPaths = explorerState.selectedPaths.toList();
+                  final displayName = selectedCount == 1
+                      ? selectedPaths.first
+                      : '$selectedCount items';
+                  final queued = await showCompressOptionsSheet(
+                    context: context,
+                    transferController:
+                        ref.read(transferControllerProvider.notifier),
+                    sourcePaths: selectedPaths,
+                    displayName: displayName,
+                    destinationDirectory: explorerState.currentPath,
+                  );
+                  if (queued) {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .exitSelectionMode();
+                  }
                 },
               ),
           ],
@@ -745,7 +764,7 @@ class _EntryGrid extends ConsumerWidget {
           itemCount: entries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            mainAxisExtent: 118,
+            mainAxisExtent: 124,
             mainAxisSpacing: 10,
             crossAxisSpacing: 8,
           ),
@@ -822,17 +841,26 @@ class _GridEntryTile extends StatelessWidget {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 10, 4, 6),
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
               child: Column(
                 children: [
-                  _GridEntryVisual(entry: entry),
+                  SizedBox(
+                    height: 56,
+                    child: Center(child: _GridEntryVisual(entry: entry)),
+                  ),
                   const SizedBox(height: 8),
-                  Text(
-                    entry.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
+                  SizedBox(
+                    height: 34,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        entry.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -1012,12 +1040,14 @@ class _SelectionActionBar extends StatelessWidget {
     required this.onCopy,
     required this.onMove,
     required this.onDelete,
+    required this.onCompress,
   });
 
   final int selectedCount;
   final VoidCallback onCopy;
   final VoidCallback onMove;
   final VoidCallback onDelete;
+  final VoidCallback onCompress;
 
   @override
   Widget build(BuildContext context) {
@@ -1053,6 +1083,12 @@ class _SelectionActionBar extends StatelessWidget {
                 tooltip: 'Delete',
                 onPressed: onDelete,
                 icon: const Icon(Icons.delete_rounded),
+              ),
+              const SizedBox(width: 8),
+              IconButton.outlined(
+                tooltip: 'Compress',
+                onPressed: onCompress,
+                icon: const Icon(Icons.inventory_2_rounded),
               ),
             ],
           ),
