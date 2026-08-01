@@ -7,6 +7,7 @@ import 'package:file_explorer/features/explorer/presentation/entry_filters.dart'
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
@@ -699,14 +700,8 @@ class _EntryList extends ConsumerWidget {
                         .read(explorerControllerProvider.notifier)
                         .toggleSelection(entry.path);
                   }
-                : entry.isFolder
-                    ? () {
-                        // Folder navigation is routed through the controller so
-                        // permission and provider errors stay centralized.
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .openDirectory(entry.path);
-                      }
+                : _canOpenEntry(entry)
+                    ? () => _openEntry(context, ref, entry, entries)
                     : null,
             onLongPress: isSelectionMode
                 ? null
@@ -765,7 +760,9 @@ class _EntryGrid extends ConsumerWidget {
                           .read(explorerControllerProvider.notifier)
                           .openDirectory(entry.path);
                     }
-                  : null,
+                  : _canPreviewEntry(entry)
+                      ? () => _openEntry(context, ref, entry, entries)
+                      : null,
             );
           },
         );
@@ -911,6 +908,38 @@ String _typeLabelFor(FileSystemEntryType type) {
     FileSystemEntryType.app => 'App',
     FileSystemEntryType.other => 'File',
   };
+}
+
+void _openEntry(
+  BuildContext context,
+  WidgetRef ref,
+  FileSystemEntry entry,
+  List<FileSystemEntry> entries,
+) {
+  if (entry.isFolder) {
+    ref.read(explorerControllerProvider.notifier).openDirectory(entry.path);
+    return;
+  }
+  if (_canPreviewEntry(entry)) {
+    context.push(
+      AppRoutes.mediaViewer,
+      extra: MediaViewerSession(entry: entry, entries: entries),
+    );
+  }
+}
+
+bool _canPreviewEntry(FileSystemEntry entry) {
+  return switch (entry.type) {
+    FileSystemEntryType.image ||
+    FileSystemEntryType.video ||
+    FileSystemEntryType.audio =>
+      true,
+    _ => false,
+  };
+}
+
+bool _canOpenEntry(FileSystemEntry entry) {
+  return entry.isFolder || _canPreviewEntry(entry);
 }
 
 class _DirectoryError extends StatelessWidget {

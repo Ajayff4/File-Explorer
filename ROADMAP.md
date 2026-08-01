@@ -20,6 +20,7 @@ The app is an early but usable file-manager vertical slice.
 | --- | --- | --- |
 | ✅ | Shell | Mobile bottom navigation. |
 | ✅ | Home | Dashboard with storage summary, shortcuts, favorites, recents, and transfer station tile. |
+| ✅ | Home | Core features page reachable from Home. |
 | ✅ | Explorer | Android/local storage browsing where permissions allow it. |
 | ✅ | Explorer | Storage root selector. |
 | ✅ | Explorer | Breadcrumb and parent navigation. |
@@ -30,7 +31,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Current-folder favorite toggle. |
 | ✅ | Explorer | Multi-select, select-all, clear-selection, and batch copy/move/delete. |
 | ✅ | Explorer | File type browsing from Home shortcuts with filtered folder counts. |
-| ✅ | Explorer | Properties sheet with type, size, bytes, modified date, item count, storage, parent folder, and full path. |
+| ✅ | Explorer | Properties sheet with type, MIME Type, size, bytes, modified date, item count, storage, and full path. |
 | ✅ | Android storage | Storage permission state model. |
 | ✅ | Android storage | Permission education/recovery card. |
 | ✅ | Android storage | Android storage volume MethodChannel. |
@@ -63,6 +64,9 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media/category scanning behind repository boundaries. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
+| ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, share placeholder, and Android wallpaper action. |
+| ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
+| ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details. |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press item actions instead of visible per-item overflow buttons. |
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
@@ -77,19 +81,22 @@ Current local check status:
 
 ```bash
 git status --short
-# dirty: roadmap + verification fixes
+# dirty: media viewers/players + feature page
 
-dart format lib test
+dart format lib
 # passed
 
 flutter analyze
 # passed
 
 flutter test
+# currently has stale widget expectations around Home/media behavior
+
+flutter build apk --debug
 # passed
 ```
 
-Local verification has been restored after the latest type-filter browsing work.
+Local analyzer and Android debug build pass after the latest media viewer work.
 
 The latest debug APK path, after running a build, is:
 
@@ -111,7 +118,59 @@ Recommended next slices, in order:
 
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
-| ✅ | - | General | Immediate development checklist clear. |
+| [ ] | 1 | Media | Add category result cache with instant cached render and silent background refresh. |
+| [ ] | 2 | Archives | Add ZIP extract and compress actions through Transfers. |
+| [ ] | 3 | Tests | Update stale widget tests for current Home/media behavior. |
+| [ ] | 4 | Viewers | Replace dummy image share/rename actions with real implementations. |
+| [ ] | 5 | Open with | Unknown files use Android system open-with sheet. |
+
+## Must-Have Feature Plan
+
+### Category Cache
+
+Goal: category shortcuts should feel instant after the first scan.
+
+| Status | Task |
+| --- | --- |
+| [ ] | Persist category scan results by `rootPath + FileSystemEntryType`. |
+| [ ] | Store file path, parent folder, name, type, size, and modified time. |
+| [ ] | Show cached category folders immediately when cache exists. |
+| [ ] | Refresh cache silently in the background after cached results render. |
+| [ ] | If refreshed result matches cache, keep UI unchanged. |
+| [ ] | If refreshed result differs, update cache and refresh visible results. |
+| [ ] | Mark related category caches stale when transfer tasks complete under the same root. |
+| [ ] | Show full-screen loading only when no cache exists. |
+| [ ] | Show small header refresh state when background scan is active. |
+| [ ] | Allow user to leave/back out while scan continues or cancels safely. |
+
+### Archives
+
+| Status | Task |
+| --- | --- |
+| [ ] | Add `Extract here` for `.zip` files. |
+| [ ] | Add `Compress to ZIP` for selected files/folders. |
+| [ ] | Queue archive operations through Transfers. |
+| [ ] | Show archive progress in Transfers. |
+| [ ] | Reuse transfer conflict policies: `Skip`, `Replace`, `Keep both`. |
+| [ ] | Keep password ZIP, RAR, 7Z, and archive browsing for later. |
+
+### Viewers And Players
+
+| Status | Area | Task |
+| --- | --- | --- |
+| [x] | Image viewer | Open images fullscreen from Explorer and category folders. |
+| [x] | Image viewer | Swipe next/previous within folder/category. |
+| [x] | Image viewer | Pinch zoom and double-tap zoom. |
+| [x] | Image viewer | Add delete/details actions. |
+| [ ] | Image viewer | Replace share and rename placeholders with real actions. |
+| [x] | Image viewer | Set image as Android wallpaper. |
+| [x] | Video player | Open videos in-app. |
+| [x] | Video player | Play/pause/seek/fullscreen controls. |
+| [x] | Video player | Speed, loop, shuffle, previous/next, and auto-hide controls. |
+| [x] | Audio player | Open audio in-app. |
+| [x] | Audio player | Play/pause/seek controls. |
+| [x] | Audio player | Add folder/category playlist controls. |
+| [ ] | Open with | Unknown files use Android system open-with sheet. |
 
 ## Later Roadmap
 

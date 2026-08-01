@@ -1,6 +1,9 @@
+import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
+import 'package:file_explorer/features/home/presentation/core_features_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
+import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -20,6 +23,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: AppRoutes.home,
             builder: (context, state) => const HomeScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.coreFeatures,
+            builder: (context, state) => const CoreFeaturesScreen(),
           ),
           GoRoute(
             path: AppRoutes.explorer,
@@ -47,6 +54,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      GoRoute(
+        path: AppRoutes.mediaViewer,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is FileSystemEntry) {
+            return MediaViewerScreen(entry: extra);
+          }
+          if (extra is MediaViewerSession) {
+            return MediaViewerScreen(session: extra);
+          }
+          return const MissingMediaViewerScreen();
+        },
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -57,9 +77,11 @@ class AppRoutes {
   const AppRoutes._();
 
   static const home = '/';
+  static const coreFeatures = '/features';
   static const explorer = '/explorer';
   static const search = '/search';
   static const mediaLibrary = '/media/:kind';
+  static const mediaViewer = '/preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
 
@@ -164,6 +186,9 @@ class AppShell extends StatelessWidget {
       return 1;
     }
     if (location.startsWith(AppRoutes.search)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.mediaViewer)) {
       return 1;
     }
     if (location.startsWith('/media')) {

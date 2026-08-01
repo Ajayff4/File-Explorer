@@ -65,6 +65,8 @@ class HomeScreen extends ConsumerWidget {
               const _ShortcutGrid(),
               const SizedBox(height: 16),
               const _MediaLibraryStrip(),
+              const SizedBox(height: 16),
+              const _CoreFeaturesTile(),
               if (settings.showTransferStation) ...[
                 const SizedBox(height: 16),
                 _TransferStationTile(state: transferState),
@@ -115,6 +117,23 @@ class HomeScreen extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _CoreFeaturesTile extends StatelessWidget {
+  const _CoreFeaturesTile();
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.auto_awesome_rounded),
+        title: const Text('What this app can do'),
+        subtitle: const Text('Core features built into File Explorer'),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.push(AppRoutes.coreFeatures),
+      ),
     );
   }
 }

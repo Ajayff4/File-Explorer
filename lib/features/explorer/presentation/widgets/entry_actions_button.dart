@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mime/mime.dart';
 import 'package:path/path.dart' as p;
 
 class EntryActionsButton extends ConsumerWidget {
@@ -468,6 +469,11 @@ class EntryPropertiesPanel extends StatelessWidget {
                   label: 'Type',
                   value: typeLabelForFileSystemEntry(entry),
                 ),
+                if (!entry.isFolder)
+                  _PropertyRow(
+                    label: 'MIME Type',
+                    value: lookupMimeType(entry.path) ?? 'Unknown',
+                  ),
                 if (entry.isFolder && entry.childrenCount != null)
                   _PropertyRow(
                     label: 'Items',
@@ -500,10 +506,6 @@ class EntryPropertiesPanel extends StatelessWidget {
                     label: 'Storage root',
                     value: storageVolume!.path,
                   ),
-                _PropertyRow(
-                  label: 'Parent folder',
-                  value: p.dirname(entry.path),
-                ),
                 _PropertyRow(label: 'Path', value: entry.path),
               ],
             ),

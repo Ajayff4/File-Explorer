@@ -2,6 +2,42 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-01
+
+### Completed
+
+- Added in-app media preview from Explorer:
+  - Image, video, and audio files now open inside the app instead of doing nothing.
+  - Media previews receive same-type sibling files so previous/next and shuffle can work within the current folder.
+- Built a fuller video player:
+  - Added start/end, previous/next, 10-second seek, play/pause, looping, shuffle, playback speed, landscape mode, background playback option, and auto-hiding controls.
+  - Fixed rotated-video aspect handling by honoring `rotationCorrection` when calculating display ratio.
+  - Moved video preview outside the app shell so bottom navigation does not appear during playback.
+- Expanded the image viewer:
+  - Added pinch zoom, double-tap zoom, swipe previous/next, rotate, labeled bottom controls, dummy share action, and a More menu.
+  - More menu now contains Info, Delete, Rename, and Set as wallpaper.
+  - Delete queues through Transfers after confirmation.
+  - Set as wallpaper is wired through an Android `WallpaperManager` MethodChannel.
+- Expanded the audio player:
+  - Added a dedicated audio player surface with title/path, volume slider, mute/unmute, previous/next, loop, shuffle, speed, seek, and info.
+- Polished file details:
+  - Replaced the redundant Parent folder row with a `MIME Type` row.
+  - Added the `mime` package as a direct dependency.
+- Added a Home feature listing page:
+  - Home has a `What this app can do` entry.
+  - The feature page has a back action and a richer card grid for the app's core capabilities.
+- Documented Android wireless debugging in `README.md`.
+
+### Verified
+
+- `flutter analyze`
+- `flutter build apk --debug`
+
+### Pending Verification
+
+- Real-device pass for image wallpaper setting, media controls, and viewer gestures.
+- Existing widget tests need updating for the current Home/media library behavior.
+
 ## 2026-07-30
 
 ### Completed

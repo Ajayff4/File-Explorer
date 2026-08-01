@@ -1,8 +1,10 @@
 package com.ajayff4.fileexplorer
 
+import android.app.WallpaperManager
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
@@ -18,6 +20,7 @@ import java.io.File
 class MainActivity: FlutterActivity() {
     private val storageChannel = "com.ajayff4.fileexplorer/storage"
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
+    private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -50,6 +53,27 @@ class MainActivity: FlutterActivity() {
                             result.error("missing_path", "Path is required", null)
                         } else {
                             result.success(getApkIcon(path))
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, wallpaperChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setWallpaper" -> {
+                        val path = call.argument<String>("path")
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else if (setWallpaper(path)) {
+                            result.success(null)
+                        } else {
+                            result.error(
+                                "wallpaper_failed",
+                                "Could not set wallpaper",
+                                null,
+                            )
                         }
                     }
                     else -> result.notImplemented()
@@ -166,6 +190,16 @@ class MainActivity: FlutterActivity() {
             }
         } catch (error: Exception) {
             null
+        }
+    }
+
+    private fun setWallpaper(path: String): Boolean {
+        return try {
+            val bitmap = BitmapFactory.decodeFile(path) ?: return false
+            WallpaperManager.getInstance(this).setBitmap(bitmap)
+            true
+        } catch (error: Exception) {
+            false
         }
     }
 

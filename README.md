@@ -91,6 +91,34 @@ Useful while running:
 - Press `R` for hot restart.
 - Press `q` to quit.
 
+## Android Wireless Debugging
+
+Use USB once to switch ADB to TCP mode:
+
+```bash
+adb devices
+adb tcpip 5555
+adb connect $(adb shell ip route | awk '{print $9; exit}'):5555
+flutter run
+```
+
+After `adb connect` succeeds, unplug USB. Hot reload still works with `r`.
+
+If the phone already has wireless debugging paired from Developer options, the
+later runs are usually only:
+
+```bash
+adb connect <phone-ip>:<port>
+flutter run
+```
+
+If multiple devices show up, pick the wireless device explicitly:
+
+```bash
+flutter devices
+flutter run -d <phone-ip>:<port>
+```
+
 Build and install a debug APK on a connected phone:
 
 ```bash
