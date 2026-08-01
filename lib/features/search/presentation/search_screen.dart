@@ -3,6 +3,8 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
@@ -159,6 +161,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             ...searchState.results.map(
               (result) => _SearchResultTile(
                 result: result,
+                results: searchState.results,
                 activeFilter: searchState.filteredTypes.isEmpty
                     ? null
                     : searchState.filteredTypes.first,
@@ -251,10 +254,12 @@ class _ResultCountHeader extends StatelessWidget {
 class _SearchResultTile extends ConsumerWidget {
   const _SearchResultTile({
     required this.result,
+    required this.results,
     this.activeFilter,
   });
 
   final SearchResult result;
+  final List<SearchResult> results;
   final FileSystemEntryType? activeFilter;
 
   @override
@@ -263,45 +268,68 @@ class _SearchResultTile extends ConsumerWidget {
 
     return Card(
       child: ListTile(
-        leading: Icon(
-          iconForFileSystemEntry(entry),
-          color: colorForFileSystemEntry(context, entry),
+        leading: MediaThumbnail(
+          entry: entry,
+          fallbackIcon: iconForFileSystemEntry(entry),
+          fallbackColor: colorForFileSystemEntry(context, entry),
         ),
         title: Text(
           entry.name,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        subtitle: Text(
-          result.parentPath,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+        subtitle: _SearchResultSubtitle(
+          parentPath: result.parentPath,
+          onOpenFolder:
+              entry.isFolder ? null : () => _openContainingFolder(context, ref),
         ),
         trailing: Text(_detailFor(entry)),
         onTap: () {
-          final settings = ref.read(settingsControllerProvider).settings;
-          final isFolder = entry.isFolder;
-          final shouldRecordFile =
-              !isFolder && !settings.showFoldersOnlyInHistory;
-          if (shouldRecordFile) {
-            ref.read(recentsControllerProvider.notifier).recordLocation(
-                  path: entry.path,
-                  label: entry.name,
-                  isFolder: false,
-                );
+          if (entry.isFolder) {
+            _openContainingFolder(context, ref);
+          } else {
+            _openFile(context, ref);
           }
-          // Preserve the active type filter when opening in Explorer
-          if (activeFilter != null) {
-            ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;
-          }
-          ref.read(explorerControllerProvider.notifier).openDirectory(
-                parentPathForSearchResult(result),
-                recordRecent: isFolder || !shouldRecordFile,
-              );
-          context.go(AppRoutes.explorer);
         },
       ),
     );
+  }
+
+  void _openFile(BuildContext context, WidgetRef ref) {
+    final entry = result.entry;
+    final settings = ref.read(settingsControllerProvider).settings;
+    if (!settings.showFoldersOnlyInHistory) {
+      ref.read(recentsControllerProvider.notifier).recordLocation(
+            path: entry.path,
+            label: entry.name,
+            isFolder: false,
+          );
+    }
+
+    context.push(
+      AppRoutes.mediaViewer,
+      extra: MediaViewerSession(
+        entry: entry,
+        entries: [
+          for (final searchResult in results) searchResult.entry,
+        ],
+      ),
+    );
+  }
+
+  void _openContainingFolder(BuildContext context, WidgetRef ref) {
+    final settings = ref.read(settingsControllerProvider).settings;
+    final isFolder = result.entry.isFolder;
+    final shouldRecordFile = !isFolder && !settings.showFoldersOnlyInHistory;
+
+    if (activeFilter != null) {
+      ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;
+    }
+    ref.read(explorerControllerProvider.notifier).openDirectory(
+          parentPathForSearchResult(result),
+          recordRecent: isFolder || !shouldRecordFile,
+        );
+    context.go(AppRoutes.explorer);
   }
 
   String _detailFor(FileSystemEntry entry) {
@@ -309,6 +337,45 @@ class _SearchResultTile extends ConsumerWidget {
       return '${entry.childrenCount ?? 0} items';
     }
     return formatBytes(entry.sizeBytes ?? 0);
+  }
+}
+
+class _SearchResultSubtitle extends StatelessWidget {
+  const _SearchResultSubtitle({
+    required this.parentPath,
+    required this.onOpenFolder,
+  });
+
+  final String parentPath;
+  final VoidCallback? onOpenFolder;
+
+  @override
+  Widget build(BuildContext context) {
+    final openFolder = onOpenFolder;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          parentPath,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        if (openFolder != null)
+          TextButton.icon(
+            onPressed: openFolder,
+            style: TextButton.styleFrom(
+              minimumSize: const Size(0, 32),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.folder_open_rounded, size: 18),
+            label: const Text('Open folder'),
+          ),
+      ],
+    );
   }
 }
 

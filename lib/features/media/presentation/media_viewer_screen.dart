@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/local_media_source_stub.dart'
     if (dart.library.io) 'package:file_explorer/features/media/presentation/local_media_source_io.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
@@ -12,6 +14,8 @@ import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 import 'package:video_player/video_player.dart';
 
 const _wallpaperChannel = MethodChannel('com.ajayff4.fileexplorer/wallpaper');
@@ -108,8 +112,9 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
                 onToggleLandscape: _toggleLandscape,
                 onShowInfo: () => _showEntryInfo(context),
                 onDelete: _confirmDeleteCurrentEntry,
-                onShare: _showSharePlaceholder,
-                onRename: _showRenamePlaceholder,
+                onShare: _shareCurrentEntry,
+                onRename: _requestRenameCurrentEntry,
+                onOpenWith: _openCurrentEntryWithSystem,
                 onSetWallpaper: _showWallpaperPlaceholder,
               ),
             ),
@@ -221,12 +226,59 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     Navigator.of(context).pop();
   }
 
-  void _showSharePlaceholder() {
-    _showPlaceholder('Share coming soon');
+  Future<void> _shareCurrentEntry() async {
+    try {
+      await shareLocalFile(_entry.path, fallbackMimeType: 'image/*');
+    } on MissingPluginException {
+      _showPlaceholder('Share is available on Android');
+    } on PlatformException catch (error) {
+      _showPlaceholder(error.message ?? 'Could not share image');
+    }
   }
 
-  void _showRenamePlaceholder() {
-    _showPlaceholder('Rename coming soon');
+  Future<void> _openCurrentEntryWithSystem() async {
+    try {
+      await openLocalFileWithSystem(_entry.path);
+    } on MissingPluginException {
+      _showPlaceholder('Open with is available on Android');
+    } on PlatformException catch (error) {
+      _showPlaceholder(error.message ?? 'Could not open file');
+    }
+  }
+
+  Future<void> _requestRenameCurrentEntry() async {
+    if (!mounted) {
+      return;
+    }
+    final newName = await showDialog<String>(
+      context: context,
+      builder: (context) => _RenameEntryDialog(initialName: _entry.name),
+    );
+
+    await Future<void>.delayed(kThemeAnimationDuration);
+    await WidgetsBinding.instance.endOfFrame;
+    if (!mounted) {
+      return;
+    }
+    final trimmedName = newName?.trim();
+    if (trimmedName == null ||
+        trimmedName.isEmpty ||
+        trimmedName == _entry.name) {
+      return;
+    }
+    if (RegExp(r'[\\/]').hasMatch(trimmedName)) {
+      _showPlaceholder('Name cannot contain path separators');
+      return;
+    }
+
+    ref.read(transferControllerProvider.notifier).queueOperation(
+          operation: TransferOperation.rename,
+          sourcePaths: [_entry.path],
+          displayName: _entry.name,
+          destinationPath: p.join(p.dirname(_entry.path), trimmedName),
+          totalBytes: _entry.sizeBytes,
+        );
+    _showTransferSnackBar('Rename task queued');
   }
 
   Future<void> _showWallpaperPlaceholder() async {
@@ -247,6 +299,79 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
     );
+  }
+
+  void _showTransferSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: SnackBarAction(
+          label: 'Transfers',
+          onPressed: () => context.go(AppRoutes.transfers),
+        ),
+      ),
+    );
+  }
+}
+
+class _RenameEntryDialog extends StatefulWidget {
+  const _RenameEntryDialog({required this.initialName});
+
+  final String initialName;
+
+  @override
+  State<_RenameEntryDialog> createState() => _RenameEntryDialogState();
+}
+
+class _RenameEntryDialogState extends State<_RenameEntryDialog> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialName);
+    final extension = p.extension(widget.initialName);
+    final nameSelectionEnd = extension.isEmpty
+        ? widget.initialName.length
+        : widget.initialName.length - extension.length;
+    _controller.selection = TextSelection(
+      baseOffset: 0,
+      extentOffset: nameSelectionEnd.clamp(0, widget.initialName.length),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rename image'),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        decoration: const InputDecoration(labelText: 'Name'),
+        textInputAction: TextInputAction.done,
+        onSubmitted: _submit,
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => _submit(_controller.text),
+          child: const Text('Queue'),
+        ),
+      ],
+    );
+  }
+
+  void _submit(String value) {
+    Navigator.of(context).pop(value);
   }
 }
 
@@ -276,6 +401,7 @@ class _MediaPreview extends StatelessWidget {
     required this.onDelete,
     required this.onShare,
     required this.onRename,
+    required this.onOpenWith,
     required this.onSetWallpaper,
     super.key,
   });
@@ -292,6 +418,7 @@ class _MediaPreview extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onShare;
   final VoidCallback onRename;
+  final VoidCallback onOpenWith;
   final VoidCallback onSetWallpaper;
 
   @override
@@ -321,7 +448,7 @@ class _MediaPreview extends StatelessWidget {
           onToggleLandscape: onToggleLandscape,
           onShowInfo: onShowInfo,
         ),
-      _ => _UnsupportedPreview(entry: entry),
+      _ => _UnsupportedPreview(entry: entry, onOpenWith: onOpenWith),
     };
   }
 }
@@ -572,19 +699,18 @@ class _ImageToolbarButton extends StatelessWidget {
     return IconButton(
       tooltip: tooltip,
       color: Colors.white,
-      iconSize: 28,
-      constraints: const BoxConstraints.tightFor(width: 64, height: 62),
+      iconSize: 26,
+      constraints: const BoxConstraints.tightFor(width: 58, height: 56),
       onPressed: onPressed,
       icon: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           icon,
-          const SizedBox(height: 2),
           Text(
             label,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: const TextStyle(color: Colors.white, fontSize: 11),
+            style: const TextStyle(color: Colors.white, fontSize: 10),
           ),
         ],
       ),
@@ -611,64 +737,105 @@ class _ImageMoreButton extends StatelessWidget {
       tooltip: 'More image actions',
       color: Theme.of(context).colorScheme.surface,
       onSelected: (action) {
+        void runAfterMenuCloses(VoidCallback callback) {
+          Future<void>.delayed(const Duration(milliseconds: 220), () {
+            if (context.mounted) {
+              callback();
+            }
+          });
+        }
+
         switch (action) {
           case _ImageMoreAction.info:
-            onShowInfo();
+            runAfterMenuCloses(onShowInfo);
           case _ImageMoreAction.delete:
-            onDelete();
+            runAfterMenuCloses(onDelete);
           case _ImageMoreAction.rename:
-            onRename();
+            runAfterMenuCloses(onRename);
           case _ImageMoreAction.wallpaper:
-            onSetWallpaper();
+            runAfterMenuCloses(onSetWallpaper);
         }
       },
       itemBuilder: (context) {
         return const [
           PopupMenuItem(
             value: _ImageMoreAction.info,
-            child: ListTile(
+            padding: EdgeInsets.zero,
+            height: 42,
+            child: _ImageMoreMenuItem(
               leading: Icon(Icons.info_outline_rounded),
-              title: Text('Info'),
+              title: 'Info',
             ),
           ),
           PopupMenuItem(
             value: _ImageMoreAction.delete,
-            child: ListTile(
+            padding: EdgeInsets.zero,
+            height: 42,
+            child: _ImageMoreMenuItem(
               leading: Icon(Icons.delete_rounded),
-              title: Text('Delete'),
+              title: 'Delete',
             ),
           ),
           PopupMenuItem(
             value: _ImageMoreAction.rename,
-            child: ListTile(
+            padding: EdgeInsets.zero,
+            height: 42,
+            child: _ImageMoreMenuItem(
               leading: Icon(Icons.drive_file_rename_outline_rounded),
-              title: Text('Rename'),
+              title: 'Rename',
             ),
           ),
           PopupMenuItem(
             value: _ImageMoreAction.wallpaper,
-            child: ListTile(
+            padding: EdgeInsets.zero,
+            height: 42,
+            child: _ImageMoreMenuItem(
               leading: Icon(Icons.wallpaper_rounded),
-              title: Text('Set as wallpaper'),
+              title: 'Set as wallpaper',
             ),
           ),
         ];
       },
       child: const SizedBox(
-        width: 64,
-        height: 62,
+        width: 58,
+        height: 56,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.more_horiz_rounded, color: Colors.white, size: 28),
-            SizedBox(height: 2),
+            Icon(Icons.more_horiz_rounded, color: Colors.white, size: 26),
             Text(
               'More',
-              style: TextStyle(color: Colors.white, fontSize: 11),
+              style: TextStyle(color: Colors.white, fontSize: 10),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ImageMoreMenuItem extends StatelessWidget {
+  const _ImageMoreMenuItem({
+    required this.leading,
+    required this.title,
+  });
+
+  final Widget leading;
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      dense: true,
+      visualDensity: VisualDensity.compact,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+      horizontalTitleGap: 8,
+      minLeadingWidth: 22,
+      leading: IconTheme.merge(
+        data: const IconThemeData(size: 20),
+        child: leading,
+      ),
+      title: Text(title),
     );
   }
 }
@@ -1443,9 +1610,13 @@ class _MediaDetails extends StatelessWidget {
 }
 
 class _UnsupportedPreview extends StatelessWidget {
-  const _UnsupportedPreview({required this.entry});
+  const _UnsupportedPreview({
+    required this.entry,
+    required this.onOpenWith,
+  });
 
   final FileSystemEntry entry;
+  final VoidCallback onOpenWith;
 
   @override
   Widget build(BuildContext context) {
@@ -1453,6 +1624,11 @@ class _UnsupportedPreview extends StatelessWidget {
       icon: iconForFileSystemEntry(entry),
       title: 'Preview unavailable',
       detail: typeLabelForFileSystemEntry(entry),
+      action: FilledButton.icon(
+        onPressed: onOpenWith,
+        icon: const Icon(Icons.open_in_new_rounded),
+        label: const Text('Open with'),
+      ),
     );
   }
 }
@@ -1462,11 +1638,13 @@ class _PreviewError extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.detail,
+    this.action,
   });
 
   final IconData icon;
   final String title;
   final String detail;
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -1486,6 +1664,10 @@ class _PreviewError extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
             ),
+            if (action != null) ...[
+              const SizedBox(height: 16),
+              action!,
+            ],
           ],
         ),
       ),

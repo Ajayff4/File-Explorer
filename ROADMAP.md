@@ -55,6 +55,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Search | Persisted search index. |
 | ✅ | Search | Manual reindex. |
 | ✅ | Search | Transfer-driven index invalidation. |
+| ✅ | Search | File result taps open previews, with a visible `Open folder` action for containing-folder navigation. |
+| ✅ | Search | Search results reuse media thumbnails for images, videos, and apps. |
 | ✅ | Media | Flat libraries for images, videos, audio, documents, and apps. |
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
@@ -64,11 +66,12 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media/category scanning behind repository boundaries. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
-| ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, share placeholder, and Android wallpaper action. |
+| ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, Android share, transfer-backed rename, and Android wallpaper action. |
+| ✅ | Viewers | Unknown files can launch Android's system open-with sheet. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
 | ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details. |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
-| ✅ | Explorer | Long-press item actions instead of visible per-item overflow buttons. |
+| ✅ | Explorer | Long-press opens item actions with Select, Share, Open with, transfer actions, and Properties. |
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
@@ -93,10 +96,10 @@ flutter test
 # currently has stale widget expectations around Home/media behavior
 
 flutter build apk --debug
-# passed
+# passed after native media action changes; not rerun for the latest Dart-only menu timing/padding fix by request
 ```
 
-Local analyzer and Android debug build pass after the latest media viewer work.
+Local analyzer passes after the latest Search open-file/open-folder behavior and media viewer rename-dialog lifecycle, timing, and menu-density fixes. Android debug build is only necessary after native, Gradle, manifest, or platform-channel changes.
 
 The latest debug APK path, after running a build, is:
 
@@ -121,8 +124,8 @@ Recommended next slices, in order:
 | [ ] | 1 | Media | Add category result cache with instant cached render and silent background refresh. |
 | [ ] | 2 | Archives | Add ZIP extract and compress actions through Transfers. |
 | [ ] | 3 | Tests | Update stale widget tests for current Home/media behavior. |
-| [ ] | 4 | Viewers | Replace dummy image share/rename actions with real implementations. |
-| [ ] | 5 | Open with | Unknown files use Android system open-with sheet. |
+| [x] | 4 | Viewers | Replace dummy image share/rename actions with real implementations. |
+| [x] | 5 | Open with | Unknown files use Android system open-with sheet. |
 
 ## Must-Have Feature Plan
 
@@ -158,19 +161,21 @@ Goal: category shortcuts should feel instant after the first scan.
 
 | Status | Area | Task |
 | --- | --- | --- |
-| [x] | Image viewer | Open images fullscreen from Explorer and category folders. |
-| [x] | Image viewer | Swipe next/previous within folder/category. |
-| [x] | Image viewer | Pinch zoom and double-tap zoom. |
-| [x] | Image viewer | Add delete/details actions. |
-| [ ] | Image viewer | Replace share and rename placeholders with real actions. |
-| [x] | Image viewer | Set image as Android wallpaper. |
-| [x] | Video player | Open videos in-app. |
-| [x] | Video player | Play/pause/seek/fullscreen controls. |
-| [x] | Video player | Speed, loop, shuffle, previous/next, and auto-hide controls. |
-| [x] | Audio player | Open audio in-app. |
-| [x] | Audio player | Play/pause/seek controls. |
-| [x] | Audio player | Add folder/category playlist controls. |
-| [ ] | Open with | Unknown files use Android system open-with sheet. |
+| ✅ | Image viewer | Open images fullscreen from Explorer, Search, and category folders. |
+| ✅ | Image viewer | Swipe next/previous within folder/category/search result playlists. |
+| ✅ | Image viewer | Pinch zoom and double-tap zoom. |
+| ✅ | Image viewer | Add delete/details actions. |
+| ✅ | Image viewer | Replace share and rename placeholders with real Android share and transfer-backed rename actions. |
+| ✅ | Image viewer | Set image as Android wallpaper. |
+| ✅ | Video player | Open videos in-app from Explorer, Search, and category folders. |
+| ✅ | Video player | Play/pause/seek/fullscreen controls. |
+| ✅ | Video player | Speed, loop, shuffle, previous/next, and auto-hide controls. |
+| ✅ | Audio player | Open audio in-app from Explorer, Search, and category folders. |
+| ✅ | Audio player | Play/pause/seek controls. |
+| ✅ | Audio player | Add folder/category/search playlist controls. |
+| ✅ | Open with | Unknown files use Android system open-with sheet from preview. |
+| ✅ | File actions | Long-press file actions include Share and Open with. |
+| ✅ | Search | File results open previews, show media thumbnails, and expose a visible Open folder action. |
 
 ## Later Roadmap
 

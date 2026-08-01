@@ -14,24 +14,45 @@ Progress log for the Flutter application.
   - Fixed rotated-video aspect handling by honoring `rotationCorrection` when calculating display ratio.
   - Moved video preview outside the app shell so bottom navigation does not appear during playback.
 - Expanded the image viewer:
-  - Added pinch zoom, double-tap zoom, swipe previous/next, rotate, labeled bottom controls, dummy share action, and a More menu.
+  - Added pinch zoom, double-tap zoom, swipe previous/next, rotate, labeled bottom controls, Android share, and a More menu.
   - More menu now contains Info, Delete, Rename, and Set as wallpaper.
   - Delete queues through Transfers after confirmation.
+  - Rename now queues through Transfers and validates path separators.
+  - Share now opens Android's system share sheet through a content URI.
   - Set as wallpaper is wired through an Android `WallpaperManager` MethodChannel.
+  - Fixed image More-menu route timing around rename/delete/info actions so dialogs and sheets are opened after the popup menu settles.
+  - Moved the image rename dialog text controller into the dialog lifecycle and delayed transfer queueing until after the dialog transition settles.
+  - Tightened image toolbar and More-menu density by reducing button slots, row height, and icon/title gaps.
 - Expanded the audio player:
   - Added a dedicated audio player surface with title/path, volume slider, mute/unmute, previous/next, loop, shuffle, speed, seek, and info.
+- Added Android open-with support for unsupported files:
+  - Unknown previews now show `Open with`.
+  - Android launches the system chooser with a `FileProvider` content URI.
+- Updated Search result behavior:
+  - File result taps now open the file preview instead of jumping to the containing folder.
+  - Search result rows now expose a visible `Open folder` text action that preserves the previous containing-folder navigation behavior.
+  - Search results now use shared media thumbnails for images, videos, and apps, with icon fallback for other file types.
+- Expanded Explorer long-press actions:
+  - Long-press now opens the entry actions sheet instead of immediately toggling selection.
+  - The actions sheet keeps `Select` available for selection mode.
+  - File actions now include `Share` and `Open with` using the shared Android media action channel.
 - Polished file details:
   - Replaced the redundant Parent folder row with a `MIME Type` row.
   - Added the `mime` package as a direct dependency.
 - Added a Home feature listing page:
   - Home has a `What this app can do` entry.
   - The feature page has a back action and a richer card grid for the app's core capabilities.
+  - Tightened feature-card spacing and centered the leading icon vertically.
 - Documented Android wireless debugging in `README.md`.
 
 ### Verified
 
 - `flutter analyze`
-- `flutter build apk --debug`
+- `flutter build apk --debug` after native media action changes
+
+### Verification Note
+
+- APK builds are only necessary after native Android/iOS, Gradle, manifest, platform-channel, dependency, or asset changes. Dart-only layout/timing fixes can usually stop at `dart format` and `flutter analyze` unless runtime behavior needs a packaged APK.
 
 ### Pending Verification
 

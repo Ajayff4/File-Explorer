@@ -1,6 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -101,6 +102,24 @@ class _EntryActionsSheet extends ConsumerWidget {
                 onSelect?.call();
               },
             ),
+          if (!entry.isFolder) ...[
+            ListTile(
+              leading: const Icon(Icons.share_rounded),
+              title: const Text('Share'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _shareEntry(parentContext, entry);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Open with'),
+              onTap: () {
+                Navigator.of(context).pop();
+                _openEntryWithSystem(parentContext, entry);
+              },
+            ),
+          ],
           for (final operation in [
             TransferOperation.copy,
             TransferOperation.move,
@@ -159,6 +178,47 @@ class _EntryActionsSheet extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+Future<void> _shareEntry(BuildContext context, FileSystemEntry entry) async {
+  await Future<void>.delayed(const Duration(milliseconds: 120));
+  if (!context.mounted) {
+    return;
+  }
+  final messenger = ScaffoldMessenger.of(context);
+
+  try {
+    await shareLocalFile(entry.path);
+  } on MissingPluginException {
+    _showMessageWithMessenger(messenger, 'Share is available on Android');
+  } on PlatformException catch (error) {
+    _showMessageWithMessenger(
+      messenger,
+      error.message ?? 'Could not share file',
+    );
+  }
+}
+
+Future<void> _openEntryWithSystem(
+  BuildContext context,
+  FileSystemEntry entry,
+) async {
+  await Future<void>.delayed(const Duration(milliseconds: 120));
+  if (!context.mounted) {
+    return;
+  }
+  final messenger = ScaffoldMessenger.of(context);
+
+  try {
+    await openLocalFileWithSystem(entry.path);
+  } on MissingPluginException {
+    _showMessageWithMessenger(messenger, 'Open with is available on Android');
+  } on PlatformException catch (error) {
+    _showMessageWithMessenger(
+      messenger,
+      error.message ?? 'Could not open file',
     );
   }
 }
@@ -268,13 +328,37 @@ void _showQueuedSnackBar(
   BuildContext context,
   TransferOperation operation,
 ) {
-  ScaffoldMessenger.of(context).showSnackBar(
+  _showMessage(
+    context,
+    '${operation.label} task queued',
+    action: SnackBarAction(
+      label: 'Transfers',
+      onPressed: () => context.go(AppRoutes.transfers),
+    ),
+  );
+}
+
+void _showMessage(
+  BuildContext context,
+  String message, {
+  SnackBarAction? action,
+}) {
+  _showMessageWithMessenger(
+    ScaffoldMessenger.of(context),
+    message,
+    action: action,
+  );
+}
+
+void _showMessageWithMessenger(
+  ScaffoldMessengerState messenger,
+  String message, {
+  SnackBarAction? action,
+}) {
+  messenger.showSnackBar(
     SnackBar(
-      content: Text('${operation.label} task queued'),
-      action: SnackBarAction(
-        label: 'Transfers',
-        onPressed: () => context.go(AppRoutes.transfers),
-      ),
+      content: Text(message),
+      action: action,
     ),
   );
 }

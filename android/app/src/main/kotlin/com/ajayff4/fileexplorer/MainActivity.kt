@@ -1,6 +1,7 @@
 package com.ajayff4.fileexplorer
 
 import android.app.WallpaperManager
+import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -11,6 +12,7 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
@@ -21,6 +23,7 @@ class MainActivity: FlutterActivity() {
     private val storageChannel = "com.ajayff4.fileexplorer/storage"
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
     private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
+    private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -74,6 +77,35 @@ class MainActivity: FlutterActivity() {
                                 "Could not set wallpaper",
                                 null,
                             )
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaActionsChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "shareFile" -> {
+                        val path = call.argument<String>("path")
+                        val mimeType = call.argument<String>("mimeType") ?: "*/*"
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else if (shareFile(path, mimeType)) {
+                            result.success(null)
+                        } else {
+                            result.error("share_failed", "Could not share file", null)
+                        }
+                    }
+                    "openFile" -> {
+                        val path = call.argument<String>("path")
+                        val mimeType = call.argument<String>("mimeType") ?: "*/*"
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else if (openFile(path, mimeType)) {
+                            result.success(null)
+                        } else {
+                            result.error("open_failed", "Could not open file", null)
                         }
                     }
                     else -> result.notImplemented()
@@ -202,6 +234,57 @@ class MainActivity: FlutterActivity() {
             false
         }
     }
+
+    private fun shareFile(path: String, mimeType: String): Boolean {
+        return try {
+            val file = File(path)
+            if (!file.isFile) {
+                return false
+            }
+
+            val uri = contentUriFor(file)
+            val sendIntent = Intent(Intent.ACTION_SEND).apply {
+                type = mimeType
+                putExtra(Intent.EXTRA_STREAM, uri)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(sendIntent, "Share image").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(chooser)
+            true
+        } catch (error: Exception) {
+            false
+        }
+    }
+
+    private fun openFile(path: String, mimeType: String): Boolean {
+        return try {
+            val file = File(path)
+            if (!file.isFile) {
+                return false
+            }
+
+            val uri = contentUriFor(file)
+            val viewIntent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, mimeType)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            val chooser = Intent.createChooser(viewIntent, "Open with").apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            }
+            startActivity(chooser)
+            true
+        } catch (error: Exception) {
+            false
+        }
+    }
+
+    private fun contentUriFor(file: File) = FileProvider.getUriForFile(
+        this,
+        "${applicationContext.packageName}.fileprovider",
+        file,
+    )
 
     @Suppress("DEPRECATION")
     private fun getPackageArchiveInfo(path: String): PackageInfo? {

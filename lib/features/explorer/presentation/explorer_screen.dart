@@ -5,6 +5,7 @@ import 'package:file_explorer/features/explorer/domain/repositories/storage_repo
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
@@ -706,9 +707,16 @@ class _EntryList extends ConsumerWidget {
             onLongPress: isSelectionMode
                 ? null
                 : () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
+                    showEntryActionsSheet(
+                      context: context,
+                      ref: ref,
+                      entry: entry,
+                      onSelect: () {
+                        ref
+                            .read(explorerControllerProvider.notifier)
+                            .toggleSelection(entry.path);
+                      },
+                    );
                   },
           ),
         );
@@ -763,6 +771,18 @@ class _EntryGrid extends ConsumerWidget {
                   : _canPreviewEntry(entry)
                       ? () => _openEntry(context, ref, entry, entries)
                       : null,
+              onShowActions: () {
+                showEntryActionsSheet(
+                  context: context,
+                  ref: ref,
+                  entry: entry,
+                  onSelect: () {
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .toggleSelection(entry.path);
+                  },
+                );
+              },
             );
           },
         );
@@ -778,6 +798,7 @@ class _GridEntryTile extends StatelessWidget {
     required this.isSelectionMode,
     required this.onToggleSelection,
     required this.onOpenFolder,
+    required this.onShowActions,
   });
 
   final FileSystemEntry entry;
@@ -785,6 +806,7 @@ class _GridEntryTile extends StatelessWidget {
   final bool isSelectionMode;
   final VoidCallback onToggleSelection;
   final VoidCallback? onOpenFolder;
+  final VoidCallback onShowActions;
 
   @override
   Widget build(BuildContext context) {
@@ -796,7 +818,7 @@ class _GridEntryTile extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: isSelectionMode ? onToggleSelection : onOpenFolder,
-        onLongPress: isSelectionMode ? null : onToggleSelection,
+        onLongPress: isSelectionMode ? null : onShowActions,
         child: Stack(
           children: [
             Padding(

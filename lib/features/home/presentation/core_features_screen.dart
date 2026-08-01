@@ -31,7 +31,7 @@ class CoreFeaturesScreen extends StatelessWidget {
             itemCount: _coreFeatures.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: MediaQuery.sizeOf(context).width >= 720 ? 2 : 1,
-              mainAxisExtent: 132,
+              mainAxisExtent: 112,
               mainAxisSpacing: 10,
               crossAxisSpacing: 10,
             ),
@@ -56,9 +56,9 @@ class _CoreFeatureCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             DecoratedBox(
               decoration: BoxDecoration(
@@ -84,15 +84,13 @@ class _CoreFeatureCard extends StatelessWidget {
                         ),
                   ),
                   const SizedBox(height: 6),
-                  Expanded(
-                    child: Text(
-                      feature.description,
-                      maxLines: 4,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: colorScheme.onSurfaceVariant,
-                          ),
-                    ),
+                  Text(
+                    feature.description,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                   ),
                 ],
               ),
