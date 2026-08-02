@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 Widget mediaThumbnailFor({
   required FileSystemEntry entry,
   required Widget fallback,
+  double dimension = 48,
 }) {
   return Center(child: fallback);
 }

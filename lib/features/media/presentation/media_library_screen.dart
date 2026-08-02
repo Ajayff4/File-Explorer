@@ -5,9 +5,7 @@ import 'package:file_explorer/features/explorer/presentation/explorer_screen.dar
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
-import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
-import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -98,11 +96,9 @@ final mediaLibraryResultsProvider =
     FutureProvider.family<List<SearchResult>, MediaLibraryRequest>(
   (ref, request) async {
     final repository = ref.watch(mediaLibraryRepositoryProvider);
-    return repository.findByType(
+    return repository.findFoldersWithMedia(
       rootPath: request.rootPath,
       type: request.kind.type,
-      maxDepth: 64,
-      maxResults: 50000,
     );
   },
 );
@@ -147,7 +143,6 @@ class MediaLibraryScreen extends ConsumerWidget {
           error: (error, _) => _MediaErrorState(error: error),
           data: (results) => _MediaResultsView(
             kind: kind,
-            rootPath: rootPath,
             results: results,
             sortOption: sortOption,
           ),
@@ -170,13 +165,11 @@ class MediaLibraryScreen extends ConsumerWidget {
 class _MediaResultsView extends StatelessWidget {
   const _MediaResultsView({
     required this.kind,
-    required this.rootPath,
     required this.results,
     required this.sortOption,
   });
 
   final MediaLibraryKind kind;
-  final String rootPath;
   final List<SearchResult> results;
   final MediaSortOption sortOption;
 
@@ -191,13 +184,6 @@ class _MediaResultsView extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _MediaScopeHeader(
-            kind: kind,
-            rootPath: rootPath,
-            count: 0,
-            sortOption: sortOption,
-          ),
-          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: Icon(kind.icon),
@@ -212,23 +198,12 @@ class _MediaResultsView extends StatelessWidget {
       MediaLibraryKind.images || MediaLibraryKind.videos => 3,
       _ => 4,
     };
-    final tileExtent = crossAxisCount == 3 ? 172.0 : 132.0;
+    final tileExtent = crossAxisCount == 3 ? 148.0 : 112.0;
 
     return CustomScrollView(
       slivers: [
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          sliver: SliverToBoxAdapter(
-            child: _MediaScopeHeader(
-              kind: kind,
-              rootPath: rootPath,
-              count: groups.length,
-              sortOption: sortOption,
-            ),
-          ),
-        ),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+          padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
           sliver: SliverGrid.builder(
             itemCount: groups.length,
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -277,40 +252,6 @@ class _MediaSortMenu extends ConsumerWidget {
   }
 }
 
-class _MediaScopeHeader extends StatelessWidget {
-  const _MediaScopeHeader({
-    required this.kind,
-    required this.rootPath,
-    required this.count,
-    required this.sortOption,
-  });
-
-  final MediaLibraryKind kind;
-  final String rootPath;
-  final int count;
-  final MediaSortOption sortOption;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      leading: Icon(kind.icon),
-      title: Text(count == 1 ? '1 folder' : '$count folders'),
-      subtitle: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Sorted by ${sortOption.label}'),
-          Text(
-            rootPath,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _MediaFolderTile extends ConsumerWidget {
   const _MediaFolderTile({
     required this.kind,
@@ -332,66 +273,40 @@ class _MediaFolderTile extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => _openFolder(context, ref),
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(4, isLarge ? 6 : 8, 4, 6),
-          child: Column(
-            children: [
-              SizedBox(
-                height: isLarge ? 96 : 52,
-                child: Center(
-                  child: MediaThumbnail(
-                    entry: entry,
-                    fallback: fileIconForEntry(context, entry, size: isLarge ? 96 : 52),
-                    dimension: isLarge ? 96 : 52,
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(4, isLarge ? 6 : 8, 4, 2),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: isLarge ? 96 : 52,
+                  child: Center(
+                    child: MediaThumbnail(
+                      entry: entry,
+                      fallback: fileIconForEntry(context, entry, size: isLarge ? 96 : 52),
+                      dimension: isLarge ? 96 : 52,
+                    ),
                   ),
                 ),
-              ),
-              SizedBox(height: isLarge ? 6 : 8),
-              SizedBox(
-                height: 34,
-                child: Align(
-                  alignment: Alignment.topCenter,
-                  child: Text(
-                    group.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              SizedBox(
-                height: 18,
-                child: Text(
-                  group.count == 1 ? '1 item' : '${group.count} items',
-                  maxLines: 1,
+                SizedBox(height: isLarge ? 6 : 8),
+                Text(
+                  '${group.name} (${group.count})',
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelSmall,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall,
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
       ),
     );
   }
 
   void _openFolder(BuildContext context, WidgetRef ref) {
-    final settings = ref.read(settingsControllerProvider).settings;
-    ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
-    ref.read(explorerControllerProvider.notifier).openDirectory(
-          group.path,
-          recordRecent: settings.showFoldersOnlyInHistory,
-        );
-    if (!settings.showFoldersOnlyInHistory) {
-      ref.read(recentsControllerProvider.notifier).recordLocation(
-            path: group.path,
-            label: group.name,
-            isFolder: true,
-          );
-    }
-    context.go(AppRoutes.explorer);
+    context.push(
+      '/media/${kind.routeSegment}/folder',
+      extra: group.path,
+    );
   }
 }
 

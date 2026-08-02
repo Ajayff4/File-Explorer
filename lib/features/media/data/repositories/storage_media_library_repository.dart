@@ -13,7 +13,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     required String rootPath,
     required FileSystemEntryType type,
     int maxDepth = 64,
-    int maxResults = 50000,
   }) async {
     final results = <SearchResult>[];
     await _collectResults(
@@ -23,7 +22,23 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
       visitedPaths: <String>{},
       depth: 0,
       maxDepth: maxDepth,
-      maxResults: maxResults,
+    );
+    return results;
+  }
+
+  @override
+  Future<List<SearchResult>> findFoldersWithMedia({
+    required String rootPath,
+    required FileSystemEntryType type,
+  }) async {
+    final results = <SearchResult>[];
+    await _collectResults(
+      path: rootPath,
+      type: type,
+      results: results,
+      visitedPaths: <String>{},
+      depth: 0,
+      maxDepth: 64,
     );
     return results;
   }
@@ -35,11 +50,8 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     required Set<String> visitedPaths,
     required int depth,
     required int maxDepth,
-    required int maxResults,
   }) async {
-    if (depth > maxDepth ||
-        visitedPaths.contains(path) ||
-        results.length >= maxResults) {
+    if (depth > maxDepth || visitedPaths.contains(path)) {
       return;
     }
     visitedPaths.add(path);
@@ -47,9 +59,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     final listing = await _storageRepository.listDirectory(path);
 
     for (final entry in listing.entries) {
-      if (results.length >= maxResults) {
-        break;
-      }
       if (entry.type == type) {
         results.add(
           SearchResult(
@@ -62,9 +71,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     }
 
     for (final folder in listing.entries.where((entry) => entry.isFolder)) {
-      if (results.length >= maxResults) {
-        break;
-      }
       try {
         await _collectResults(
           path: folder.path,
@@ -73,7 +79,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
           visitedPaths: visitedPaths,
           depth: depth + 1,
           maxDepth: maxDepth,
-          maxResults: maxResults,
         );
       } on Object {
         continue;

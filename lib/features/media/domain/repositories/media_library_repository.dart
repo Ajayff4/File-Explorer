@@ -6,6 +6,10 @@ abstract interface class MediaLibraryRepository {
     required String rootPath,
     required FileSystemEntryType type,
     int maxDepth = 64,
-    int maxResults = 50000,
+  });
+
+  Future<List<SearchResult>> findFoldersWithMedia({
+    required String rootPath,
+    required FileSystemEntryType type,
   });
 }

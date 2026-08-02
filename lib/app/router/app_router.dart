@@ -4,6 +4,7 @@ import 'package:file_explorer/features/explorer/presentation/explorer_screen.dar
 import 'package:file_explorer/features/explorer/presentation/widgets/selection_bottom_bar.dart';
 import 'package:file_explorer/features/home/presentation/core_features_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
+import 'package:file_explorer/features/media/presentation/media_folder_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
@@ -47,6 +48,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
+            path: AppRoutes.mediaFolder,
+            builder: (context, state) {
+              final extra = state.extra;
+              final kind = MediaLibraryKind.fromRouteSegment(
+                state.pathParameters['kind'],
+              );
+              final folderPath = extra is String
+                  ? extra
+                  : '/';
+              return MediaFolderScreen(
+                folderPath: folderPath,
+                kind: kind,
+              );
+            },
+          ),
+          GoRoute(
             path: AppRoutes.transfers,
             builder: (context, state) => const TransferManagerScreen(),
           ),
@@ -83,6 +100,7 @@ class AppRoutes {
   static const explorer = '/explorer';
   static const search = '/search';
   static const mediaLibrary = '/media/:kind';
+  static const mediaFolder = '/media/:kind/folder';
   static const mediaViewer = '/preview';
   static const transfers = '/transfers';
   static const settings = '/settings';

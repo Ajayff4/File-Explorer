@@ -229,16 +229,17 @@ class GridEntryVisual extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = entry.isFolder ? 64.0 : 56.0;
     if (entry.type == FileSystemEntryType.image ||
         entry.type == FileSystemEntryType.video ||
         entry.type == FileSystemEntryType.app) {
       return MediaThumbnail(
         entry: entry,
-        fallback: fileIconForEntry(context, entry),
+        fallback: fileIconForEntry(context, entry, size: iconSize),
       );
     }
 
-    return fileIconForEntry(context, entry, size: 52);
+    return fileIconForEntry(context, entry, size: iconSize);
   }
 }
 
@@ -274,16 +275,16 @@ class GridEntryTile extends ConsumerWidget {
         child: Stack(
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+              padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
               child: Column(
                 children: [
                   SizedBox(
-                    height: 56,
+                    height: entry.isFolder ? 64 : 56,
                     child: Center(child: GridEntryVisual(entry: entry)),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 4),
                   SizedBox(
-                    height: 34,
+                    height: 28,
                     child: Align(
                       alignment: Alignment.topCenter,
                       child: Text(
@@ -295,9 +296,9 @@ class GridEntryTile extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(height: 2),
                   SizedBox(
-                    height: 18,
+                    height: 16,
                     child: Text(
                       detailForFileSystemEntry(entry),
                       maxLines: 1,

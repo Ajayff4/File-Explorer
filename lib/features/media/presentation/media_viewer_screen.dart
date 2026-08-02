@@ -1326,9 +1326,11 @@ class _PlaybackControls extends StatelessWidget {
             ],
             Row(
               children: [
-                Text(
-                  _formatDuration(position),
-                  style: TextStyle(color: textColor),
+                Flexible(
+                  child: Text(
+                    _formatDuration(position),
+                    style: TextStyle(color: textColor),
+                  ),
                 ),
                 Expanded(
                   child: Slider(
@@ -1344,9 +1346,11 @@ class _PlaybackControls extends StatelessWidget {
                           },
                   ),
                 ),
-                Text(
-                  _formatDuration(duration),
-                  style: TextStyle(color: textColor),
+                Flexible(
+                  child: Text(
+                    _formatDuration(duration),
+                    style: TextStyle(color: textColor),
+                  ),
                 ),
               ],
             ),

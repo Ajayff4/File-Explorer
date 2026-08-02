@@ -7,7 +7,7 @@ class MediaThumbnail extends StatelessWidget {
   const MediaThumbnail({
     required this.entry,
     required this.fallback,
-    this.dimension = 48,
+    this.dimension = 56,
     super.key,
   });
 
@@ -28,6 +28,7 @@ class MediaThumbnail extends StatelessWidget {
           child: mediaThumbnailFor(
             entry: entry,
             fallback: fallback,
+            dimension: dimension,
           ),
         ),
       ),

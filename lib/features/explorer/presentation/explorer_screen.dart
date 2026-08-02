@@ -1069,7 +1069,7 @@ class EntryGrid extends ConsumerWidget {
           itemCount: entries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            mainAxisExtent: 124,
+            mainAxisExtent: 114,
             mainAxisSpacing: 10,
             crossAxisSpacing: 8,
           ),
