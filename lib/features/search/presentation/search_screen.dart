@@ -2,17 +2,15 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
-import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
-import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
-import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:path/path.dart' as p;
 
 enum _SearchScope { currentFolder, storageRoot }
 
@@ -100,9 +98,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 tooltip: 'Select range',
                 onPressed: selectedCount >= 2
                     ? () {
+                        final searchPaths = searchState.results
+                            .map((r) => r.entry.path)
+                            .toList();
                         ref
                             .read(explorerControllerProvider.notifier)
-                            .selectInterval();
+                            .selectInterval(paths: searchPaths);
                       }
                     : null,
                 icon: const Icon(Icons.linear_scale_rounded),
@@ -211,7 +212,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             },
           ),
           const SizedBox(height: 16),
-          ..._buildConditionalChildren(searchState, isSelectionMode),
+          ..._buildConditionalChildren(searchState, isSelectionMode, ref, context),
         ],
       ),
     ),
@@ -219,7 +220,12 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 }
 }
 
-List<Widget> _buildConditionalChildren(FileSearchState searchState, bool isSelectionMode) {
+List<Widget> _buildConditionalChildren(
+  FileSearchState searchState,
+  bool isSelectionMode,
+  WidgetRef ref,
+  BuildContext context,
+) {
   if (!searchState.hasQuery && searchState.filteredTypes.isEmpty) {
     return [const _SearchHint()];
   } else if (searchState.isSearching) {
@@ -229,18 +235,78 @@ List<Widget> _buildConditionalChildren(FileSearchState searchState, bool isSelec
   } else if (searchState.results.isEmpty) {
     return [const _NoSearchResults()];
   } else {
+    final entries = searchState.results.map((r) => r.entry).toList();
     return [
       _ResultCountHeader(count: searchState.results.length),
       const SizedBox(height: 8),
-      _SearchResultsGrid(
-        results: searchState.results,
-        activeFilter: searchState.filteredTypes.isEmpty
-            ? null
-            : searchState.filteredTypes.first,
+      EntryGrid(
+        entries: entries,
         isSelectionMode: isSelectionMode,
+        shrinkWrap: true,
+        onOpen: (context, ref, entry) {
+          if (entry.isFolder) {
+            ref.read(explorerControllerProvider.notifier).openDirectory(entry.path);
+            context.go(AppRoutes.explorer);
+          } else {
+            _openSearchFile(context, ref, entry, searchState.results);
+          }
+        },
+        trailingBuilder: (context, entry) {
+          if (entry.isFolder) return null;
+          return IconButton(
+            tooltip: 'Open folder',
+            onPressed: () => _openContainingFolder(context, ref, entry, searchState.filteredTypes.isEmpty ? null : searchState.filteredTypes.first),
+            visualDensity: VisualDensity.compact,
+            iconSize: 18,
+            icon: const Icon(Icons.folder_open_rounded),
+          );
+        },
       ),
     ];
   }
+}
+
+void _openSearchFile(
+  BuildContext context,
+  WidgetRef ref,
+  FileSystemEntry entry,
+  List<SearchResult> results,
+) {
+  final settings = ref.read(settingsControllerProvider).settings;
+  if (!settings.showFoldersOnlyInHistory) {
+    ref.read(recentsControllerProvider.notifier).recordLocation(
+          path: entry.path,
+          label: entry.name,
+          isFolder: false,
+        );
+  }
+
+  context.push(
+    AppRoutes.mediaViewer,
+    extra: MediaViewerSession(
+      entry: entry,
+      entries: [for (final r in results) r.entry],
+    ),
+  );
+}
+
+void _openContainingFolder(
+  BuildContext context,
+  WidgetRef ref,
+  FileSystemEntry entry,
+  FileSystemEntryType? activeFilter,
+) {
+  final settings = ref.read(settingsControllerProvider).settings;
+  final shouldRecordFile = !entry.isFolder && !settings.showFoldersOnlyInHistory;
+
+  if (activeFilter != null) {
+    ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;
+  }
+  ref.read(explorerControllerProvider.notifier).openDirectory(
+        entry.isFolder ? entry.path : p.dirname(entry.path),
+        recordRecent: entry.isFolder || !shouldRecordFile,
+      );
+  context.go(AppRoutes.explorer);
 }
 
 class _TypeFilterChips extends StatelessWidget {
@@ -317,215 +383,6 @@ class _ResultCountHeader extends StatelessWidget {
       count == 1 ? '1 result' : '$count results',
       style: Theme.of(context).textTheme.labelLarge,
     );
-  }
-}
-
-class _SearchResultsGrid extends StatelessWidget {
-  const _SearchResultsGrid({
-    required this.results,
-    this.activeFilter,
-    required this.isSelectionMode,
-  });
-
-  final List<SearchResult> results;
-  final FileSystemEntryType? activeFilter;
-  final bool isSelectionMode;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columnCount = (constraints.maxWidth / 108).floor().clamp(3, 6);
-
-        return GridView.builder(
-          shrinkWrap: true,
-          primary: false,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: results.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columnCount,
-            mainAxisExtent: 138,
-            mainAxisSpacing: 10,
-            crossAxisSpacing: 8,
-          ),
-          itemBuilder: (context, index) {
-            return _SearchResultGridTile(
-              result: results[index],
-              results: results,
-              activeFilter: activeFilter,
-              isSelectionMode: isSelectionMode,
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _SearchResultGridTile extends ConsumerWidget {
-  const _SearchResultGridTile({
-    required this.result,
-    required this.results,
-    this.activeFilter,
-    required this.isSelectionMode,
-  });
-
-  final SearchResult result;
-  final List<SearchResult> results;
-  final FileSystemEntryType? activeFilter;
-  final bool isSelectionMode;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final entry = result.entry;
-    final selectedPaths = ref.watch(explorerControllerProvider).selectedPaths;
-    final isSelected = selectedPaths.contains(entry.path);
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: isSelected
-          ? colorScheme.secondaryContainer
-          : colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: isSelectionMode
-            ? () {
-                ref
-                    .read(explorerControllerProvider.notifier)
-                    .toggleSelection(entry.path);
-              }
-            : () {
-                if (entry.isFolder) {
-                  _openContainingFolder(context, ref);
-                } else {
-                  _openFile(context, ref);
-                }
-              },
-        onLongPress: isSelectionMode
-            ? null
-            : () {
-                ref
-                    .read(explorerControllerProvider.notifier)
-                    .toggleSelection(entry.path);
-              },
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 52,
-                    child: Center(
-                      child: MediaThumbnail(
-                        entry: entry,
-                        fallback: fileIconForEntry(context, entry, size: 52),
-                        dimension: 52,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 34,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Text(
-                        entry.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
-                  const Spacer(),
-                  SizedBox(
-                    height: 18,
-                    child: Text(
-                      _detailFor(entry),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelectionMode)
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Checkbox(
-                  visualDensity: VisualDensity.compact,
-                  value: isSelected,
-                  onChanged: (_) {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
-                  },
-                ),
-              )
-            else if (!entry.isFolder)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: IconButton(
-                  tooltip: 'Open folder',
-                  onPressed: () => _openContainingFolder(context, ref),
-                  visualDensity: VisualDensity.compact,
-                  iconSize: 18,
-                  icon: const Icon(Icons.folder_open_rounded),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _openFile(BuildContext context, WidgetRef ref) {
-    final entry = result.entry;
-    final settings = ref.read(settingsControllerProvider).settings;
-    if (!settings.showFoldersOnlyInHistory) {
-      ref.read(recentsControllerProvider.notifier).recordLocation(
-            path: entry.path,
-            label: entry.name,
-            isFolder: false,
-          );
-    }
-
-    context.push(
-      AppRoutes.mediaViewer,
-      extra: MediaViewerSession(
-        entry: entry,
-        entries: [
-          for (final searchResult in results) searchResult.entry,
-        ],
-      ),
-    );
-  }
-
-  void _openContainingFolder(BuildContext context, WidgetRef ref) {
-    final settings = ref.read(settingsControllerProvider).settings;
-    final isFolder = result.entry.isFolder;
-    final shouldRecordFile = !isFolder && !settings.showFoldersOnlyInHistory;
-
-    if (activeFilter != null) {
-      ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;
-    }
-    ref.read(explorerControllerProvider.notifier).openDirectory(
-          parentPathForSearchResult(result),
-          recordRecent: isFolder || !shouldRecordFile,
-        );
-    context.go(AppRoutes.explorer);
-  }
-
-  String _detailFor(FileSystemEntry entry) {
-    if (entry.isFolder) {
-      return '${entry.childrenCount ?? 0} items';
-    }
-    return formatBytes(entry.sizeBytes ?? 0);
   }
 }
 

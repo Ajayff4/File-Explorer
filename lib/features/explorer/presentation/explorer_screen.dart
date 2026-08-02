@@ -568,7 +568,7 @@ class ExplorerScreen extends ConsumerWidget {
                           ? _EntryList(
                               entries: entries,
                               isSelectionMode: isSelectionMode)
-                          : _EntryGrid(
+                          : EntryGrid(
                               entries: entries,
                               isSelectionMode: isSelectionMode);
                     },
@@ -1036,11 +1036,21 @@ class _EntryList extends ConsumerWidget {
   }
 }
 
-class _EntryGrid extends ConsumerWidget {
-  const _EntryGrid({required this.entries, required this.isSelectionMode});
+class EntryGrid extends ConsumerWidget {
+  const EntryGrid({
+    required this.entries,
+    required this.isSelectionMode,
+    this.shrinkWrap = false,
+    this.onOpen,
+    this.trailingBuilder,
+    super.key,
+  });
 
   final List<FileSystemEntry> entries;
   final bool isSelectionMode;
+  final bool shrinkWrap;
+  final void Function(BuildContext, WidgetRef, FileSystemEntry)? onOpen;
+  final Widget? Function(BuildContext, FileSystemEntry)? trailingBuilder;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1052,6 +1062,9 @@ class _EntryGrid extends ConsumerWidget {
         final columnCount = (constraints.maxWidth / 92).floor().clamp(4, 8);
 
         return GridView.builder(
+          shrinkWrap: shrinkWrap,
+          primary: shrinkWrap ? false : null,
+          physics: shrinkWrap ? const NeverScrollableScrollPhysics() : null,
           padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
           itemCount: entries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -1064,7 +1077,7 @@ class _EntryGrid extends ConsumerWidget {
             final entry = entries[index];
             final isSelected = selectedPaths.contains(entry.path);
 
-            return _GridEntryTile(
+            return GridEntryTile(
               entry: entry,
               isSelected: isSelected,
               isSelectionMode: isSelectionMode,
@@ -1073,110 +1086,23 @@ class _EntryGrid extends ConsumerWidget {
                     .read(explorerControllerProvider.notifier)
                     .toggleSelection(entry.path);
               },
-              onOpenFolder: entry.isFolder
-                  ? () {
-                      ref
-                          .read(explorerControllerProvider.notifier)
-                          .openDirectory(entry.path);
-                    }
-                  : _canPreviewEntry(entry)
-                      ? () => _openEntry(context, ref, entry, entries)
-                      : null,
+              onOpen: onOpen != null
+                  ? () => onOpen!(context, ref, entry)
+                  : entry.isFolder
+                      ? () {
+                          ref
+                              .read(explorerControllerProvider.notifier)
+                              .openDirectory(entry.path);
+                        }
+                      : _canPreviewEntry(entry)
+                          ? () => _openEntry(context, ref, entry, entries)
+                          : null,
+              trailing: trailingBuilder?.call(context, entry),
             );
           },
         );
       },
     );
-  }
-}
-
-class _GridEntryTile extends StatelessWidget {
-  const _GridEntryTile({
-    required this.entry,
-    required this.isSelected,
-    required this.isSelectionMode,
-    required this.onToggleSelection,
-    required this.onOpenFolder,
-  });
-
-  final FileSystemEntry entry;
-  final bool isSelected;
-  final bool isSelectionMode;
-  final VoidCallback onToggleSelection;
-  final VoidCallback? onOpenFolder;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Material(
-      color: isSelected ? colorScheme.secondaryContainer : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: isSelectionMode ? onToggleSelection : onOpenFolder,
-        onLongPress: isSelectionMode ? null : onToggleSelection,
-        child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 56,
-                    child: Center(child: _GridEntryVisual(entry: entry)),
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 34,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Text(
-                        entry.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (isSelectionMode)
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Checkbox(
-                  visualDensity: VisualDensity.compact,
-                  value: isSelected,
-                  onChanged: (_) => onToggleSelection(),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GridEntryVisual extends StatelessWidget {
-  const _GridEntryVisual({required this.entry});
-
-  final FileSystemEntry entry;
-
-  @override
-  Widget build(BuildContext context) {
-    if (entry.type == FileSystemEntryType.image ||
-        entry.type == FileSystemEntryType.video ||
-        entry.type == FileSystemEntryType.app) {
-      return MediaThumbnail(
-        entry: entry,
-        fallback: fileIconForEntry(context, entry),
-      );
-    }
-
-    return fileIconForEntry(context, entry, size: 52);
   }
 }
 
@@ -1340,7 +1266,7 @@ class _FilteredEntryListView extends StatelessWidget {
 
         return viewMode == ExplorerViewMode.list
             ? _EntryList(entries: sorted, isSelectionMode: isSelectionMode)
-            : _EntryGrid(entries: sorted, isSelectionMode: isSelectionMode);
+            : EntryGrid(entries: sorted, isSelectionMode: isSelectionMode);
       },
     );
   }

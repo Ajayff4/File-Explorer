@@ -1,6 +1,8 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FileEntryColors {
   const FileEntryColors._();
@@ -218,4 +220,113 @@ String typeLabelForFileSystemEntry(FileSystemEntry entry) {
 
 String formatFileModifiedAt(DateTime modifiedAt) {
   return modifiedAt.toLocal().toString().split('.').first;
+}
+
+class GridEntryVisual extends StatelessWidget {
+  const GridEntryVisual({required this.entry, super.key});
+
+  final FileSystemEntry entry;
+
+  @override
+  Widget build(BuildContext context) {
+    if (entry.type == FileSystemEntryType.image ||
+        entry.type == FileSystemEntryType.video ||
+        entry.type == FileSystemEntryType.app) {
+      return MediaThumbnail(
+        entry: entry,
+        fallback: fileIconForEntry(context, entry),
+      );
+    }
+
+    return fileIconForEntry(context, entry, size: 52);
+  }
+}
+
+class GridEntryTile extends ConsumerWidget {
+  const GridEntryTile({
+    required this.entry,
+    required this.isSelected,
+    required this.isSelectionMode,
+    required this.onToggleSelection,
+    required this.onOpen,
+    this.trailing,
+    super.key,
+  });
+
+  final FileSystemEntry entry;
+  final bool isSelected;
+  final bool isSelectionMode;
+  final VoidCallback onToggleSelection;
+  final VoidCallback? onOpen;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Material(
+      color: isSelected ? colorScheme.secondaryContainer : Colors.transparent,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: isSelectionMode ? onToggleSelection : onOpen,
+        onLongPress: isSelectionMode ? null : onToggleSelection,
+        child: Stack(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 6),
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 56,
+                    child: Center(child: GridEntryVisual(entry: entry)),
+                  ),
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 34,
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      child: Text(
+                        entry.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                  ),
+                  const Spacer(),
+                  SizedBox(
+                    height: 18,
+                    child: Text(
+                      detailForFileSystemEntry(entry),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelectionMode)
+              Positioned(
+                top: 0,
+                left: 0,
+                child: Checkbox(
+                  visualDensity: VisualDensity.compact,
+                  value: isSelected,
+                  onChanged: (_) => onToggleSelection(),
+                ),
+              ),
+            if (trailing != null && !isSelectionMode)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: trailing!,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }
