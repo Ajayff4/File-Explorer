@@ -1014,7 +1014,11 @@ class _EntryList extends ConsumerWidget {
                   ),
             title:
                 Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: Text(detailForFileSystemEntry(entry)),
+            subtitle: Text(
+              detailForFileSystemEntry(entry),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
             onTap: isSelectionMode
                 ? () {
                     ref

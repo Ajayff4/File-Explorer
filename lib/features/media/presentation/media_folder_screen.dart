@@ -22,22 +22,14 @@ class MediaFolderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {
-        if (!didPop && context.canPop()) {
-          context.pop();
-        }
-      },
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(p.basename(folderPath)),
-        ),
-        body: _MediaFolderGrid(
-          key: ValueKey(folderPath),
-          folderPath: folderPath,
-          kind: kind,
-        ),
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(p.basename(folderPath)),
+      ),
+      body: _MediaFolderGrid(
+        key: ValueKey(folderPath),
+        folderPath: folderPath,
+        kind: kind,
       ),
     );
   }

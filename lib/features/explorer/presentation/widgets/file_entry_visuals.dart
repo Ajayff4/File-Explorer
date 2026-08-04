@@ -279,7 +279,7 @@ class GridEntryTile extends ConsumerWidget {
               child: Column(
                 children: [
                   SizedBox(
-                    height: entry.isFolder ? 64 : 56,
+                    height: 56,
                     child: Center(child: GridEntryVisual(entry: entry)),
                   ),
                   const SizedBox(height: 4),
