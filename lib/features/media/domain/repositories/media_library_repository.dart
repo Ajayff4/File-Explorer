@@ -5,7 +5,6 @@ abstract interface class MediaLibraryRepository {
   Future<List<SearchResult>> findByType({
     required String rootPath,
     required FileSystemEntryType type,
-    int maxDepth = 64,
   });
 
   Future<List<SearchResult>> findFoldersWithMedia({

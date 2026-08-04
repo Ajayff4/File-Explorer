@@ -85,7 +85,7 @@ class LocalStorageRepository implements StorageRepository {
       counts[type] = 0;
     }
 
-    await _countEntriesRecursive(rootPath, counts, maxDepth: 5);
+    await _countEntriesRecursive(rootPath, counts, visitedPaths: <String>{});
     return counts;
   }
 
@@ -94,7 +94,8 @@ class LocalStorageRepository implements StorageRepository {
     String folderPath,
     FileSystemEntryType type,
   ) async {
-    return _folderContainsFileTypeRecursive(folderPath, type, maxDepth: 4);
+    return _folderContainsFileTypeRecursive(folderPath, type,
+        visitedPaths: <String>{});
   }
 
   @override
@@ -128,9 +129,10 @@ class LocalStorageRepository implements StorageRepository {
   Future<bool> _folderContainsFileTypeRecursive(
     String path,
     FileSystemEntryType type, {
-    required int maxDepth,
+    required Set<String> visitedPaths,
   }) async {
-    if (maxDepth <= 0) return false;
+    if (visitedPaths.contains(path)) return false;
+    visitedPaths.add(path);
 
     try {
       final directory = Directory(path);
@@ -146,7 +148,7 @@ class LocalStorageRepository implements StorageRepository {
             if (await _folderContainsFileTypeRecursive(
               entity.path,
               type,
-              maxDepth: maxDepth - 1,
+              visitedPaths: visitedPaths,
             )) {
               return true;
             }
@@ -165,9 +167,10 @@ class LocalStorageRepository implements StorageRepository {
   Future<void> _countEntriesRecursive(
     String path,
     Map<FileSystemEntryType, int> counts, {
-    required int maxDepth,
+    required Set<String> visitedPaths,
   }) async {
-    if (maxDepth <= 0) return;
+    if (visitedPaths.contains(path)) return;
+    visitedPaths.add(path);
 
     try {
       final directory = Directory(path);
@@ -179,7 +182,7 @@ class LocalStorageRepository implements StorageRepository {
                 (counts[FileSystemEntryType.folder] ?? 0) + 1;
             // Recurse into subdirectories
             await _countEntriesRecursive(entity.path, counts,
-                maxDepth: maxDepth - 1);
+                visitedPaths: visitedPaths);
           } else if (entity is File) {
             final type = _typeFromPath(entity.path);
             counts[type] = (counts[type] ?? 0) + 1;

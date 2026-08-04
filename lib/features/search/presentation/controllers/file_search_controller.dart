@@ -68,12 +68,10 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     this._repository, {
     SearchIndexStore? indexStore,
     Duration debounceDuration = const Duration(milliseconds: 300),
-    int maxDepth = 4,
     int maxResults = 100,
     int maxIndexedEntries = 1000,
   })  : _indexStore = indexStore,
         _debounceDuration = debounceDuration,
-        _maxDepth = maxDepth,
         _maxResults = maxResults,
         _maxIndexedEntries = maxIndexedEntries,
         super(const FileSearchState());
@@ -81,7 +79,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
   final StorageRepository _repository;
   final SearchIndexStore? _indexStore;
   final Duration _debounceDuration;
-  final int _maxDepth;
   final int _maxResults;
   final int _maxIndexedEntries;
   Timer? _debounceTimer;
@@ -172,7 +169,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         rootPath,
         filteredTypes,
         results,
-        depth: 0,
         visitedPaths: <String>{},
       );
       if (!mounted || requestId != _requestSequence) return;
@@ -197,12 +193,9 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     String path,
     Set<FileSystemEntryType> filteredTypes,
     List<SearchResult> results, {
-    required int depth,
     required Set<String> visitedPaths,
   }) async {
-    if (depth > _maxDepth ||
-        visitedPaths.contains(path) ||
-        results.length >= _maxResults) {
+    if (visitedPaths.contains(path) || results.length >= _maxResults) {
       return;
     }
     visitedPaths.add(path);
@@ -218,7 +211,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           SearchResult(
             entry: entry,
             parentPath: path,
-            depth: depth,
+            depth: 0,
           ),
         );
       }
@@ -232,7 +225,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           folder.path,
           filteredTypes,
           results,
-          depth: depth + 1,
           visitedPaths: visitedPaths,
         );
       } on Object {
@@ -313,7 +305,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         query,
         rootPath,
         filteredTypes: filteredTypes,
-        depth: 0,
         visitedPaths: <String>{},
       );
     }
@@ -325,7 +316,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       state = state.copyWith(isIndexing: true);
       final entries = await _collectIndexEntries(
         rootPath,
-        depth: 0,
         visitedPaths: <String>{},
       );
       entries.sort(_compareResults);
@@ -346,10 +336,9 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     String query,
     String path, {
     required Set<FileSystemEntryType> filteredTypes,
-    required int depth,
     required Set<String> visitedPaths,
   }) async {
-    if (depth > _maxDepth || visitedPaths.contains(path)) {
+    if (visitedPaths.contains(path)) {
       return const [];
     }
     visitedPaths.add(path);
@@ -363,7 +352,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           SearchResult(
             entry: entry,
             parentPath: path,
-            depth: depth,
+            depth: 0,
           ),
         );
       }
@@ -382,7 +371,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
             query,
             folder.path,
             filteredTypes: filteredTypes,
-            depth: depth + 1,
             visitedPaths: visitedPaths,
           ),
         );
@@ -398,10 +386,9 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
   Future<List<SearchResult>> _collectIndexEntries(
     String path, {
-    required int depth,
     required Set<String> visitedPaths,
   }) async {
-    if (depth > _maxDepth || visitedPaths.contains(path)) {
+    if (visitedPaths.contains(path)) {
       return const [];
     }
     visitedPaths.add(path);
@@ -412,7 +399,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         SearchResult(
           entry: entry,
           parentPath: path,
-          depth: depth,
+          depth: 0,
         ),
     ];
 
@@ -424,7 +411,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         results.addAll(
           await _collectIndexEntries(
             folder.path,
-            depth: depth + 1,
             visitedPaths: visitedPaths,
           ),
         );

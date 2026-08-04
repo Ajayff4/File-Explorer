@@ -12,7 +12,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
   Future<List<SearchResult>> findByType({
     required String rootPath,
     required FileSystemEntryType type,
-    int maxDepth = 64,
   }) async {
     final results = <SearchResult>[];
     await _collectResults(
@@ -20,8 +19,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
       type: type,
       results: results,
       visitedPaths: <String>{},
-      depth: 0,
-      maxDepth: maxDepth,
     );
     return results;
   }
@@ -37,8 +34,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
       type: type,
       results: results,
       visitedPaths: <String>{},
-      depth: 0,
-      maxDepth: 64,
     );
     return results;
   }
@@ -48,10 +43,8 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     required FileSystemEntryType type,
     required List<SearchResult> results,
     required Set<String> visitedPaths,
-    required int depth,
-    required int maxDepth,
   }) async {
-    if (depth > maxDepth || visitedPaths.contains(path)) {
+    if (visitedPaths.contains(path)) {
       return;
     }
     visitedPaths.add(path);
@@ -67,7 +60,7 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
           SearchResult(
             entry: entry,
             parentPath: path,
-            depth: depth,
+            depth: 0,
           ),
         );
       }
@@ -83,8 +76,6 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
           type: type,
           results: results,
           visitedPaths: visitedPaths,
-          depth: depth + 1,
-          maxDepth: maxDepth,
         );
       } on Object {
         continue;
