@@ -59,6 +59,9 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     final listing = await _storageRepository.listDirectory(path);
 
     for (final entry in listing.entries) {
+      if (entry.name.startsWith('.')) {
+        continue;
+      }
       if (entry.type == type) {
         results.add(
           SearchResult(
@@ -71,6 +74,9 @@ class StorageMediaLibraryRepository implements MediaLibraryRepository {
     }
 
     for (final folder in listing.entries.where((entry) => entry.isFolder)) {
+      if (folder.name.startsWith('.')) {
+        continue;
+      }
       try {
         await _collectResults(
           path: folder.path,

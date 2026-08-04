@@ -24,6 +24,10 @@ class MediaFolderScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
         title: Text(p.basename(folderPath)),
       ),
       body: _MediaFolderGrid(
