@@ -162,7 +162,9 @@ class _EntryActionsSheet extends ConsumerWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            subtitle: Text(detailForFileSystemEntry(entry)),
+            subtitle: entry.isFolder
+                ? null
+                : Text(detailForFileSystemEntry(entry)),
           ),
           const Divider(),
           if (!entry.isFolder) ...[

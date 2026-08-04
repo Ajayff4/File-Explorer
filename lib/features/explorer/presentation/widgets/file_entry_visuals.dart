@@ -297,15 +297,16 @@ class GridEntryTile extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 2),
-                  SizedBox(
-                    height: 16,
-                    child: Text(
-                      detailForFileSystemEntry(entry),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall,
+                  if (!entry.isFolder)
+                    SizedBox(
+                      height: 16,
+                      child: Text(
+                        detailForFileSystemEntry(entry),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall,
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),
