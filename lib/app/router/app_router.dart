@@ -7,6 +7,7 @@ import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_folder_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -54,9 +55,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final kind = MediaLibraryKind.fromRouteSegment(
                 state.pathParameters['kind'],
               );
-              final folderPath = extra is String
-                  ? extra
-                  : '/';
+              final folderPath = extra is String ? extra : '/';
               return MediaFolderScreen(
                 folderPath: folderPath,
                 kind: kind,
@@ -86,6 +85,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const MissingMediaViewerScreen();
         },
       ),
+      GoRoute(
+        path: AppRoutes.textViewer,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is FileSystemEntry) {
+            return TextFileViewerScreen(entry: extra);
+          }
+          return const MissingMediaViewerScreen();
+        },
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -102,6 +111,7 @@ class AppRoutes {
   static const mediaLibrary = '/media/:kind';
   static const mediaFolder = '/media/:kind/folder';
   static const mediaViewer = '/preview';
+  static const textViewer = '/text-preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
 
@@ -179,7 +189,9 @@ class AppShell extends ConsumerWidget {
           ? SelectionBottomBar(
               selectedPaths: selectedPaths,
               onExitSelection: () {
-                ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+                ref
+                    .read(explorerControllerProvider.notifier)
+                    .exitSelectionMode();
               },
             )
           : NavigationBar(
@@ -219,6 +231,9 @@ class AppShell extends ConsumerWidget {
       return 1;
     }
     if (location.startsWith(AppRoutes.mediaViewer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.textViewer)) {
       return 1;
     }
     if (location.startsWith('/media')) {

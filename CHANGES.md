@@ -6,6 +6,14 @@ Progress log for the Flutter application.
 
 ### Completed
 
+- Added built-in text file viewer:
+  - Opens `.txt`, `.md`, `.html`, `.css`, `.js`, `.ts`, `.jsx`, `.tsx`, `.json`, `.xml`, `.yaml`, `.py`, `.java`, `.kt`, `.dart`, `.go`, `.rs`, `.c`, `.cpp`, `.php`, `.rb`, `.swift`, and many more text-based file types.
+  - Monospace font display with selectable text.
+  - Toggle line wrapping on/off.
+  - Adjustable font size (10pt to 24pt).
+  - Loading state, error handling with retry, and empty file state.
+  - Text files now open in built-in viewer by default instead of system app chooser.
+- Updated "Open as" Text option to show choice between built-in text viewer and system apps.
 - Added "Open with" for non-previewable files:
   - Tapping any file (PDF, documents, etc.) in explorer now opens Android's app chooser instead of doing nothing.
   - Grid and list views both handle taps for all file types.

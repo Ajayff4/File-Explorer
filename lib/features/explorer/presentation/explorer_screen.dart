@@ -9,6 +9,7 @@ import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
@@ -1182,14 +1183,29 @@ void _openEntry(
     ref.read(explorerControllerProvider.notifier).openDirectory(entry.path);
     return;
   }
-  if (_canPreviewEntry(entry)) {
+  if (_isMediaType(entry)) {
     context.push(
       AppRoutes.mediaViewer,
       extra: MediaViewerSession(entry: entry, entries: entries),
     );
+  } else if (isTextFile(entry.path)) {
+    context.push(
+      AppRoutes.textViewer,
+      extra: entry,
+    );
   } else {
     _openWithSystem(context, entry);
   }
+}
+
+bool _isMediaType(FileSystemEntry entry) {
+  return switch (entry.type) {
+    FileSystemEntryType.image ||
+    FileSystemEntryType.video ||
+    FileSystemEntryType.audio =>
+      true,
+    _ => false,
+  };
 }
 
 Future<void> _openWithSystem(
@@ -1208,13 +1224,7 @@ Future<void> _openWithSystem(
 }
 
 bool _canPreviewEntry(FileSystemEntry entry) {
-  return switch (entry.type) {
-    FileSystemEntryType.image ||
-    FileSystemEntryType.video ||
-    FileSystemEntryType.audio =>
-      true,
-    _ => false,
-  };
+  return _isMediaType(entry) || isTextFile(entry.path);
 }
 
 bool _canOpenEntry(FileSystemEntry entry) {

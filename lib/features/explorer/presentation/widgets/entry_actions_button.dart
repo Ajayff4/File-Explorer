@@ -200,8 +200,55 @@ void _openEntryAs(
     case _OpenAsType.audio:
       _showViewerChoiceSheet(context, ref, entry, type);
     case _OpenAsType.text:
-      _openAsSystemWithMimeType(context, entry, type.mimeType);
+      _showTextChoiceSheet(context, entry);
   }
+}
+
+void _showTextChoiceSheet(BuildContext context, FileSystemEntry entry) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading:
+                  const Icon(Icons.article_rounded, color: Color(0xFF1E88E5)),
+              title: const Text('Open as Text'),
+              subtitle: Text(entry.name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.visibility_rounded),
+              title: const Text('Use File Explorer'),
+              subtitle: const Text('Open in built-in text viewer'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.push(
+                  AppRoutes.textViewer,
+                  extra: entry,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Use other app'),
+              subtitle: const Text('Choose from installed apps'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _openAsSystemWithMimeType(context, entry, 'text/plain');
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
 }
 
 void _showViewerChoiceSheet(
