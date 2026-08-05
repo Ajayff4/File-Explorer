@@ -118,7 +118,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: EntryPropertiesPanel(
-            entry: entry,
+            entries: [entry],
             storageVolume: const StorageVolume(
               id: 'primary',
               label: 'Internal storage',

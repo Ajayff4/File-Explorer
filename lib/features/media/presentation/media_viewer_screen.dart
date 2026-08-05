@@ -213,7 +213,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
       showDragHandle: true,
       isScrollControlled: true,
       builder: (context) {
-        return EntryPropertiesPanel(entry: _entry);
+        return EntryPropertiesPanel(entries: [_entry]);
       },
     );
   }
@@ -1350,9 +1350,9 @@ class _AudioPlayerSurface extends StatelessWidget {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-      child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          mainAxisSize: MainAxisSize.min,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 156,

@@ -2,6 +2,49 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-06
+
+### Completed
+
+- Added list view to media library screens:
+  - All media libraries (Images, Videos, Audio, Documents, Apps, Archives) now support grid and list view toggle.
+  - List view shows 64x64 thumbnails with badge count, name, total size, and relative date.
+  - All media libraries now use 3-column grid consistently (was 4-column for non-image/video).
+- Replaced sort icon with `...` more menu in media libraries:
+  - Menu matches explorer pattern with view toggle (grid/list) and sort options with check marks.
+  - Sort options: Name A-Z/Z-A, Modified newest/oldest, Size largest/smallest, Type A-Z.
+- Documents folder view now uses blue file icon (`insert_drive_file`) instead of extension badges.
+- Document file names now show in media folder view (same as audio/app/archive).
+- Extracted shared `FileEntryListTile` widget for consistent list rendering across explorer and media:
+  - 64x64 thumbnail with icon fallback, badge count, name, subtitle (size/date or count/date).
+  - Selection mode support with checkbox.
+  - Used in both explorer list view and media library list view.
+- Added shared number formatting utilities (`lib/shared/formatters/number_format.dart`):
+  - `formatCount` adds comma separators (e.g. 1,606).
+  - `formatItemCount` formats item counts with commas.
+  - Used consistently across explorer, media library, and properties panel.
+- Added shared `formatRelativeDate` helper for relative time display (e.g. "3d ago").
+- Properties panel now supports multi-select:
+  - Accepts list of entries instead of single entry.
+  - Multi-select shows: Path (common parent), Contains (X files, Y folders), Size, Bytes.
+  - Single select shows: icon, name, type, path, MIME type (files), contents (folders), size, bytes, modified.
+  - Folder size computed asynchronously with "Computing..." state.
+  - Copy path button (copies common parent for multi-select).
+  - Location section removed (was redundant).
+- Explorer list view updated to use shared `FileEntryListTile`:
+  - Shows badge count for folders, size + date for files, count + date for folders.
+  - Selection count in app bar uses comma formatting.
+
+### Verified
+
+- `flutter analyze`
+- `dart format lib test`
+
+### Pending Verification
+
+- Real-device pass for media library list view toggle and sort menu.
+- Properties panel multi-select with large folder counts.
+
 ## 2026-08-05
 
 ### Completed

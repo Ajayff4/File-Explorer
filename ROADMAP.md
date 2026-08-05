@@ -31,7 +31,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Current-folder favorite toggle. |
 | ✅ | Explorer | Multi-select, select-all, clear-selection, and batch copy/move/delete. |
 | ✅ | Explorer | File type browsing from Home shortcuts with filtered folder counts. |
-| ✅ | Explorer | Properties sheet with type, MIME Type, size, bytes, modified date, item count, storage, and full path. |
+| ✅ | Explorer | Properties sheet with multi-select support: path, contents (files/folders), total size (async for folders), bytes, type, MIME type, modified. |
 | ✅ | Android storage | Storage permission state model. |
 | ✅ | Android storage | Permission education/recovery card. |
 | ✅ | Android storage | Android storage volume MethodChannel. |
@@ -70,7 +70,10 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Home media library entry points. |
 | ✅ | Media | Media item taps open the parent folder with matching type filter. |
 | ✅ | Media | Home category shortcuts open flattened folder groups for matching files. |
-| ✅ | Media | Image/video category folders use three-column grid; other categories use four-column grid. |
+| ✅ | Media | All media categories use three-column grid consistently. |
+| ✅ | Media | Media libraries support grid and list view toggle. |
+| ✅ | Media | Media library list view with thumbnails, badge count, name, size, and relative date. |
+| ✅ | Media | Media library `...` more menu with view toggle and sort options (matching explorer). |
 | ✅ | Media | Date, size, type, and name sorting controls in media libraries. |
 | ✅ | Media | Media/category scanning behind repository boundaries. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
@@ -78,6 +81,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
 | ✅ | Media | Hidden folders filtered from image folder view. |
+| ✅ | Media | Documents folder view uses blue file icon; document names show in folder view. |
 | ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, Android share, transfer-backed rename, and Android wallpaper action. |
 | ✅ | Viewers | Unknown files can launch Android's system open-with sheet. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
@@ -101,7 +105,7 @@ Current local check status:
 
 ```bash
 git status --short
-# dirty: media folder view, video player enhancements, depth limit removal
+# dirty: media library list view, shared list tile, properties multi-select, number formatting
 
 dart format lib
 # passed
@@ -116,7 +120,7 @@ flutter build apk --debug
 # passed after native wakelock/media action changes
 ```
 
-Local analyzer passes after the latest media folder view, video player mute/double-tap-seek/wakelock enhancements, depth-limit removal, and Explorer grid-first polish. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
+Local analyzer passes after the latest media library list view, shared `FileEntryListTile` extraction, properties panel multi-select support, and shared number formatting utilities. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
 The latest debug APK path, after running a build, is:
 

@@ -131,21 +131,21 @@ const _coreFeatures = [
     icon: Icons.folder_open_rounded,
     title: 'Storage browser',
     description:
-        'Browse internal storage with breadcrumbs, list/grid views, sorting, and type filters.',
+        'Browse internal storage with breadcrumbs, list/grid views, sorting, type filters, and badge counts.',
     color: Color(0xFF7C3AED),
   ),
   _CoreFeature(
     icon: Icons.photo_library_rounded,
     title: 'Media libraries',
     description:
-        'Browse grouped images, videos, audio, documents, apps, and archives from one place.',
+        'Browse grouped images, videos, audio, documents, apps, and archives with grid or list view and sort options.',
     color: Color(0xFFEC407A),
   ),
   _CoreFeature(
     icon: Icons.play_circle_fill_rounded,
     title: 'Built-in viewers',
     description:
-        'View images, play videos, and listen to audio with in-app controls.',
+        'View images, play videos with double-tap seek and mute, and listen to audio with playlist controls.',
     color: Color(0xFF26A69A),
   ),
   _CoreFeature(
@@ -179,7 +179,7 @@ const _coreFeatures = [
     icon: Icons.info_outline_rounded,
     title: 'File details',
     description:
-        'Inspect type, MIME Type, size, bytes, modified time, storage root, and path.',
+        'Inspect single or selected items with folder size computation, combined counts, and common path.',
     color: Color(0xFF43A047),
   ),
   _CoreFeature(

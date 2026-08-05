@@ -8,13 +8,13 @@ import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart'
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
-import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -121,7 +121,7 @@ class ExplorerScreen extends ConsumerWidget {
                     )
                   : null,
           title: isSelectionMode
-              ? Text('$selectedCount selected')
+              ? Text('${formatCount(selectedCount)} selected')
               : Text(p.basename(explorerState.currentPath)),
           actions: [
             if (isSelectionMode) ...[
@@ -200,38 +200,49 @@ class ExplorerScreen extends ConsumerWidget {
                       _showCreateFolderDialog(
                         context,
                         ref,
-                        () => ref.read(explorerControllerProvider.notifier).refresh(),
+                        () => ref
+                            .read(explorerControllerProvider.notifier)
+                            .refresh(),
                       );
                       break;
                     case _MoreMenuAction.newFile:
                       _showNewFileMenuSheet(context, ref);
                       break;
                     case _MoreMenuAction.switchToList:
-                      ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.list;
+                      ref.read(explorerViewModeProvider.notifier).state =
+                          ExplorerViewMode.list;
                       break;
                     case _MoreMenuAction.switchToGrid:
-                      ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.grid;
+                      ref.read(explorerViewModeProvider.notifier).state =
+                          ExplorerViewMode.grid;
                       break;
                     case _MoreMenuAction.sortNameAsc:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.nameAscending;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.nameAscending;
                       break;
                     case _MoreMenuAction.sortNameDesc:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.nameDescending;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.nameDescending;
                       break;
                     case _MoreMenuAction.sortModifiedNew:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.modifiedNewest;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.modifiedNewest;
                       break;
                     case _MoreMenuAction.sortModifiedOld:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.modifiedOldest;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.modifiedOldest;
                       break;
                     case _MoreMenuAction.sortSizeLarge:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.sizeLargest;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.sizeLargest;
                       break;
                     case _MoreMenuAction.sortSizeSmall:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.sizeSmallest;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.sizeSmallest;
                       break;
                     case _MoreMenuAction.sortTypeAsc:
-                      ref.read(explorerSortOptionProvider.notifier).state = ExplorerSortOption.typeAscending;
+                      ref.read(explorerSortOptionProvider.notifier).state =
+                          ExplorerSortOption.typeAscending;
                       break;
                   }
                 },
@@ -292,7 +303,10 @@ class ExplorerScreen extends ConsumerWidget {
                       children: [
                         Text(
                           'Sort by',
-                          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleSmall
+                              ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -314,17 +328,20 @@ class ExplorerScreen extends ConsumerWidget {
                         Text(
                           'Name (A-Z)',
                           style: TextStyle(
-                            color: sortOption == ExplorerSortOption.nameAscending
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            fontWeight: sortOption == ExplorerSortOption.nameAscending
-                                ? FontWeight.w600
-                                : null,
+                            color:
+                                sortOption == ExplorerSortOption.nameAscending
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.nameAscending
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.nameAscending)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -343,17 +360,20 @@ class ExplorerScreen extends ConsumerWidget {
                         Text(
                           'Name (Z-A)',
                           style: TextStyle(
-                            color: sortOption == ExplorerSortOption.nameDescending
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            fontWeight: sortOption == ExplorerSortOption.nameDescending
-                                ? FontWeight.w600
-                                : null,
+                            color:
+                                sortOption == ExplorerSortOption.nameDescending
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.nameDescending
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.nameDescending)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -372,17 +392,20 @@ class ExplorerScreen extends ConsumerWidget {
                         Text(
                           'Modified (newest)',
                           style: TextStyle(
-                            color: sortOption == ExplorerSortOption.modifiedNewest
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            fontWeight: sortOption == ExplorerSortOption.modifiedNewest
-                                ? FontWeight.w600
-                                : null,
+                            color:
+                                sortOption == ExplorerSortOption.modifiedNewest
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.modifiedNewest
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.modifiedNewest)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -401,17 +424,20 @@ class ExplorerScreen extends ConsumerWidget {
                         Text(
                           'Modified (oldest)',
                           style: TextStyle(
-                            color: sortOption == ExplorerSortOption.modifiedOldest
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            fontWeight: sortOption == ExplorerSortOption.modifiedOldest
-                                ? FontWeight.w600
-                                : null,
+                            color:
+                                sortOption == ExplorerSortOption.modifiedOldest
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.modifiedOldest
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.modifiedOldest)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -433,14 +459,16 @@ class ExplorerScreen extends ConsumerWidget {
                             color: sortOption == ExplorerSortOption.sizeLargest
                                 ? Theme.of(context).colorScheme.primary
                                 : null,
-                            fontWeight: sortOption == ExplorerSortOption.sizeLargest
-                                ? FontWeight.w600
-                                : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.sizeLargest
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.sizeLargest)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -462,14 +490,16 @@ class ExplorerScreen extends ConsumerWidget {
                             color: sortOption == ExplorerSortOption.sizeSmallest
                                 ? Theme.of(context).colorScheme.primary
                                 : null,
-                            fontWeight: sortOption == ExplorerSortOption.sizeSmallest
-                                ? FontWeight.w600
-                                : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.sizeSmallest
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.sizeSmallest)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -488,17 +518,20 @@ class ExplorerScreen extends ConsumerWidget {
                         Text(
                           'Type (A-Z)',
                           style: TextStyle(
-                            color: sortOption == ExplorerSortOption.typeAscending
-                                ? Theme.of(context).colorScheme.primary
-                                : null,
-                            fontWeight: sortOption == ExplorerSortOption.typeAscending
-                                ? FontWeight.w600
-                                : null,
+                            color:
+                                sortOption == ExplorerSortOption.typeAscending
+                                    ? Theme.of(context).colorScheme.primary
+                                    : null,
+                            fontWeight:
+                                sortOption == ExplorerSortOption.typeAscending
+                                    ? FontWeight.w600
+                                    : null,
                           ),
                         ),
                         const Spacer(),
                         if (sortOption == ExplorerSortOption.typeAscending)
-                          Icon(Icons.check_rounded, size: 18,
+                          Icon(Icons.check_rounded,
+                              size: 18,
                               color: Theme.of(context).colorScheme.primary),
                       ],
                     ),
@@ -783,7 +816,8 @@ class _BreadcrumbBar extends ConsumerWidget {
                                 ? null
                                 : () {
                                     ref
-                                        .read(explorerControllerProvider.notifier)
+                                        .read(
+                                            explorerControllerProvider.notifier)
                                         .openDirectory(segmentPath);
                                   },
                             isLast: isLast,
@@ -823,7 +857,9 @@ class _ArrowBreadcrumb extends StatelessWidget {
         children: [
           Positioned.fill(
             child: Material(
-              color: isLast ? colorScheme.primaryContainer : colorScheme.surfaceContainerHighest,
+              color: isLast
+                  ? colorScheme.primaryContainer
+                  : colorScheme.surfaceContainerHighest,
               shape: _ArrowShape(),
               child: InkWell(
                 onTap: onTap,
@@ -836,8 +872,11 @@ class _ArrowBreadcrumb extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: isLast ? colorScheme.onPrimaryContainer : colorScheme.onSurface,
-                            fontWeight: isLast ? FontWeight.w600 : FontWeight.normal,
+                            color: isLast
+                                ? colorScheme.onPrimaryContainer
+                                : colorScheme.onSurface,
+                            fontWeight:
+                                isLast ? FontWeight.w600 : FontWeight.normal,
                           ),
                     ),
                   ),
@@ -987,55 +1026,26 @@ class _EntryList extends ConsumerWidget {
     final selectedPaths = explorerState.selectedPaths;
 
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: entries.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 6),
+      separatorBuilder: (_, __) => const Divider(height: 1, indent: 96),
       itemBuilder: (context, index) {
         final entry = entries[index];
         final isSelected = selectedPaths.contains(entry.path);
 
-        return Card(
-          color: isSelected
-              ? Theme.of(context).colorScheme.secondaryContainer
+        return FileEntryListTile(
+          entry: entry,
+          isSelectionMode: isSelectionMode,
+          isSelected: isSelected,
+          badgeCount: entry.isFolder ? entry.childrenCount : null,
+          onToggleSelection: () {
+            ref
+                .read(explorerControllerProvider.notifier)
+                .toggleSelection(entry.path);
+          },
+          onTap: _canOpenEntry(entry)
+              ? () => _openEntry(context, ref, entry, entries)
               : null,
-          child: ListTile(
-            leading: isSelectionMode
-                ? Checkbox(
-                    value: isSelected,
-                    onChanged: (_) {
-                      ref
-                          .read(explorerControllerProvider.notifier)
-                          .toggleSelection(entry.path);
-                    },
-                  )
-                : MediaThumbnail(
-                    entry: entry,
-                    fallback: fileIconForEntry(context, entry),
-                  ),
-            title:
-                Text(entry.name, maxLines: 1, overflow: TextOverflow.ellipsis),
-            subtitle: entry.isFolder
-                ? null
-                : Text(
-                    detailForFileSystemEntry(entry),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-            onTap: isSelectionMode
-                ? () {
-                    ref
-                        .read(explorerControllerProvider.notifier)
-                        .toggleSelection(entry.path);
-                  }
-                : _canOpenEntry(entry)
-                    ? () => _openEntry(context, ref, entry, entries)
-                    : null,
-            onLongPress: () {
-              ref
-                  .read(explorerControllerProvider.notifier)
-                  .toggleSelection(entry.path);
-            },
-          ),
         );
       },
     );

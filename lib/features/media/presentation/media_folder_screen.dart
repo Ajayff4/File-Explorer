@@ -86,7 +86,8 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
   @override
   void didUpdateWidget(covariant _MediaFolderGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.folderPath != widget.folderPath || oldWidget.kind != widget.kind) {
+    if (oldWidget.folderPath != widget.folderPath ||
+        oldWidget.kind != widget.kind) {
       setState(() {
         _loading = true;
         _error = null;
@@ -150,21 +151,65 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
   FileSystemEntryType _typeForExtension(String path) {
     final ext = path.split('.').last.toLowerCase();
     const imageExts = {
-      'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'heic', 'heif',
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'bmp',
+      'webp',
+      'svg',
+      'heic',
+      'heif',
     };
     const videoExts = {
-      'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp',
+      'mp4',
+      'avi',
+      'mov',
+      'mkv',
+      'wmv',
+      'flv',
+      'webm',
+      'm4v',
+      '3gp',
     };
     const audioExts = {
-      'mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus', 'aiff',
+      'mp3',
+      'wav',
+      'flac',
+      'aac',
+      'ogg',
+      'wma',
+      'm4a',
+      'opus',
+      'aiff',
     };
     const docExts = {
-      'pdf', 'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'log',
-      'xls', 'xlsx', 'ods', 'csv',
-      'ppt', 'pptx', 'odp',
+      'pdf',
+      'doc',
+      'docx',
+      'odt',
+      'rtf',
+      'txt',
+      'md',
+      'log',
+      'xls',
+      'xlsx',
+      'ods',
+      'csv',
+      'ppt',
+      'pptx',
+      'odp',
     };
     const archiveExts = {
-      'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'tgz', 'tar.gz',
+      'zip',
+      'rar',
+      '7z',
+      'tar',
+      'gz',
+      'bz2',
+      'xz',
+      'tgz',
+      'tar.gz',
     };
     const appExts = {'apk', 'apks', 'xapk', 'apkm', 'aab'};
 
@@ -321,7 +366,8 @@ class _MediaGridTile extends StatelessWidget {
       fallback: fileIconForEntry(context, entry),
       dimension: 120,
     );
-    final needsName = entry.type == FileSystemEntryType.audio ||
+    final needsName = entry.type == FileSystemEntryType.document ||
+        entry.type == FileSystemEntryType.audio ||
         entry.type == FileSystemEntryType.app ||
         entry.type == FileSystemEntryType.archive;
 

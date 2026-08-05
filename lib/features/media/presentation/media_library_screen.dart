@@ -6,6 +6,7 @@ import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
+import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -92,6 +93,10 @@ final mediaLibrarySortOptionProvider = StateProvider<MediaSortOption>((ref) {
   return MediaSortOption.modifiedNewest;
 });
 
+final mediaLibraryViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
+  return ExplorerViewMode.grid;
+});
+
 final mediaLibraryResultsProvider =
     FutureProvider.family<List<SearchResult>, MediaLibraryRequest>(
   (ref, request) async {
@@ -116,6 +121,7 @@ class MediaLibraryScreen extends ConsumerWidget {
     final request = (kind: kind, rootPath: rootPath);
     final resultsAsync = ref.watch(mediaLibraryResultsProvider(request));
     final sortOption = ref.watch(mediaLibrarySortOptionProvider);
+    final viewMode = ref.watch(mediaLibraryViewModeProvider);
 
     return BackButtonListener(
       onBackButtonPressed: () async {
@@ -135,13 +141,14 @@ class MediaLibraryScreen extends ConsumerWidget {
               onPressed: () => _openFilteredExplorer(context, ref, rootPath),
               icon: const Icon(Icons.folder_open_rounded),
             ),
-            _MediaSortMenu(selectedOption: sortOption),
             IconButton(
               tooltip: 'Refresh',
               onPressed: () =>
                   ref.invalidate(mediaLibraryResultsProvider(request)),
               icon: const Icon(Icons.refresh_rounded),
             ),
+            _MediaMoreMenu(sortOption: sortOption, viewMode: viewMode),
+            const SizedBox(width: 8),
           ],
         ),
         body: RefreshIndicator(
@@ -154,6 +161,7 @@ class MediaLibraryScreen extends ConsumerWidget {
               kind: kind,
               results: results,
               sortOption: sortOption,
+              viewMode: viewMode,
             ),
           ),
         ),
@@ -177,11 +185,13 @@ class _MediaResultsView extends StatelessWidget {
     required this.kind,
     required this.results,
     required this.sortOption,
+    required this.viewMode,
   });
 
   final MediaLibraryKind kind;
   final List<SearchResult> results;
   final MediaSortOption sortOption;
+  final ExplorerViewMode viewMode;
 
   @override
   Widget build(BuildContext context) {
@@ -204,11 +214,30 @@ class _MediaResultsView extends StatelessWidget {
       );
     }
 
-    final crossAxisCount = switch (kind) {
-      MediaLibraryKind.images || MediaLibraryKind.videos => 3,
-      _ => 4,
-    };
-    final tileExtent = crossAxisCount == 3 ? 148.0 : 112.0;
+    if (viewMode == ExplorerViewMode.list) {
+      return ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        itemCount: groups.length,
+        separatorBuilder: (_, __) => const Divider(height: 1, indent: 96),
+        itemBuilder: (context, index) {
+          final group = groups[index];
+          return FileEntryListTile(
+            entry: FileSystemEntry(
+              name: group.name,
+              path: group.path,
+              type: FileSystemEntryType.folder,
+              modifiedAt: group.modifiedAt,
+              sizeBytes: group.totalBytes,
+            ),
+            badgeCount: group.count,
+            onTap: () => _openMediaFolder(context, kind, group.path),
+          );
+        },
+      );
+    }
+
+    const crossAxisCount = 3;
+    const tileExtent = 148.0;
 
     return CustomScrollView(
       slivers: [
@@ -216,7 +245,7 @@ class _MediaResultsView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
           sliver: SliverGrid.builder(
             itemCount: groups.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
               mainAxisExtent: tileExtent,
               mainAxisSpacing: 10,
@@ -225,7 +254,6 @@ class _MediaResultsView extends StatelessWidget {
             itemBuilder: (context, index) => _MediaFolderTile(
               kind: kind,
               group: groups[index],
-              isLarge: crossAxisCount == 3,
             ),
           ),
         ),
@@ -234,48 +262,214 @@ class _MediaResultsView extends StatelessWidget {
   }
 }
 
-class _MediaSortMenu extends ConsumerWidget {
-  const _MediaSortMenu({required this.selectedOption});
+void _openMediaFolder(
+    BuildContext context, MediaLibraryKind kind, String path) {
+  context.push(
+    '/media/${kind.routeSegment}/folder',
+    extra: path,
+  );
+}
 
-  final MediaSortOption selectedOption;
+class _MediaMoreMenu extends ConsumerWidget {
+  const _MediaMoreMenu({required this.sortOption, required this.viewMode});
+
+  final MediaSortOption sortOption;
+  final ExplorerViewMode viewMode;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return PopupMenuButton<MediaSortOption>(
-      tooltip: 'Sort',
-      icon: const Icon(Icons.sort_rounded),
-      initialValue: selectedOption,
-      onSelected: (option) {
-        ref.read(mediaLibrarySortOptionProvider.notifier).state = option;
+    return PopupMenuButton<_MediaMoreAction>(
+      tooltip: 'More',
+      icon: const Icon(Icons.more_vert_rounded),
+      offset: const Offset(0, 48),
+      onSelected: (action) {
+        switch (action) {
+          case _MediaMoreAction.switchToList:
+            ref.read(mediaLibraryViewModeProvider.notifier).state =
+                ExplorerViewMode.list;
+          case _MediaMoreAction.switchToGrid:
+            ref.read(mediaLibraryViewModeProvider.notifier).state =
+                ExplorerViewMode.grid;
+          case _MediaMoreAction.sortNameAsc:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.nameAscending;
+          case _MediaMoreAction.sortNameDesc:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.nameDescending;
+          case _MediaMoreAction.sortModifiedNew:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.modifiedNewest;
+          case _MediaMoreAction.sortModifiedOld:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.modifiedOldest;
+          case _MediaMoreAction.sortSizeLarge:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.sizeLargest;
+          case _MediaMoreAction.sortSizeSmall:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.sizeSmallest;
+          case _MediaMoreAction.sortTypeAsc:
+            ref.read(mediaLibrarySortOptionProvider.notifier).state =
+                MediaSortOption.typeAscending;
+        }
       },
       itemBuilder: (context) {
+        final primary = Theme.of(context).colorScheme.primary;
         return [
-          for (final option in MediaSortOption.values)
-            CheckedPopupMenuItem<MediaSortOption>(
-              value: option,
-              checked: option == selectedOption,
-              child: Text(option.label),
+          PopupMenuItem(
+            value: viewMode == ExplorerViewMode.list
+                ? _MediaMoreAction.switchToGrid
+                : _MediaMoreAction.switchToList,
+            child: Row(
+              children: [
+                Icon(
+                  viewMode == ExplorerViewMode.list
+                      ? Icons.grid_view_rounded
+                      : Icons.view_list_rounded,
+                  color: primary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  viewMode == ExplorerViewMode.list
+                      ? 'Switch to grid view'
+                      : 'Switch to list view',
+                  style: TextStyle(color: primary, fontWeight: FontWeight.w600),
+                ),
+              ],
             ),
+          ),
+          const PopupMenuDivider(height: 8),
+          PopupMenuItem(
+            value: _MediaMoreAction.sortNameAsc,
+            enabled: false,
+            child: Row(
+              children: [
+                Text(
+                  'Sort by',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          _sortItem(
+            icon: Icons.sort_by_alpha_rounded,
+            label: 'Name (A-Z)',
+            option: MediaSortOption.nameAscending,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.sort_by_alpha_rounded,
+            label: 'Name (Z-A)',
+            option: MediaSortOption.nameDescending,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.schedule_rounded,
+            label: 'Modified (newest)',
+            option: MediaSortOption.modifiedNewest,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.schedule_rounded,
+            label: 'Modified (oldest)',
+            option: MediaSortOption.modifiedOldest,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.data_usage_rounded,
+            label: 'Size (largest)',
+            option: MediaSortOption.sizeLargest,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.data_usage_rounded,
+            label: 'Size (smallest)',
+            option: MediaSortOption.sizeSmallest,
+            current: sortOption,
+            primary: primary,
+          ),
+          _sortItem(
+            icon: Icons.category_rounded,
+            label: 'Type (A-Z)',
+            option: MediaSortOption.typeAscending,
+            current: sortOption,
+            primary: primary,
+          ),
         ];
       },
     );
   }
+
+  PopupMenuItem<_MediaMoreAction> _sortItem({
+    required IconData icon,
+    required String label,
+    required MediaSortOption option,
+    required MediaSortOption current,
+    required Color primary,
+  }) {
+    final isActive = option == current;
+    return PopupMenuItem(
+      value: switch (option) {
+        MediaSortOption.nameAscending => _MediaMoreAction.sortNameAsc,
+        MediaSortOption.nameDescending => _MediaMoreAction.sortNameDesc,
+        MediaSortOption.modifiedNewest => _MediaMoreAction.sortModifiedNew,
+        MediaSortOption.modifiedOldest => _MediaMoreAction.sortModifiedOld,
+        MediaSortOption.sizeLargest => _MediaMoreAction.sortSizeLarge,
+        MediaSortOption.sizeSmallest => _MediaMoreAction.sortSizeSmall,
+        MediaSortOption.typeAscending => _MediaMoreAction.sortTypeAsc,
+      },
+      child: Row(
+        children: [
+          Icon(icon, color: isActive ? primary : null),
+          const SizedBox(width: 12),
+          Text(
+            label,
+            style: TextStyle(
+              color: isActive ? primary : null,
+              fontWeight: isActive ? FontWeight.w600 : null,
+            ),
+          ),
+          const Spacer(),
+          if (isActive) Icon(Icons.check_rounded, size: 18, color: primary),
+        ],
+      ),
+    );
+  }
+}
+
+enum _MediaMoreAction {
+  switchToList,
+  switchToGrid,
+  sortNameAsc,
+  sortNameDesc,
+  sortModifiedNew,
+  sortModifiedOld,
+  sortSizeLarge,
+  sortSizeSmall,
+  sortTypeAsc,
 }
 
 class _MediaFolderTile extends ConsumerWidget {
   const _MediaFolderTile({
     required this.kind,
     required this.group,
-    required this.isLarge,
   });
 
   final MediaLibraryKind kind;
   final _MediaFolderGroup group;
-  final bool isLarge;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = group.cover.entry;
+    final isDocument = kind == MediaLibraryKind.documents;
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -283,31 +477,68 @@ class _MediaFolderTile extends ConsumerWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => _openFolder(context, ref),
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(4, isLarge ? 6 : 8, 4, 2),
-            child: Column(
-              children: [
-                SizedBox(
-                  height: isLarge ? 96 : 52,
-                  child: Center(
-                    child: MediaThumbnail(
-                      entry: entry,
-                      fallback: fileIconForEntry(context, entry, size: isLarge ? 96 : 52),
-                      dimension: isLarge ? 96 : 52,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
+          child: Column(
+            children: [
+              SizedBox(
+                height: 96,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Positioned.fill(
+                      child: Center(
+                        child: isDocument
+                            ? const Icon(
+                                Icons.insert_drive_file_rounded,
+                                size: 64,
+                                color: FileEntryColors.document,
+                              )
+                            : MediaThumbnail(
+                                entry: entry,
+                                fallback:
+                                    fileIconForEntry(context, entry, size: 96),
+                                dimension: 96,
+                              ),
+                      ),
                     ),
-                  ),
+                    Positioned(
+                      top: -4,
+                      right: -4,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        constraints:
+                            const BoxConstraints(minWidth: 20, minHeight: 20),
+                        child: Text(
+                          formatCount(group.count),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: isLarge ? 6 : 8),
-                Text(
-                  '${group.name} (${group.count})',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                group.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
           ),
+        ),
       ),
     );
   }

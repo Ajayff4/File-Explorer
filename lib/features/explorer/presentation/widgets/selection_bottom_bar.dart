@@ -298,26 +298,20 @@ void _showProperties(BuildContext context, WidgetRef ref, List<String> paths) {
   final listing = explorerState.listing.valueOrNull;
   final searchState = ref.read(fileSearchControllerProvider);
 
-  FileSystemEntry? entry;
-  final targetPath = paths.first;
+  final allEntries = [
+    ...?listing?.entries,
+    ...searchState.results.map((r) => r.entry),
+  ];
 
-  for (final e in listing?.entries ?? const []) {
-    if (e.path == targetPath) {
-      entry = e;
-      break;
+  final entries = <FileSystemEntry>[];
+  for (final path in paths) {
+    final match = allEntries.where((e) => e.path == path);
+    if (match.isNotEmpty) {
+      entries.add(match.first);
     }
   }
 
-  if (entry == null) {
-    for (final result in searchState.results) {
-      if (result.entry.path == targetPath) {
-        entry = result.entry;
-        break;
-      }
-    }
-  }
-
-  if (entry == null) {
+  if (entries.isEmpty) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('${paths.length} items selected')),
     );
@@ -325,7 +319,7 @@ void _showProperties(BuildContext context, WidgetRef ref, List<String> paths) {
   }
 
   final volume = listing?.volume;
-  showEntryProperties(context, entry, volume);
+  showEntryProperties(context, entries, volume);
 }
 
 String _commonParentPath(List<String> paths) {

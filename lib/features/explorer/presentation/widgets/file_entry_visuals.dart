@@ -1,6 +1,7 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -57,7 +58,8 @@ class FileTypeBadge extends StatelessWidget {
   }
 }
 
-Widget fileIconForEntry(BuildContext context, FileSystemEntry entry, {double size = 40}) {
+Widget fileIconForEntry(BuildContext context, FileSystemEntry entry,
+    {double size = 40}) {
   if (entry.isFolder) {
     return Icon(
       Icons.folder_rounded,
@@ -86,13 +88,40 @@ Widget fileIconForEntry(BuildContext context, FileSystemEntry entry, {double siz
 
 bool _shouldShowBadge(String extension) {
   return const {
-    'pdf', 'doc', 'docx', 'odt', 'rtf',
-    'xls', 'xlsx', 'ods', 'csv',
-    'ppt', 'pptx', 'odp',
-    'txt', 'md', 'log',
-    'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz',
-    'json', 'xml', 'yaml', 'yml',
-    'html', 'css', 'js', 'ts', 'dart', 'kt', 'java', 'py',
+    'pdf',
+    'doc',
+    'docx',
+    'odt',
+    'rtf',
+    'xls',
+    'xlsx',
+    'ods',
+    'csv',
+    'ppt',
+    'pptx',
+    'odp',
+    'txt',
+    'md',
+    'log',
+    'zip',
+    'rar',
+    '7z',
+    'tar',
+    'gz',
+    'bz2',
+    'xz',
+    'json',
+    'xml',
+    'yaml',
+    'yml',
+    'html',
+    'css',
+    'js',
+    'ts',
+    'dart',
+    'kt',
+    'java',
+    'py',
   }.contains(extension);
 }
 
@@ -330,5 +359,156 @@ class GridEntryTile extends ConsumerWidget {
         ),
       ),
     );
+  }
+}
+
+String formatRelativeDate(DateTime date) {
+  final now = DateTime.now();
+  final diff = now.difference(date);
+  if (diff.inDays > 365) {
+    return '${(diff.inDays / 365).floor()}y ago';
+  }
+  if (diff.inDays > 30) {
+    return '${(diff.inDays / 30).floor()}mo ago';
+  }
+  if (diff.inDays > 0) {
+    return '${diff.inDays}d ago';
+  }
+  if (diff.inHours > 0) {
+    return '${diff.inHours}h ago';
+  }
+  if (diff.inMinutes > 0) {
+    return '${diff.inMinutes}m ago';
+  }
+  return 'Just now';
+}
+
+class FileEntryListTile extends StatelessWidget {
+  const FileEntryListTile({
+    required this.entry,
+    required this.onTap,
+    this.onLongPress,
+    this.isSelectionMode = false,
+    this.isSelected = false,
+    this.onToggleSelection,
+    this.badgeCount,
+    super.key,
+  });
+
+  final FileSystemEntry entry;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+  final bool isSelectionMode;
+  final bool isSelected;
+  final VoidCallback? onToggleSelection;
+  final int? badgeCount;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: isSelectionMode ? onToggleSelection : onTap,
+      onLongPress: isSelectionMode ? null : (onLongPress ?? onToggleSelection),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: Row(
+          children: [
+            if (isSelectionMode) ...[
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: Checkbox(
+                  visualDensity: VisualDensity.compact,
+                  value: isSelected,
+                  onChanged: (_) => onToggleSelection?.call(),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            SizedBox(
+              width: 64,
+              height: 64,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Center(
+                        child: MediaThumbnail(
+                          entry: entry,
+                          fallback: fileIconForEntry(context, entry, size: 48),
+                          dimension: 64,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (badgeCount != null)
+                    Positioned(
+                      top: -4,
+                      right: -6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primary,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        constraints:
+                            const BoxConstraints(minWidth: 18, minHeight: 18),
+                        child: Text(
+                          formatCount(badgeCount!),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.onPrimary,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    entry.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodyLarge,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _buildSubtitle(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _buildSubtitle() {
+    final date = formatRelativeDate(entry.modifiedAt);
+    if (entry.isFolder) {
+      final count = entry.childrenCount;
+      if (count != null && count > 0) {
+        return '${formatItemCount(count)} \u00b7 $date';
+      }
+      return date;
+    }
+    final size = formatBytes(entry.sizeBytes ?? 0);
+    if (size.isNotEmpty) {
+      return '$size \u00b7 $date';
+    }
+    return date;
   }
 }
