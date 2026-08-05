@@ -2,6 +2,77 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-05
+
+### Completed
+
+- Added media folder view with folder-based browsing:
+  - Media libraries (Images, Videos, Audio, Documents, Apps) now expose a folder view that groups files by their parent folders.
+  - Folder view shows file counts per folder and uses a three-column grid for images/videos, four-column for other types.
+  - Long-press in media folder view opens a bottom sheet with `Open in folder` to navigate to the full Explorer with the matching type filter pre-applied.
+  - Folder view names are now specific to each media kind (Audio, Apps, Archives, etc.).
+  - Hidden folders are filtered out of the image folder view.
+  - Folder view is linked to the actual Explorer so tapping a folder opens it in full Explorer context.
+- Expanded the video player:
+  - Added a mute/unmute button to playback controls.
+  - Added double-tap to seek: double-tap left half to rewind 10s, right half to forward 10s, with a ripple animation at the tap position.
+  - Added a native Android wakelock MethodChannel so the screen stays awake during video playback and releases when paused or disposed.
+  - Fixed orientation handling so media viewer locks to portrait by default and allows all orientations only during fullscreen/landscape playback.
+- Removed depth limitations:
+  - Storage repository, media library scanning, and search no longer cap directory traversal at 5 levels.
+  - All nested folders are now traversed for counts, media results, and search indexing.
+- Cleaned up Explorer regular view by removing redundant item counts from list/grid tiles.
+- Fixed media folder screen navigation bugs and search mode code refactoring.
+
+### Verified
+
+- `flutter analyze`
+- `dart format lib test`
+
+### Pending Verification
+
+- Real-device pass for video double-tap seek, mute, and wakelock behavior.
+- Media folder view long-press navigation to Explorer on a real device.
+
+## 2026-08-02
+
+### Completed
+
+- Expanded archive workflows (full ZIP/TAR/GZ/TAR.GZ support):
+  - `.zip` files expose `Extract here` from file actions.
+  - Compression opens an options dialog with file name, type (ZIP/TAR/GZ/TAR.GZ), compression level, and password fields.
+  - Files, folders, and selected entries can be compressed with ZIP or TAR.
+  - ZIP compression supports optional passwords; other formats show ZIP-only password guidance.
+  - Single files can be compressed with `Compress to GZ`.
+  - Folders can be compressed with `Compress to TAR.GZ`.
+  - Archive extraction supports `.zip`, `.tar`, `.gz`, `.tar.gz`, and `.tgz`.
+  - Archive operations run through Transfers with progress, retry, cancel, and conflict policy handling.
+  - Added the `archive` package as a direct dependency with transfer executor tests.
+- Polished grid-first browsing across the app:
+  - Explorer, Search, and Media libraries now default to grid view for denser folder/file browsing.
+  - Selecting the Files tab resets Explorer to grid view.
+  - Grid tiles keep icons, long names, and item counts aligned in fixed slots.
+- Refactored search mode presentation:
+  - Extracted shared file entry visuals for reuse across Explorer and Search.
+  - Reduced duplication between search and explorer screen layouts.
+- Added selection bottom bar for Explorer multi-select:
+  - Multi-select now shows a bottom action bar with copy, move, and delete batch operations.
+  - Selection state and actions are shared between list and grid views.
+- Added media folder view foundation:
+  - Media libraries now support a folder-based view that groups results by parent directory with file counts.
+  - Folder view uses three-column grid for images/videos and four-column for other types.
+
+### Verified
+
+- `flutter analyze`
+- `flutter test test/features/transfers/data/local_transfer_executor_io_test.dart`
+- `flutter build apk --debug`
+
+### Pending Verification
+
+- Real-device pass for archive compress/extract with passwords.
+- Grid-first layout across Explorer, Search, and Media on various screen sizes.
+
 ## 2026-08-01
 
 ### Completed

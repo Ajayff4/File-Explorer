@@ -75,12 +75,19 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media/category scanning behind repository boundaries. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
+| ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
+| ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
+| ✅ | Media | Hidden folders filtered from image folder view. |
 | ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, Android share, transfer-backed rename, and Android wallpaper action. |
 | ✅ | Viewers | Unknown files can launch Android's system open-with sheet. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
+| ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
+| ✅ | Players | Video player mute/unmute button. |
+| ✅ | Players | Video player keeps screen awake during playback via native wakelock channel. |
 | ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details. |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press opens item actions with Select, Share, Open with, transfer actions, and Properties. |
+| ✅ | Explorer | Storage repository, media scanning, and search traverse all nested folders without depth limits. |
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
 | ✅ | UI polish | Grid tiles keep icons, long names, and item counts aligned. |
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
@@ -94,7 +101,7 @@ Current local check status:
 
 ```bash
 git status --short
-# dirty: media viewers/players + feature page
+# dirty: media folder view, video player enhancements, depth limit removal
 
 dart format lib
 # passed
@@ -106,10 +113,10 @@ flutter test
 # currently has stale widget expectations around Home/media behavior
 
 flutter build apk --debug
-# passed after native media action changes; not rerun for the latest Dart-only menu timing/padding fix by request
+# passed after native wakelock/media action changes
 ```
 
-Local analyzer passes after the latest ZIP/TAR/GZ/TAR.GZ archive transfer workflow, Search open-file/open-folder behavior, and media viewer rename-dialog lifecycle, timing, and menu-density fixes. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
+Local analyzer passes after the latest media folder view, video player mute/double-tap-seek/wakelock enhancements, depth-limit removal, and Explorer grid-first polish. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
 The latest debug APK path, after running a build, is:
 
@@ -132,10 +139,10 @@ Recommended next slices, in order:
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
 | [ ] | 1 | Media | Add category result cache with instant cached render and silent background refresh. |
-| [x] | 2 | Archives | Add ZIP extract and compress actions through Transfers. |
-| [ ] | 3 | Tests | Update stale widget tests for current Home/media behavior. |
-| [x] | 4 | Viewers | Replace dummy image share/rename actions with real implementations. |
-| [x] | 5 | Open with | Unknown files use Android system open-with sheet. |
+| [ ] | 2 | Tests | Update stale widget tests for current Home/media behavior. |
+| [ ] | 3 | Archives | Add archive browsing (view contents without extracting). |
+| [ ] | 4 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 5 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
 
@@ -189,6 +196,9 @@ Goal: category shortcuts should feel instant after the first scan.
 | ✅ | Video player | Open videos in-app from Explorer, Search, and category folders. |
 | ✅ | Video player | Play/pause/seek/fullscreen controls. |
 | ✅ | Video player | Speed, loop, shuffle, previous/next, and auto-hide controls. |
+| ✅ | Video player | Double-tap left/right to seek back/forward 10s with ripple animation. |
+| ✅ | Video player | Mute/unmute button in playback controls. |
+| ✅ | Video player | Keep screen awake during playback via native wakelock channel. |
 | ✅ | Audio player | Open audio in-app from Explorer, Search, and category folders. |
 | ✅ | Audio player | Play/pause/seek controls. |
 | ✅ | Audio player | Add folder/category/search playlist controls. |
@@ -204,7 +214,7 @@ Goal: category shortcuts should feel instant after the first scan.
 | [ ] | Media | Tune category scan performance with progress and cancellation. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
-| [ ] | Archives | Archive browsing, RAR, and 7Z support. |
+| [ ] | Archives | RAR and 7Z support evaluation. |
 | [ ] | Network | Optional network providers, not first-release core. |
 
 ## Guardrails
