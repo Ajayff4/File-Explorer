@@ -7,6 +7,7 @@ import 'package:file_explorer/features/explorer/presentation/entry_filters.dart'
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
@@ -16,6 +17,7 @@ import 'package:file_explorer/features/transfers/presentation/transfer_visuals.d
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
@@ -1110,9 +1112,7 @@ class EntryGrid extends ConsumerWidget {
                               .read(explorerControllerProvider.notifier)
                               .openDirectory(entry.path);
                         }
-                      : _canPreviewEntry(entry)
-                          ? () => _openEntry(context, ref, entry, entries)
-                          : null,
+                      : () => _openEntry(context, ref, entry, entries),
               trailing: trailingBuilder?.call(context, entry),
             );
           },
@@ -1187,6 +1187,23 @@ void _openEntry(
       AppRoutes.mediaViewer,
       extra: MediaViewerSession(entry: entry, entries: entries),
     );
+  } else {
+    _openWithSystem(context, entry);
+  }
+}
+
+Future<void> _openWithSystem(
+    BuildContext context, FileSystemEntry entry) async {
+  try {
+    await openLocalFileWithSystem(entry.path);
+  } on MissingPluginException {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Open with is available on Android')),
+    );
+  } on PlatformException catch (error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error.message ?? 'Could not open file')),
+    );
   }
 }
 
@@ -1201,7 +1218,7 @@ bool _canPreviewEntry(FileSystemEntry entry) {
 }
 
 bool _canOpenEntry(FileSystemEntry entry) {
-  return entry.isFolder || _canPreviewEntry(entry);
+  return true;
 }
 
 class _DirectoryError extends StatelessWidget {

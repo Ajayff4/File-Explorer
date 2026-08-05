@@ -145,7 +145,7 @@ const _coreFeatures = [
     icon: Icons.play_circle_fill_rounded,
     title: 'Built-in viewers',
     description:
-        'View images, play videos with double-tap seek and mute, and listen to audio with playlist controls.',
+        'View images, play videos with double-tap seek and mute, listen to audio, and open any file with system apps or force-open as a specific type.',
     color: Color(0xFF26A69A),
   ),
   _CoreFeature(

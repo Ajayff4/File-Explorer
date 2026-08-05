@@ -83,7 +83,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Hidden folders filtered from image folder view. |
 | ✅ | Media | Documents folder view uses blue file icon; document names show in folder view. |
 | ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, Android share, transfer-backed rename, and Android wallpaper action. |
-| ✅ | Viewers | Unknown files can launch Android's system open-with sheet. |
+| ✅ | Viewers | Non-previewable files open Android's system app chooser on tap. |
+| ✅ | Viewers | "Open as" action lets users force-open any file as Text, Image, Video, or Audio with choice of built-in or system viewer. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
 | ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
 | ✅ | Players | Video player mute/unmute button. |
@@ -105,7 +106,7 @@ Current local check status:
 
 ```bash
 git status --short
-# dirty: media library list view, shared list tile, properties multi-select, number formatting
+# dirty: open with, open as, predictive back gesture
 
 dart format lib
 # passed
@@ -120,7 +121,7 @@ flutter build apk --debug
 # passed after native wakelock/media action changes
 ```
 
-Local analyzer passes after the latest media library list view, shared `FileEntryListTile` extraction, properties panel multi-select support, and shared number formatting utilities. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
+Local analyzer passes after the latest "Open with" for non-previewable files, "Open as" with type-forced viewing, and predictive back gesture enablement. Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
 The latest debug APK path, after running a build, is:
 

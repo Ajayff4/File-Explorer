@@ -234,6 +234,31 @@ void _showMoreOptions(
   String displayName,
   VoidCallback onExitSelection,
 ) {
+  if (selectedPaths.length == 1) {
+    final explorerState = ref.read(explorerControllerProvider);
+    final listing = explorerState.listing.valueOrNull;
+    final searchState = ref.read(fileSearchControllerProvider);
+
+    final allEntries = [
+      ...?listing?.entries,
+      ...searchState.results.map((r) => r.entry),
+    ];
+
+    final entry =
+        allEntries.where((e) => e.path == selectedPaths.first).firstOrNull;
+
+    if (entry != null && !entry.isFolder) {
+      showEntryActionsSheet(
+        context: context,
+        ref: ref,
+        entry: entry,
+        storageVolume: listing?.volume,
+        isSingleSelection: true,
+      );
+      return;
+    }
+  }
+
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,

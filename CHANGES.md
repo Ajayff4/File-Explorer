@@ -6,6 +6,17 @@ Progress log for the Flutter application.
 
 ### Completed
 
+- Added "Open with" for non-previewable files:
+  - Tapping any file (PDF, documents, etc.) in explorer now opens Android's app chooser instead of doing nothing.
+  - Grid and list views both handle taps for all file types.
+  - Uses existing `openLocalFileWithSystem` MethodChannel with MIME type lookup.
+- Added "Open as" action for forcing file type:
+  - Long-press any file and tap "Open as" from the actions sheet.
+  - Shows type options: Text, Image, Video, Audio.
+  - For Image/Video/Audio: shows a choice between "Use File Explorer" (built-in viewer) and "Use other app" (system chooser).
+  - For Text: directly opens system chooser with `text/plain` MIME type.
+  - Selection bottom bar "More" delegates to full actions sheet when single file is selected.
+- Enabled Android predictive back gesture (`android:enableOnBackInvokedCallback="true"` in manifest).
 - Added list view to media library screens:
   - All media libraries (Images, Videos, Audio, Documents, Apps, Archives) now support grid and list view toggle.
   - List view shows 64x64 thumbnails with badge count, name, total size, and relative date.

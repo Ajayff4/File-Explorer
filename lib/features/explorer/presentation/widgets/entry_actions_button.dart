@@ -4,6 +4,7 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
+import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -134,6 +135,150 @@ void showEntryActionsSheet({
   );
 }
 
+enum _OpenAsType {
+  text('Text', Icons.article_rounded, 'text/plain'),
+  image('Image', Icons.image_rounded, 'image/*'),
+  video('Video', Icons.movie_rounded, 'video/*'),
+  audio('Audio', Icons.music_note_rounded, 'audio/*');
+
+  const _OpenAsType(this.label, this.icon, this.mimeType);
+  final String label;
+  final IconData icon;
+  final String mimeType;
+}
+
+void showOpenAsSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FileSystemEntry entry,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: fileIconForEntry(context, entry),
+              title: Text(
+                entry.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: const Text('Open as'),
+            ),
+            const Divider(),
+            for (final type in _OpenAsType.values)
+              ListTile(
+                leading: Icon(type.icon),
+                title: Text(type.label),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openEntryAs(context, ref, entry, type);
+                },
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+void _openEntryAs(
+  BuildContext context,
+  WidgetRef ref,
+  FileSystemEntry entry,
+  _OpenAsType type,
+) {
+  switch (type) {
+    case _OpenAsType.image:
+    case _OpenAsType.video:
+    case _OpenAsType.audio:
+      _showViewerChoiceSheet(context, ref, entry, type);
+    case _OpenAsType.text:
+      _openAsSystemWithMimeType(context, entry, type.mimeType);
+  }
+}
+
+void _showViewerChoiceSheet(
+  BuildContext context,
+  WidgetRef ref,
+  FileSystemEntry entry,
+  _OpenAsType type,
+) {
+  final forcedType = switch (type) {
+    _OpenAsType.image => FileSystemEntryType.image,
+    _OpenAsType.video => FileSystemEntryType.video,
+    _OpenAsType.audio => FileSystemEntryType.audio,
+    _OpenAsType.text => FileSystemEntryType.other,
+  };
+
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading:
+                  Icon(type.icon, color: Theme.of(context).colorScheme.primary),
+              title: Text('Open as ${type.label}'),
+              subtitle: Text(entry.name,
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.visibility_rounded),
+              title: const Text('Use File Explorer'),
+              subtitle: const Text('Open in built-in viewer'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                final forcedEntry = entry.copyWith(type: forcedType);
+                context.push(
+                  AppRoutes.mediaViewer,
+                  extra: MediaViewerSession(
+                      entry: forcedEntry, entries: [forcedEntry]),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Use other app'),
+              subtitle: const Text('Choose from installed apps'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _openAsSystemWithMimeType(context, entry, type.mimeType);
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Future<void> _openAsSystemWithMimeType(
+  BuildContext context,
+  FileSystemEntry entry,
+  String mimeType,
+) async {
+  try {
+    await openLocalFileWithSystem(entry.path, fallbackMimeType: mimeType);
+  } on MissingPluginException {
+    _showMessage(context, 'Open with is available on Android');
+  } on PlatformException catch (error) {
+    _showMessage(context, error.message ?? 'Could not open file');
+  }
+}
+
 class _EntryActionsSheet extends ConsumerWidget {
   const _EntryActionsSheet({
     required this.entry,
@@ -184,6 +329,19 @@ class _EntryActionsSheet extends ConsumerWidget {
                 onTap: () {
                   Navigator.of(context).pop();
                   _openEntryWithSystem(parentContext, entry);
+                },
+              ),
+            if (isSingleSelection)
+              ListTile(
+                leading: const Icon(Icons.category_rounded),
+                title: const Text('Open as'),
+                onTap: () {
+                  Navigator.of(context).pop();
+                  showOpenAsSheet(
+                    context: parentContext,
+                    ref: ref,
+                    entry: entry,
+                  );
                 },
               ),
             if (_isExtractableArchive(entry))
