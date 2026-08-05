@@ -2,11 +2,14 @@ import 'dart:io';
 
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
@@ -229,6 +232,7 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
             return _MediaGridTile(
               entry: entry,
               onTap: () => _openMedia(context, entry),
+              onLongPress: () => _openInExplorer(context, entry),
             );
           },
         );
@@ -242,16 +246,73 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
       extra: MediaViewerSession(entry: entry, entries: _entries),
     );
   }
+
+  void _openInExplorer(BuildContext context, FileSystemEntry entry) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  entry.name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  entry.path,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.folder_open_rounded),
+                  title: const Text('Open in folder'),
+                  subtitle: Text(
+                    'Browse ${widget.kind.label.toLowerCase()} in full explorer',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  onTap: () {
+                    context.pop();
+                    _navigateToExplorer(entry);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _navigateToExplorer(FileSystemEntry entry) {
+    final folderPath = p.dirname(entry.path);
+    final ref = ProviderScope.containerOf(context, listen: false);
+    ref.read(explorerFilterTypeProvider.notifier).state = widget.kind.type;
+    ref.read(explorerControllerProvider.notifier).openDirectory(folderPath);
+    context.go(AppRoutes.explorer);
+  }
 }
 
 class _MediaGridTile extends StatelessWidget {
   const _MediaGridTile({
     required this.entry,
     required this.onTap,
+    this.onLongPress,
   });
 
   final FileSystemEntry entry;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -268,6 +329,7 @@ class _MediaGridTile extends StatelessWidget {
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: ClipRect(
           child: AspectRatio(
             aspectRatio: 1,
