@@ -18,6 +18,8 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 import 'package:video_player/video_player.dart';
 
+const _wakelockChannel = MethodChannel('com.ajayff4.fileexplorer/wakelock');
+
 const _wallpaperChannel = MethodChannel('com.ajayff4.fileexplorer/wallpaper');
 
 class MediaViewerSession {
@@ -925,6 +927,7 @@ class _PlaybackPreviewState extends State<_PlaybackPreview> {
     _hideControlsTimer?.cancel();
     controller?.removeListener(_handlePlaybackTick);
     controller?.dispose();
+    _wakelockChannel.invokeMethod<void>('disable');
     super.dispose();
   }
 
@@ -933,9 +936,11 @@ class _PlaybackPreviewState extends State<_PlaybackPreview> {
     final isPlaying = controller?.value.isPlaying ?? false;
     if (isPlaying && !_wasPlaying) {
       _scheduleControlsHide();
+      _wakelockChannel.invokeMethod<void>('enable');
     } else if (!isPlaying && _wasPlaying) {
       _hideControlsTimer?.cancel();
       _controlsVisible = true;
+      _wakelockChannel.invokeMethod<void>('disable');
     }
     _wasPlaying = isPlaying;
 
@@ -1560,6 +1565,11 @@ class _PlaybackControls extends StatelessWidget {
                           : Icons.screen_rotation_rounded,
                     ),
                   ),
+                _MuteButton(
+                  controller: controller,
+                  iconColor: textColor,
+                  onInteraction: onInteraction,
+                ),
                 const Spacer(),
                 _PlaybackSpeedMenu(
                   controller: controller,
@@ -1714,6 +1724,46 @@ class _PlaybackIconButton extends StatelessWidget {
       iconSize: 32,
       onPressed: onPressed,
       icon: Icon(icon),
+    );
+  }
+}
+
+class _MuteButton extends StatefulWidget {
+  const _MuteButton({
+    required this.controller,
+    this.iconColor,
+    this.onInteraction,
+  });
+
+  final VideoPlayerController controller;
+  final Color? iconColor;
+  final VoidCallback? onInteraction;
+
+  @override
+  State<_MuteButton> createState() => _MuteButtonState();
+}
+
+class _MuteButtonState extends State<_MuteButton> {
+  double _previousVolume = 1.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMuted = widget.controller.value.volume == 0;
+
+    return IconButton(
+      tooltip: isMuted ? 'Unmute' : 'Mute',
+      color: widget.iconColor,
+      iconSize: 32,
+      onPressed: () {
+        if (isMuted) {
+          widget.controller.setVolume(_previousVolume);
+        } else {
+          _previousVolume = widget.controller.value.volume;
+          widget.controller.setVolume(0);
+        }
+        widget.onInteraction?.call();
+      },
+      icon: Icon(isMuted ? Icons.volume_off_rounded : Icons.volume_up_rounded),
     );
   }
 }

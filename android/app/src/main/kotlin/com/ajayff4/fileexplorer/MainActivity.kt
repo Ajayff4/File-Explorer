@@ -12,6 +12,7 @@ import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
 import android.os.StatFs
+import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
@@ -24,6 +25,7 @@ class MainActivity: FlutterActivity() {
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
     private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
+    private val wakelockChannel = "com.ajayff4.fileexplorer/wakelock"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -107,6 +109,21 @@ class MainActivity: FlutterActivity() {
                         } else {
                             result.error("open_failed", "Could not open file", null)
                         }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, wakelockChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "enable" -> {
+                        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        result.success(null)
+                    }
+                    "disable" -> {
+                        window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                        result.success(null)
                     }
                     else -> result.notImplemented()
                 }
