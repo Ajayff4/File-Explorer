@@ -55,6 +55,12 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     final session = widget.session;
     _entry = session?.entry ??
         FileSystemEntry(
@@ -68,7 +74,10 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations(const []);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -185,7 +194,10 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
               DeviceOrientation.landscapeLeft,
               DeviceOrientation.landscapeRight,
             ]
-          : const [],
+          : const [
+              DeviceOrientation.portraitUp,
+              DeviceOrientation.portraitDown,
+            ],
     );
     SystemChrome.setEnabledSystemUIMode(
       next ? SystemUiMode.immersiveSticky : SystemUiMode.edgeToEdge,
@@ -1014,7 +1026,7 @@ class _PlaybackPreviewState extends State<_PlaybackPreview> {
   }
 }
 
-class _VideoPlayerSurface extends StatelessWidget {
+class _VideoPlayerSurface extends StatefulWidget {
   const _VideoPlayerSurface({
     required this.controller,
     required this.hasPlaylist,
@@ -1044,7 +1056,78 @@ class _VideoPlayerSurface extends StatelessWidget {
   final VoidCallback onShowControls;
 
   @override
+  State<_VideoPlayerSurface> createState() => _VideoPlayerSurfaceState();
+}
+
+class _VideoPlayerSurfaceState extends State<_VideoPlayerSurface> {
+  Offset? _ripplePosition;
+  int _rippleKey = 0;
+  DateTime? _lastTapAt;
+  Offset? _lastTapPosition;
+  bool _isDragging = false;
+  Timer? _pendingToggle;
+
+  void _onPointerDown(PointerDownEvent event) {
+    if (_isDragging) return;
+    _handleTap(event.localPosition);
+  }
+
+  void _onPointerMove(PointerMoveEvent event) {
+    if (event.distance > 8) {
+      _isDragging = true;
+      _lastTapAt = null;
+      _pendingToggle = null;
+    }
+  }
+
+  void _onPointerUp(PointerUpEvent event) {
+    _isDragging = false;
+  }
+
+  void _handleTap(Offset position) {
+    final now = DateTime.now();
+
+    if (_lastTapAt != null &&
+        now.difference(_lastTapAt!).inMilliseconds < 500) {
+      final screenWidth = MediaQuery.sizeOf(context).width;
+      final isLeft = _lastTapPosition!.dx < screenWidth / 2;
+      _seekBy(
+        widget.controller,
+        Duration(seconds: isLeft ? -10 : 10),
+      );
+      widget.onShowControls();
+      setState(() {
+        _ripplePosition = _lastTapPosition;
+        _rippleKey++;
+      });
+      _pendingToggle?.cancel();
+      _pendingToggle = null;
+      _lastTapAt = now;
+      _lastTapPosition = position;
+      return;
+    }
+
+    _lastTapAt = now;
+    _lastTapPosition = position;
+    _pendingToggle?.cancel();
+    _pendingToggle = Timer(const Duration(milliseconds: 500), () {
+      if (mounted && _lastTapAt == now) {
+        widget.onToggleControls();
+        _lastTapAt = null;
+        _lastTapPosition = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pendingToggle?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final isPaused = !controller.value.isPlaying;
 
     return ColoredBox(
@@ -1052,17 +1135,29 @@ class _VideoPlayerSurface extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          GestureDetector(
+          Listener(
+            onPointerDown: _onPointerDown,
+            onPointerMove: _onPointerMove,
+            onPointerUp: _onPointerUp,
             behavior: HitTestBehavior.opaque,
-            onTap: onToggleControls,
             child: Center(
               child: _VideoFrame(controller: controller),
             ),
           ),
+          if (_ripplePosition != null)
+            Positioned(
+              left: _ripplePosition!.dx - 80,
+              top: _ripplePosition!.dy - 80,
+              child: IgnorePointer(
+                child: _DoubleTapRipple(
+                  key: ValueKey(_rippleKey),
+                ),
+              ),
+            ),
           IgnorePointer(
-            ignoring: !controlsVisible,
+            ignoring: !widget.controlsVisible,
             child: AnimatedOpacity(
-              opacity: controlsVisible ? 1 : 0,
+              opacity: widget.controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 180),
               child: const DecoratedBox(
                 decoration: BoxDecoration(
@@ -1080,19 +1175,19 @@ class _VideoPlayerSurface extends StatelessWidget {
             ),
           ),
           IgnorePointer(
-            ignoring: !controlsVisible,
+            ignoring: !widget.controlsVisible,
             child: AnimatedOpacity(
-              opacity: controlsVisible ? 1 : 0,
+              opacity: widget.controlsVisible ? 1 : 0,
               duration: const Duration(milliseconds: 180),
               child: Center(
                 child: _TransportButtons(
                   controller: controller,
                   largePlayButton: true,
                   foregroundColor: Colors.white,
-                  hasPlaylist: hasPlaylist,
-                  onPrevious: onPrevious,
-                  onNext: onNext,
-                  onInteraction: onShowControls,
+                  hasPlaylist: widget.hasPlaylist,
+                  onPrevious: widget.onPrevious,
+                  onNext: widget.onNext,
+                  onInteraction: widget.onShowControls,
                 ),
               ),
             ),
@@ -1102,23 +1197,23 @@ class _VideoPlayerSurface extends StatelessWidget {
             right: 0,
             bottom: 0,
             child: IgnorePointer(
-              ignoring: !controlsVisible,
+              ignoring: !widget.controlsVisible,
               child: AnimatedOpacity(
-                opacity: controlsVisible ? 1 : 0,
+                opacity: widget.controlsVisible ? 1 : 0,
                 duration: const Duration(milliseconds: 180),
                 child: _PlaybackControls(
                   controller: controller,
                   overlay: true,
                   showTransport: false,
-                  hasPlaylist: hasPlaylist,
-                  shuffle: shuffle,
-                  landscape: landscape,
-                  onPrevious: onPrevious,
-                  onNext: onNext,
-                  onToggleShuffle: onToggleShuffle,
-                  onToggleLandscape: onToggleLandscape,
-                  onInteraction: onShowControls,
-                  onShowInfo: isPaused ? onShowInfo : null,
+                  hasPlaylist: widget.hasPlaylist,
+                  shuffle: widget.shuffle,
+                  landscape: widget.landscape,
+                  onPrevious: widget.onPrevious,
+                  onNext: widget.onNext,
+                  onToggleShuffle: widget.onToggleShuffle,
+                  onToggleLandscape: widget.onToggleLandscape,
+                  onInteraction: widget.onShowControls,
+                  onShowInfo: isPaused ? widget.onShowInfo : null,
                 ),
               ),
             ),
@@ -1126,6 +1221,76 @@ class _VideoPlayerSurface extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _DoubleTapRipple extends StatefulWidget {
+  const _DoubleTapRipple({super.key});
+
+  @override
+  State<_DoubleTapRipple> createState() => _DoubleTapRippleState();
+}
+
+class _DoubleTapRippleState extends State<_DoubleTapRipple>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    )..forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, _) {
+        return SizedBox(
+          width: 160,
+          height: 160,
+          child: CustomPaint(
+            painter: _RipplePainter(
+              progress: _controller.value,
+              maxRadius: 80.0,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RipplePainter extends CustomPainter {
+  _RipplePainter({required this.progress, required this.maxRadius});
+
+  final double progress;
+  final double maxRadius;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = maxRadius * progress;
+    final opacity = (1.0 - progress).clamp(0.0, 1.0);
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(opacity * 0.4)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3.0;
+    canvas.drawCircle(center, radius, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RipplePainter oldDelegate) {
+    return oldDelegate.progress != progress;
   }
 }
 
@@ -1180,8 +1345,9 @@ class _AudioPlayerSurface extends StatelessWidget {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+      child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
                     width: 156,
@@ -1326,31 +1492,31 @@ class _PlaybackControls extends StatelessWidget {
             ],
             Row(
               children: [
-                Flexible(
-                  child: Text(
-                    _formatDuration(position),
-                    style: TextStyle(color: textColor),
-                  ),
+                Text(
+                  _formatDuration(position),
+                  style: TextStyle(color: textColor),
                 ),
                 Expanded(
-                  child: Slider(
-                    value: durationMs == 0 ? 0 : positionMs.toDouble(),
-                    max: durationMs == 0 ? 1 : durationMs.toDouble(),
-                    onChanged: durationMs == 0
-                        ? null
-                        : (value) {
-                            controller.seekTo(
-                              Duration(milliseconds: value.round()),
-                            );
-                            onInteraction?.call();
-                          },
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      return Slider(
+                        value: durationMs == 0 ? 0 : positionMs.toDouble(),
+                        max: durationMs == 0 ? 1 : durationMs.toDouble(),
+                        onChanged: durationMs == 0
+                            ? null
+                            : (value) {
+                                controller.seekTo(
+                                  Duration(milliseconds: value.round()),
+                                );
+                                onInteraction?.call();
+                              },
+                      );
+                    },
                   ),
                 ),
-                Flexible(
-                  child: Text(
-                    _formatDuration(duration),
-                    style: TextStyle(color: textColor),
-                  ),
+                Text(
+                  _formatDuration(duration),
+                  style: TextStyle(color: textColor),
                 ),
               ],
             ),
