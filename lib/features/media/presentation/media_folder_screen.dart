@@ -22,18 +22,34 @@ class MediaFolderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppRoutes.media(kind));
+        }
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go(AppRoutes.media(kind));
+              }
+            },
+          ),
+          title: Text(p.basename(folderPath)),
         ),
-        title: Text(p.basename(folderPath)),
-      ),
-      body: _MediaFolderGrid(
-        key: ValueKey(folderPath),
-        folderPath: folderPath,
-        kind: kind,
+        body: _MediaFolderGrid(
+          key: ValueKey(folderPath),
+          folderPath: folderPath,
+          kind: kind,
+        ),
       ),
     );
   }
@@ -130,15 +146,34 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
 
   FileSystemEntryType _typeForExtension(String path) {
     final ext = path.split('.').last.toLowerCase();
-    if (widget.kind.type == FileSystemEntryType.image) {
-      const imageExts = {'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'heic', 'heif'};
-      return imageExts.contains(ext) ? FileSystemEntryType.image : FileSystemEntryType.other;
-    }
-    if (widget.kind.type == FileSystemEntryType.video) {
-      const videoExts = {'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp'};
-      return videoExts.contains(ext) ? FileSystemEntryType.video : FileSystemEntryType.other;
-    }
-    return widget.kind.type;
+    const imageExts = {
+      'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg', 'heic', 'heif',
+    };
+    const videoExts = {
+      'mp4', 'avi', 'mov', 'mkv', 'wmv', 'flv', 'webm', 'm4v', '3gp',
+    };
+    const audioExts = {
+      'mp3', 'wav', 'flac', 'aac', 'ogg', 'wma', 'm4a', 'opus', 'aiff',
+    };
+    const docExts = {
+      'pdf', 'doc', 'docx', 'odt', 'rtf', 'txt', 'md', 'log',
+      'xls', 'xlsx', 'ods', 'csv',
+      'ppt', 'pptx', 'odp',
+    };
+    const archiveExts = {
+      'zip', 'rar', '7z', 'tar', 'gz', 'bz2', 'xz', 'tgz', 'tar.gz',
+    };
+    const appExts = {'apk', 'apks', 'xapk', 'apkm', 'aab'};
+
+    return switch (ext) {
+      _ when imageExts.contains(ext) => FileSystemEntryType.image,
+      _ when videoExts.contains(ext) => FileSystemEntryType.video,
+      _ when audioExts.contains(ext) => FileSystemEntryType.audio,
+      _ when docExts.contains(ext) => FileSystemEntryType.document,
+      _ when archiveExts.contains(ext) => FileSystemEntryType.archive,
+      _ when appExts.contains(ext) => FileSystemEntryType.app,
+      _ => FileSystemEntryType.other,
+    };
   }
 
   @override
@@ -220,6 +255,15 @@ class _MediaGridTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final thumbnail = MediaThumbnail(
+      entry: entry,
+      fallback: fileIconForEntry(context, entry),
+      dimension: 120,
+    );
+    final needsName = entry.type == FileSystemEntryType.audio ||
+        entry.type == FileSystemEntryType.app ||
+        entry.type == FileSystemEntryType.archive;
+
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
       child: InkWell(
@@ -227,10 +271,43 @@ class _MediaGridTile extends StatelessWidget {
         child: ClipRect(
           child: AspectRatio(
             aspectRatio: 1,
-            child: MediaThumbnail(
-              entry: entry,
-              fallback: fileIconForEntry(context, entry),
-              dimension: 120,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                thumbnail,
+                if (needsName)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0),
+                            Colors.black.withOpacity(0.75),
+                          ],
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(4, 12, 4, 4),
+                        child: Text(
+                          entry.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
           ),
         ),

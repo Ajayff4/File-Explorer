@@ -117,34 +117,44 @@ class MediaLibraryScreen extends ConsumerWidget {
     final resultsAsync = ref.watch(mediaLibraryResultsProvider(request));
     final sortOption = ref.watch(mediaLibrarySortOptionProvider);
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(kind.label),
-        actions: [
-          IconButton(
-            tooltip: 'Browse folders',
-            onPressed: () => _openFilteredExplorer(context, ref, rootPath),
-            icon: const Icon(Icons.folder_open_rounded),
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        context.go(AppRoutes.home);
+        return true;
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go(AppRoutes.home),
           ),
-          _MediaSortMenu(selectedOption: sortOption),
-          IconButton(
-            tooltip: 'Refresh',
-            onPressed: () =>
-                ref.invalidate(mediaLibraryResultsProvider(request)),
-            icon: const Icon(Icons.refresh_rounded),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async =>
-            ref.refresh(mediaLibraryResultsProvider(request).future),
-        child: resultsAsync.when(
-          loading: () => const _MediaLoadingState(),
-          error: (error, _) => _MediaErrorState(error: error),
-          data: (results) => _MediaResultsView(
-            kind: kind,
-            results: results,
-            sortOption: sortOption,
+          title: Text(kind.label),
+          actions: [
+            IconButton(
+              tooltip: 'Browse folders',
+              onPressed: () => _openFilteredExplorer(context, ref, rootPath),
+              icon: const Icon(Icons.folder_open_rounded),
+            ),
+            _MediaSortMenu(selectedOption: sortOption),
+            IconButton(
+              tooltip: 'Refresh',
+              onPressed: () =>
+                  ref.invalidate(mediaLibraryResultsProvider(request)),
+              icon: const Icon(Icons.refresh_rounded),
+            ),
+          ],
+        ),
+        body: RefreshIndicator(
+          onRefresh: () async =>
+              ref.refresh(mediaLibraryResultsProvider(request).future),
+          child: resultsAsync.when(
+            loading: () => const _MediaLoadingState(),
+            error: (error, _) => _MediaErrorState(error: error),
+            data: (results) => _MediaResultsView(
+              kind: kind,
+              results: results,
+              sortOption: sortOption,
+            ),
           ),
         ),
       ),
