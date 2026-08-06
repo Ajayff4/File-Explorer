@@ -11,7 +11,10 @@ import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
 import android.os.Build
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
 import android.os.StatFs
+import android.provider.MediaStore
 import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
@@ -25,6 +28,7 @@ class MainActivity: FlutterActivity() {
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
     private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
+    private val mediaStoreChannel = "com.ajayff4.fileexplorer/media_store"
     private val wakelockChannel = "com.ajayff4.fileexplorer/wakelock"
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -108,6 +112,36 @@ class MainActivity: FlutterActivity() {
                             result.success(null)
                         } else {
                             result.error("open_failed", "Could not open file", null)
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, mediaStoreChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "queryMedia" -> {
+                        val type = call.argument<String>("type")
+                        if (type == null) {
+                            result.error("missing_type", "Media type is required", null)
+                        } else {
+                            Thread {
+                                try {
+                                    val items = queryMedia(type)
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(items)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "query_failed",
+                                            error.message ?: "MediaStore query failed",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
                         }
                     }
                     else -> result.notImplemented()
@@ -223,6 +257,63 @@ class MainActivity: FlutterActivity() {
         } else {
             true
         }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun queryMedia(type: String): List<Map<String, Any?>> {
+        val uri = when (type) {
+            "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+            "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+            "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+            else -> return emptyList()
+        }
+
+        val projection = arrayOf(
+            MediaStore.MediaColumns.DATA,
+            MediaStore.MediaColumns.DISPLAY_NAME,
+            MediaStore.MediaColumns.SIZE,
+            MediaStore.MediaColumns.DATE_MODIFIED,
+        )
+
+        val items = mutableListOf<Map<String, Any?>>()
+        contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+            val pathColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+            val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
+            val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
+            val modifiedColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+
+            while (cursor.moveToNext()) {
+                val path = if (pathColumn >= 0) cursor.getString(pathColumn) else null
+                if (path.isNullOrEmpty() || hasHiddenSegment(path)) {
+                    continue
+                }
+
+                items.add(
+                    mapOf(
+                        "path" to path,
+                        "name" to (
+                            if (nameColumn >= 0) {
+                                cursor.getString(nameColumn) ?: File(path).name
+                            } else {
+                                File(path).name
+                            }
+                        ),
+                        "sizeBytes" to if (sizeColumn >= 0) cursor.getLong(sizeColumn) else 0L,
+                        // DATE_MODIFIED is in seconds; expose milliseconds.
+                        "modifiedAtMs" to if (modifiedColumn >= 0) {
+                            cursor.getLong(modifiedColumn) * 1000
+                        } else {
+                            0L
+                        },
+                    )
+                )
+            }
+        }
+        return items
+    }
+
+    private fun hasHiddenSegment(path: String): Boolean {
+        return path.split('/').any { it.length > 1 && it.startsWith(".") }
     }
 
     private fun getApkIcon(path: String): ByteArray? {

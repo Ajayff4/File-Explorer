@@ -187,7 +187,8 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
   @override
   void didUpdateWidget(covariant _VideoThumbnail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.path != widget.path || oldWidget.maxWidth != widget.maxWidth) {
+    if (oldWidget.path != widget.path ||
+        oldWidget.maxWidth != widget.maxWidth) {
       _loaded = false;
       _bytes = null;
       _loadThumbnail();

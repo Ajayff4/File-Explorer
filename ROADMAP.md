@@ -144,13 +144,30 @@ Recommended next slices, in order:
 
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
-| [ ] | 1 | Media | Add category result cache with instant cached render and silent background refresh. |
-| [ ] | 2 | Tests | Update stale widget tests for current Home/media behavior. |
-| [ ] | 3 | Archives | Add archive browsing (view contents without extracting). |
-| [ ] | 4 | Media | Add thumbnail cache for media libraries and Explorer. |
-| [ ] | 5 | UI | Polish media folder view on real device and tune grid density. |
+| [ ] | 1 | Media | MediaStore-backed category discovery for images/audio/video (replace recursive filesystem walk). |
+| [ ] | 2 | Media | Add category result cache with instant cached render and silent background refresh. |
+| [ ] | 3 | Tests | Update stale widget tests for current Home/media behavior. |
+| [ ] | 4 | Archives | Add archive browsing (view contents without extracting). |
+| [ ] | 5 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 6 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
+
+### MediaStore Category Discovery
+
+Goal: media category views (images/audio/video) open in ~1–2s by querying Android's MediaStore index instead of recursively walking the filesystem. No depth or count limits — MediaStore returns the complete OS-maintained index. Documents stay on the filesystem walker until Phase 2.
+
+| Status | Task |
+| --- | --- |
+| ✅ | Add native `queryMedia` MethodChannel querying MediaStore Images/Audio/Video off the main thread. |
+| ✅ | Add Dart `MediaStorePlatform` channel wrapper. |
+| ✅ | Add `MediaStoreMediaLibraryRepository` mapping MediaStore rows to `SearchResult`s grouped by parent folder. |
+| ✅ | Auto-fallback to the recursive walker on non-Android platforms or MediaStore query failure. |
+| ✅ | Wire `mediaLibraryRepositoryProvider` with a platform check. |
+| ✅ | Unit tests for row mapping and fallback. |
+| [ ] | Verify category open timing on a real device (target ~1–2s like ES). |
+| [ ] | Phase 2: one complete single-pass background walk with in-memory cache, reused for documents and other non-indexed types (no depth/count limits). |
+| [ ] | Follow-up: call `MediaScannerConnection.scanFile` after transfers so new files appear in MediaStore immediately. |
 
 ### Category Cache
 
