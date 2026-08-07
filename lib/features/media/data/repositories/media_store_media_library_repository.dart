@@ -1,8 +1,8 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/media/data/platform/media_store_platform.dart';
+import 'package:file_explorer/features/media/data/platform/media_store_search_results.dart';
 import 'package:file_explorer/features/media/domain/repositories/media_library_repository.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
-import 'package:path/path.dart' as p;
 
 /// Media-library repository backed by Android's MediaStore index.
 ///
@@ -40,7 +40,7 @@ class MediaStoreMediaLibraryRepository implements MediaLibraryRepository {
     required String rootPath,
     required FileSystemEntryType type,
   }) async {
-    final mediaType = _mediaTypeFor(type);
+    final mediaType = mediaStoreMediaTypeFor(type);
     if (mediaType == null) {
       return _fallback.findByType(rootPath: rootPath, type: type);
     }
@@ -49,37 +49,10 @@ class MediaStoreMediaLibraryRepository implements MediaLibraryRepository {
       final items = await _platform.queryMedia(mediaType);
       return [
         for (final item in items)
-          if (_isUnderRoot(item.path, rootPath))
-            SearchResult(
-              entry: FileSystemEntry(
-                name: item.name,
-                path: item.path,
-                type: type,
-                modifiedAt: item.modifiedAt,
-                sizeBytes: item.sizeBytes,
-              ),
-              parentPath: p.dirname(item.path),
-              depth: 0,
-            ),
+          if (isUnderRootPath(item.path, rootPath)) item.toSearchResult(type),
       ];
     } on Object {
       return _fallback.findByType(rootPath: rootPath, type: type);
     }
-  }
-
-  static MediaStoreMediaType? _mediaTypeFor(FileSystemEntryType type) {
-    return switch (type) {
-      FileSystemEntryType.image => MediaStoreMediaType.image,
-      FileSystemEntryType.video => MediaStoreMediaType.video,
-      FileSystemEntryType.audio => MediaStoreMediaType.audio,
-      _ => null,
-    };
-  }
-
-  static bool _isUnderRoot(String path, String rootPath) {
-    if (rootPath.isEmpty) {
-      return true;
-    }
-    return path == rootPath || path.startsWith('$rootPath/');
   }
 }

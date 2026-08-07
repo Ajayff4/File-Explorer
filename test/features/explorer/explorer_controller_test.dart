@@ -212,15 +212,6 @@ class _MultiVolumeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<bool> folderContainsFileType(
-    String folderPath,
-    FileSystemEntryType type,
-  ) async {
-    // For testing, folders always contain files of any type
-    return true;
-  }
-
-  @override
   Future<bool> createFolder(String path) async {
     return true;
   }

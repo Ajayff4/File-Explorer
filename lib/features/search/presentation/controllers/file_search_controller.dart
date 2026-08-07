@@ -3,6 +3,10 @@ import 'dart:async';
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
+import 'package:file_explorer/features/media/data/platform/media_store_platform.dart';
+import 'package:file_explorer/features/media/data/platform/media_store_search_results.dart';
+import 'package:file_explorer/features/media/data/repositories/media_library_repository_factory_stub.dart'
+    if (dart.library.io) 'package:file_explorer/features/media/data/repositories/media_library_repository_factory_io.dart';
 import 'package:file_explorer/features/search/data/repositories/search_index_store_provider.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/domain/repositories/search_index_store.dart';
@@ -17,6 +21,7 @@ final fileSearchControllerProvider =
     ref.read(storageRepositoryProvider),
     indexStore:
         settings.useIndexedSearch ? ref.read(searchIndexStoreProvider) : null,
+    mediaStore: createMediaStorePlatform(),
   );
 });
 
@@ -67,10 +72,12 @@ class FileSearchController extends StateNotifier<FileSearchState> {
   FileSearchController(
     this._repository, {
     SearchIndexStore? indexStore,
+    MediaStorePlatform? mediaStore,
     Duration debounceDuration = const Duration(milliseconds: 300),
     int maxResults = 100,
     int maxIndexedEntries = 1000,
   })  : _indexStore = indexStore,
+        _mediaStore = mediaStore,
         _debounceDuration = debounceDuration,
         _maxResults = maxResults,
         _maxIndexedEntries = maxIndexedEntries,
@@ -78,6 +85,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
   final StorageRepository _repository;
   final SearchIndexStore? _indexStore;
+  final MediaStorePlatform? _mediaStore;
   final Duration _debounceDuration;
   final int _maxResults;
   final int _maxIndexedEntries;
@@ -165,12 +173,34 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
     try {
       final results = <SearchResult>[];
-      await _collectMatchingEntries(
-        rootPath,
-        filteredTypes,
-        results,
-        visitedPaths: <String>{},
-      );
+      final walkTypes = <FileSystemEntryType>{};
+      final mediaStore = _mediaStore;
+      for (final type in filteredTypes) {
+        final mediaType =
+            mediaStore == null ? null : mediaStoreMediaTypeFor(type);
+        if (mediaStore == null || mediaType == null) {
+          walkTypes.add(type);
+          continue;
+        }
+        try {
+          final items = await mediaStore.queryMedia(mediaType);
+          for (final item in items) {
+            if (isUnderRootPath(item.path, rootPath)) {
+              results.add(item.toSearchResult(type));
+            }
+          }
+        } on Object {
+          walkTypes.add(type);
+        }
+      }
+      if (walkTypes.isNotEmpty) {
+        await _collectMatchingEntries(
+          rootPath,
+          walkTypes,
+          results,
+          visitedPaths: <String>{},
+        );
+      }
       if (!mounted || requestId != _requestSequence) return;
       results.sort(_compareResults);
       state = state.copyWith(
@@ -194,6 +224,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     Set<FileSystemEntryType> filteredTypes,
     List<SearchResult> results, {
     required Set<String> visitedPaths,
+    int depth = 0,
   }) async {
     if (visitedPaths.contains(path) || results.length >= _maxResults) {
       return;
@@ -211,7 +242,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           SearchResult(
             entry: entry,
             parentPath: path,
-            depth: 0,
+            depth: depth,
           ),
         );
       }
@@ -226,6 +257,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           filteredTypes,
           results,
           visitedPaths: visitedPaths,
+          depth: depth + 1,
         );
       } on Object {
         continue;
@@ -337,6 +369,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     String path, {
     required Set<FileSystemEntryType> filteredTypes,
     required Set<String> visitedPaths,
+    int depth = 0,
   }) async {
     if (visitedPaths.contains(path)) {
       return const [];
@@ -352,7 +385,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           SearchResult(
             entry: entry,
             parentPath: path,
-            depth: 0,
+            depth: depth,
           ),
         );
       }
@@ -372,6 +405,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
             folder.path,
             filteredTypes: filteredTypes,
             visitedPaths: visitedPaths,
+            depth: depth + 1,
           ),
         );
       } on Object {
@@ -385,10 +419,55 @@ class FileSearchController extends StateNotifier<FileSearchState> {
   }
 
   Future<List<SearchResult>> _collectIndexEntries(
-    String path, {
+    String rootPath, {
     required Set<String> visitedPaths,
   }) async {
-    if (visitedPaths.contains(path)) {
+    final seeded = <SearchResult>[];
+    final seededPaths = <String>{};
+    final mediaStore = _mediaStore;
+    if (mediaStore != null) {
+      for (final mediaType in MediaStoreMediaType.values) {
+        List<MediaStoreMediaItem> items;
+        try {
+          items = await mediaStore.queryMedia(mediaType);
+        } on Object {
+          continue;
+        }
+        for (final item in items) {
+          if (!isUnderRootPath(item.path, rootPath)) {
+            continue;
+          }
+          if (!seededPaths.add(item.path)) {
+            continue;
+          }
+          seeded.add(
+            item.toSearchResult(fileSystemEntryTypeFor(mediaType)),
+          );
+        }
+      }
+    }
+
+    final walked = await _walkIndexEntries(
+      rootPath,
+      visitedPaths: visitedPaths,
+      excludePaths: seededPaths,
+      maxEntries: _maxIndexedEntries - seeded.length,
+    );
+
+    final entries = [...seeded, ...walked];
+    return entries.length > _maxIndexedEntries
+        ? entries.take(_maxIndexedEntries).toList(growable: false)
+        : entries;
+  }
+
+  Future<List<SearchResult>> _walkIndexEntries(
+    String path, {
+    required Set<String> visitedPaths,
+    required Set<String> excludePaths,
+    required int maxEntries,
+    int depth = 0,
+  }) async {
+    if (visitedPaths.contains(path) || maxEntries <= 0) {
       return const [];
     }
     visitedPaths.add(path);
@@ -396,22 +475,26 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     final listing = await _repository.listDirectory(path);
     final results = <SearchResult>[
       for (final entry in listing.entries)
-        SearchResult(
-          entry: entry,
-          parentPath: path,
-          depth: 0,
-        ),
+        if (!excludePaths.contains(entry.path))
+          SearchResult(
+            entry: entry,
+            parentPath: path,
+            depth: depth,
+          ),
     ];
 
     for (final folder in listing.entries.where((entry) => entry.isFolder)) {
-      if (results.length >= _maxIndexedEntries) {
+      if (results.length >= maxEntries) {
         break;
       }
       try {
         results.addAll(
-          await _collectIndexEntries(
+          await _walkIndexEntries(
             folder.path,
             visitedPaths: visitedPaths,
+            excludePaths: excludePaths,
+            maxEntries: maxEntries - results.length,
+            depth: depth + 1,
           ),
         );
       } on Object {
@@ -419,8 +502,8 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       }
     }
 
-    return results.length > _maxIndexedEntries
-        ? results.take(_maxIndexedEntries).toList(growable: false)
+    return results.length > maxEntries
+        ? results.take(maxEntries).toList(growable: false)
         : results;
   }
 

@@ -69,6 +69,120 @@ void main() {
 
       expect(await platform.queryMedia(MediaStoreMediaType.audio), isEmpty);
     });
+
+    test('countMedia returns the count from the channel', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'countMedia') {
+          expect(call.arguments['type'], 'video');
+          expect(call.arguments['path'], '/storage/emulated/0/Movies');
+          return 37;
+        }
+        return null;
+      });
+
+      expect(
+        await platform.countMedia(
+          MediaStoreMediaType.video,
+          rootPath: '/storage/emulated/0/Movies',
+        ),
+        37,
+      );
+    });
+
+    test('countMedia returns zero when the channel returns null', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        return null;
+      });
+
+      expect(
+        await platform.countMedia(
+          MediaStoreMediaType.image,
+          rootPath: '/storage/emulated/0/DCIM',
+        ),
+        0,
+      );
+    });
+
+    test('countMedia throws so callers can fall back to the walker', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        throw PlatformException(code: 'count_failed');
+      });
+
+      await expectLater(
+        platform.countMedia(
+          MediaStoreMediaType.image,
+          rootPath: '/storage/emulated/0/DCIM',
+        ),
+        throwsA(isA<PlatformException>()),
+      );
+    });
+
+    test('queryFiles maps rows under the requested path', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'queryFiles') {
+          expect(call.arguments['path'], '/storage/emulated/0/Download');
+          return [
+            {
+              'path': '/storage/emulated/0/Download/report.pdf',
+              'name': 'report.pdf',
+              'sizeBytes': 10,
+              'modifiedAtMs': 1700000000000,
+            },
+            {
+              'path': '/storage/emulated/0/Download/app.apk',
+              'name': 'app.apk',
+              'sizeBytes': 20,
+              'modifiedAtMs': 1700000001000,
+            },
+          ];
+        }
+        return null;
+      });
+
+      final items =
+          await platform.queryFiles(rootPath: '/storage/emulated/0/Download');
+
+      expect(items, hasLength(2));
+      expect(items.first.path, '/storage/emulated/0/Download/report.pdf');
+      expect(items[1].name, 'app.apk');
+      expect(items[1].sizeBytes, 20);
+    });
+
+    test('queryFiles returns empty when the channel returns null', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        return null;
+      });
+
+      expect(
+        await platform.queryFiles(rootPath: '/storage/emulated/0'),
+        isEmpty,
+      );
+    });
+
+    test('queryFiles drops rows with an empty path', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+        return [
+          {'path': '', 'name': 'ghost.txt', 'sizeBytes': 1, 'modifiedAtMs': 0},
+          {
+            'path': '/storage/emulated/0/doc.txt',
+            'name': 'doc.txt',
+            'sizeBytes': 2,
+            'modifiedAtMs': 0,
+          },
+        ];
+      });
+
+      final items = await platform.queryFiles(rootPath: '/storage/emulated/0');
+
+      expect(items, hasLength(1));
+      expect(items.single.path, '/storage/emulated/0/doc.txt');
+    });
   });
 
   group('MediaStoreMediaLibraryRepository', () {

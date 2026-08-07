@@ -53,11 +53,28 @@ Progress log for the Flutter application.
 - Explorer list view updated to use shared `FileEntryListTile`:
   - Shows badge count for folders, size + date for files, count + date for folders.
   - Selection count in app bar uses comma formatting.
+- Added Android MediaStore-backed media category discovery:
+  - New native `queryMedia` MethodChannel (`com.ajayff4.fileexplorer/media_store`) querying MediaStore Images/Audio/Video off the main thread.
+  - New `MediaStorePlatform` Dart wrapper and `MediaStoreMediaLibraryRepository` implementing `MediaLibraryRepository`.
+  - Images/Videos/Audio category views now load from Android's OS-maintained media index instead of recursively walking the filesystem; category open time dropped from scan-dependent (grew with folder/file count) to ~1–2s, matching ES File Explorer.
+  - Results filtered to the requested storage root and hidden dot-path segments skipped, matching previous walker behavior.
+  - Automatic fallback to the recursive walker for non-media types (documents, apps, archives), on non-Android platforms, and on MediaStore query failure.
+  - Added unit tests for channel row mapping, root filtering, fallback, and non-media delegation.
+- Added Phase 2 MediaStore expansion (walk cache + Search integration):
+  - New `MediaLibraryWalkCache`: one single-pass recursive walk per storage root, bucketed by entry type, with 5-minute TTL and in-flight dedup so concurrent category opens share one walk. `StorageMediaLibraryRepository` (documents/apps/archives fallback) now serves results from it.
+  - Shared MediaStore→`SearchResult` mapping helpers (`media_store_search_results.dart`) reused by category discovery and Search.
+  - Search type-only browse (filter chips, no query): media types answered from MediaStore in milliseconds and merged with walker results for non-media types; per-type walker fallback when a MediaStore query fails.
+  - Search index build/reindex: seeded from MediaStore media rows (deduped by path) so media files are indexed even when the walk hits its entry cap; the walk skips already-seeded paths.
+  - Search walks now propagate entry depth so shallower matches sort before deeper ones, matching the existing comparator's intent.
+  - New unit tests: walk cache (single walk, TTL expiry, in-flight dedup, invalidate) and Search MediaStore paths (merge, root filtering, fallback, index seeding, no duplicates).
 
 ### Verified
 
 - `flutter analyze`
 - `dart format lib test`
+- `flutter test` (3 pre-existing stale widget expectations around Home/media behavior remain)
+- `flutter build apk --debug`
+- Real-device pass: Images/Videos/Audio categories open in ~1–2s via MediaStore.
 
 ### Pending Verification
 

@@ -251,23 +251,6 @@ class _TreeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<bool> folderContainsFileType(
-    String folderPath,
-    FileSystemEntryType type,
-  ) async {
-    final entries = _entriesByPath[folderPath] ?? const <FileSystemEntry>[];
-    for (final entry in entries) {
-      if (entry.type == type) {
-        return true;
-      }
-      if (entry.isFolder && await folderContainsFileType(entry.path, type)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  @override
   Future<bool> createFolder(String path) async {
     return true;
   }

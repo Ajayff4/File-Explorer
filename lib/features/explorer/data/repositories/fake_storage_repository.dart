@@ -199,32 +199,6 @@ class FakeStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<bool> folderContainsFileType(
-    String folderPath,
-    FileSystemEntryType type,
-  ) async {
-    final sampleTypesByFolder = <String, Set<FileSystemEntryType>>{
-      '$rootPath/DCIM/Camera': {
-        FileSystemEntryType.image,
-        FileSystemEntryType.video,
-      },
-      '$rootPath/Download': {
-        FileSystemEntryType.archive,
-        FileSystemEntryType.app,
-        FileSystemEntryType.document,
-      },
-      '$rootPath/Documents': {
-        FileSystemEntryType.document,
-      },
-      '$rootPath/Movies': {
-        FileSystemEntryType.video,
-      },
-    };
-
-    return sampleTypesByFolder[folderPath]?.contains(type) ?? false;
-  }
-
-  @override
   Future<bool> createFolder(String path) async {
     return true;
   }

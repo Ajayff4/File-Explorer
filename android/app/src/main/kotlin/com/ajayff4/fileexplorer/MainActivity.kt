@@ -9,6 +9,8 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.media.MediaScannerConnection
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.os.Handler
@@ -144,6 +146,79 @@ class MainActivity: FlutterActivity() {
                             }.start()
                         }
                     }
+                    "queryFiles" -> {
+                        val path = call.argument<String>("path")
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else {
+                            Thread {
+                                try {
+                                    val items = queryFiles(path)
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(items)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "query_failed",
+                                            error.message ?: "MediaStore query failed",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
+                        }
+                    }
+                    "countMedia" -> {
+                        val type = call.argument<String>("type")
+                        val path = call.argument<String>("path")
+                        if (type == null || path == null) {
+                            result.error(
+                                "missing_argument",
+                                "Media type and path are required",
+                                null,
+                            )
+                        } else {
+                            Thread {
+                                try {
+                                    val count = countMedia(type, path)
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(count)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "count_failed",
+                                            error.message ?: "MediaStore count failed",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
+                        }
+                    }
+                    "scanFiles" -> {
+                        val paths = call.argument<List<String>>("paths")
+                        if (paths.isNullOrEmpty()) {
+                            result.success(null)
+                        } else {
+                            try {
+                                MediaScannerConnection.scanFile(
+                                    this,
+                                    paths.toTypedArray(),
+                                    null,
+                                    null,
+                                )
+                                result.success(null)
+                            } catch (error: Exception) {
+                                result.error(
+                                    "scan_failed",
+                                    error.message ?: "Media scan failed",
+                                    null,
+                                )
+                            }
+                        }
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -261,13 +336,25 @@ class MainActivity: FlutterActivity() {
 
     @Suppress("DEPRECATION")
     private fun queryMedia(type: String): List<Map<String, Any?>> {
-        val uri = when (type) {
-            "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            else -> return emptyList()
-        }
+        val uri = mediaStoreUriFor(type) ?: return emptyList()
+        return queryMediaRows(uri, null, null)
+    }
 
+    @Suppress("DEPRECATION")
+    private fun queryFiles(path: String): List<Map<String, Any?>> {
+        val uri = MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
+        val dataColumn = MediaStore.MediaColumns.DATA
+        val selection = "($dataColumn = ? OR $dataColumn LIKE ?) AND $dataColumn NOT LIKE ?"
+        val selectionArgs = arrayOf(path, "$path/%", "%/.%")
+        return queryMediaRows(uri, selection, selectionArgs)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun queryMediaRows(
+        uri: Uri,
+        selection: String?,
+        selectionArgs: Array<String>?,
+    ): List<Map<String, Any?>> {
         val projection = arrayOf(
             MediaStore.MediaColumns.DATA,
             MediaStore.MediaColumns.DISPLAY_NAME,
@@ -276,7 +363,7 @@ class MainActivity: FlutterActivity() {
         )
 
         val items = mutableListOf<Map<String, Any?>>()
-        contentResolver.query(uri, projection, null, null, null)?.use { cursor ->
+        contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
             val pathColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
             val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
             val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
@@ -314,6 +401,33 @@ class MainActivity: FlutterActivity() {
 
     private fun hasHiddenSegment(path: String): Boolean {
         return path.split('/').any { it.length > 1 && it.startsWith(".") }
+    }
+
+    @Suppress("DEPRECATION")
+    private fun mediaStoreUriFor(type: String) = when (type) {
+        "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        else -> null
+    }
+
+    @Suppress("DEPRECATION")
+    private fun countMedia(type: String, path: String): Long {
+        val uri = mediaStoreUriFor(type) ?: return 0L
+
+        val dataColumn = MediaStore.MediaColumns.DATA
+        // Count rows inside the folder subtree, excluding hidden segments
+        // (same parity as queryMedia's hasHiddenSegment filter).
+        val selection = "($dataColumn = ? OR $dataColumn LIKE ?) AND $dataColumn NOT LIKE ?"
+        val selectionArgs = arrayOf(path, "$path/%", "%/.%")
+
+        contentResolver.query(uri, arrayOf("COUNT(*)"), selection, selectionArgs, null)
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    return cursor.getLong(0)
+                }
+            }
+        return 0L
     }
 
     private fun getApkIcon(path: String): ByteArray? {

@@ -90,15 +90,6 @@ class LocalStorageRepository implements StorageRepository {
   }
 
   @override
-  Future<bool> folderContainsFileType(
-    String folderPath,
-    FileSystemEntryType type,
-  ) async {
-    return _folderContainsFileTypeRecursive(folderPath, type,
-        visitedPaths: <String>{});
-  }
-
-  @override
   Future<bool> createFolder(String path) async {
     try {
       final directory = Directory(path);
@@ -124,44 +115,6 @@ class LocalStorageRepository implements StorageRepository {
     } on FileSystemException {
       return false;
     }
-  }
-
-  Future<bool> _folderContainsFileTypeRecursive(
-    String path,
-    FileSystemEntryType type, {
-    required Set<String> visitedPaths,
-  }) async {
-    if (visitedPaths.contains(path)) return false;
-    visitedPaths.add(path);
-
-    try {
-      final directory = Directory(path);
-
-      await for (final entity in directory.list()) {
-        try {
-          if (entity is File) {
-            if (_typeFromPath(entity.path) == type) {
-              return true;
-            }
-          } else if (entity is Directory) {
-            // Recurse into subdirectories
-            if (await _folderContainsFileTypeRecursive(
-              entity.path,
-              type,
-              visitedPaths: visitedPaths,
-            )) {
-              return true;
-            }
-          }
-        } on FileSystemException {
-          // Skip unreadable entries
-        }
-      }
-    } on FileSystemException {
-      // If we can't read the directory, return false
-    }
-
-    return false;
   }
 
   Future<void> _countEntriesRecursive(

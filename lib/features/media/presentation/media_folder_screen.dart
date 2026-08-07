@@ -5,6 +5,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
@@ -58,7 +59,7 @@ class MediaFolderScreen extends StatelessWidget {
   }
 }
 
-class _MediaFolderGrid extends StatefulWidget {
+class _MediaFolderGrid extends ConsumerStatefulWidget {
   const _MediaFolderGrid({
     required this.folderPath,
     required this.kind,
@@ -69,10 +70,10 @@ class _MediaFolderGrid extends StatefulWidget {
   final MediaLibraryKind kind;
 
   @override
-  State<_MediaFolderGrid> createState() => _MediaFolderGridState();
+  ConsumerState<_MediaFolderGrid> createState() => _MediaFolderGridState();
 }
 
-class _MediaFolderGridState extends State<_MediaFolderGrid> {
+class _MediaFolderGridState extends ConsumerState<_MediaFolderGrid> {
   List<FileSystemEntry> _entries = [];
   bool _loading = true;
   Object? _error;
@@ -98,6 +99,37 @@ class _MediaFolderGridState extends State<_MediaFolderGrid> {
   }
 
   Future<void> _loadEntries() async {
+    final mediaStore = ref.read(mediaStorePlatformProvider);
+    if (mediaStore != null) {
+      try {
+        final items = await mediaStore.queryFiles(rootPath: widget.folderPath);
+        final mediaEntries = <FileSystemEntry>[
+          for (final item in items)
+            if (!item.name.startsWith('.'))
+              FileSystemEntry(
+                name: item.name,
+                path: item.path,
+                type: _typeForExtension(item.path),
+                modifiedAt: item.modifiedAt,
+                sizeBytes: item.sizeBytes,
+              ),
+        ];
+        mediaEntries
+            .removeWhere((entry) => entry.type != widget.kind.type);
+        mediaEntries.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+
+        if (mounted) {
+          setState(() {
+            _entries = mediaEntries;
+            _loading = false;
+          });
+        }
+        return;
+      } on Object {
+        // MediaStore query failed; fall back to the directory listing below.
+      }
+    }
+
     try {
       final dir = Directory(widget.folderPath);
       final entries = await dir.list().toList();

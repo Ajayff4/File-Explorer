@@ -212,7 +212,8 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
   void selectInterval({List<String>? paths}) {
     if (state.selectedPaths.length < 2) return;
-    final allPaths = paths ?? state.listing.valueOrNull?.entries.map((e) => e.path).toList();
+    final allPaths =
+        paths ?? state.listing.valueOrNull?.entries.map((e) => e.path).toList();
     if (allPaths == null || allPaths.isEmpty) return;
 
     final indices = state.selectedPaths

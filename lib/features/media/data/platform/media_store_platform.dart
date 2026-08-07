@@ -39,6 +39,28 @@ class MediaStorePlatform {
         .toList(growable: false);
   }
 
+  /// Queries every indexed file under [rootPath] from MediaStore's Files
+  /// collection.
+  ///
+  /// Unlike [queryMedia], this covers non-media kinds too (documents,
+  /// archives, apps), letting the folder view answer from MediaStore instead
+  /// of a filesystem listing. Same hidden-segment filtering as [queryMedia].
+  Future<List<MediaStoreMediaItem>> queryFiles({
+    required String rootPath,
+  }) async {
+    final result = await _channel.invokeListMethod<Object?>(
+      'queryFiles',
+      {'path': rootPath},
+    );
+    final rawItems = result ?? const <Object?>[];
+
+    return rawItems
+        .whereType<Map<Object?, Object?>>()
+        .map(_itemFromMap)
+        .where((item) => item.path.isNotEmpty)
+        .toList(growable: false);
+  }
+
   MediaStoreMediaItem _itemFromMap(Map<Object?, Object?> map) {
     return MediaStoreMediaItem(
       path: map['path']?.toString() ?? '',
@@ -48,6 +70,32 @@ class MediaStorePlatform {
         _intFrom(map['modifiedAtMs']),
       ),
     );
+  }
+
+  /// Counts media items of [type] inside [rootPath] and its subfolders.
+  ///
+  /// Matches [queryMedia]'s hidden-segment filtering so counts agree with the
+  /// category views. Throws on failure so callers can fall back to the walker.
+  Future<int> countMedia(
+    MediaStoreMediaType type, {
+    required String rootPath,
+  }) async {
+    final result = await _channel.invokeMethod<int>('countMedia', {
+      'type': type.name,
+      'path': rootPath,
+    });
+    return result ?? 0;
+  }
+
+  /// Asks the OS media scanner to index (or prune) the given [paths].
+  ///
+  /// Scan newly created files so they appear in MediaStore-backed views
+  /// immediately; scanning paths that no longer exist prunes stale rows.
+  Future<void> scanFiles(List<String> paths) async {
+    if (paths.isEmpty) {
+      return;
+    }
+    await _channel.invokeMethod<void>('scanFiles', {'paths': paths});
   }
 
   int _intFrom(Object? value) {

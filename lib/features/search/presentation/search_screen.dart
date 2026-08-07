@@ -85,9 +85,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               IconButton(
                 tooltip: 'Select all',
                 onPressed: () {
-                  final paths = searchState.results
-                      .map((r) => r.entry.path)
-                      .toList();
+                  final paths =
+                      searchState.results.map((r) => r.entry.path).toList();
                   ref
                       .read(explorerControllerProvider.notifier)
                       .selectAll(paths);
@@ -132,92 +131,95 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ],
         ),
         body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
-        children: [
-          SearchBar(
-            controller: _textController,
-            hintText: 'Search files and folders',
-            leading: const Icon(Icons.search_rounded),
-            trailing: [
-              if (_textController.text.isNotEmpty)
-                IconButton(
-                  tooltip: 'Clear',
-                  onPressed: () {
-                    _textController.clear();
-                    ref.read(fileSearchControllerProvider.notifier).setQuery(
-                          query: '',
-                          rootPath: rootPath,
-                        );
-                    setState(() {});
-                  },
-                  icon: const Icon(Icons.close_rounded),
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 16),
+          children: [
+            SearchBar(
+              controller: _textController,
+              hintText: 'Search files and folders',
+              leading: const Icon(Icons.search_rounded),
+              trailing: [
+                if (_textController.text.isNotEmpty)
+                  IconButton(
+                    tooltip: 'Clear',
+                    onPressed: () {
+                      _textController.clear();
+                      ref.read(fileSearchControllerProvider.notifier).setQuery(
+                            query: '',
+                            rootPath: rootPath,
+                          );
+                      setState(() {});
+                    },
+                    icon: const Icon(Icons.close_rounded),
+                  ),
+              ],
+              onChanged: (query) {
+                ref.read(fileSearchControllerProvider.notifier).setQuery(
+                      query: query,
+                      rootPath: rootPath,
+                    );
+                setState(() {});
+              },
+              onSubmitted: (query) {
+                ref.read(fileSearchControllerProvider.notifier).searchNow(
+                      query: query,
+                      rootPath: rootPath,
+                    );
+              },
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Scope: $rootPath',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            SegmentedButton<_SearchScope>(
+              segments: const [
+                ButtonSegment(
+                  value: _SearchScope.currentFolder,
+                  icon: Icon(Icons.folder_open_rounded),
+                  label: Text('Current'),
                 ),
-            ],
-            onChanged: (query) {
-              ref.read(fileSearchControllerProvider.notifier).setQuery(
-                    query: query,
-                    rootPath: rootPath,
-                  );
-              setState(() {});
-            },
-            onSubmitted: (query) {
-              ref.read(fileSearchControllerProvider.notifier).searchNow(
-                    query: query,
-                    rootPath: rootPath,
-                  );
-            },
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Scope: $rootPath',
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
-          const SizedBox(height: 12),
-          SegmentedButton<_SearchScope>(
-            segments: const [
-              ButtonSegment(
-                value: _SearchScope.currentFolder,
-                icon: Icon(Icons.folder_open_rounded),
-                label: Text('Current'),
-              ),
-              ButtonSegment(
-                value: _SearchScope.storageRoot,
-                icon: Icon(Icons.storage_rounded),
-                label: Text('Storage'),
-              ),
-            ],
-            selected: {_scope},
-            onSelectionChanged: (selection) {
-              final nextScope = selection.first;
-              setState(() => _scope = nextScope);
-              final nextRoot = nextScope == _SearchScope.storageRoot
-                  ? storageRootPath
-                  : currentPath;
-              ref.read(fileSearchControllerProvider.notifier).searchNow(
-                    query: _textController.text,
-                    rootPath: nextRoot,
-                  );
-            },
-          ),
-          const SizedBox(height: 12),
-          _TypeFilterChips(
-            selectedTypes: searchState.filteredTypes,
-            onChanged: (types) {
-              ref.read(fileSearchControllerProvider.notifier).setFilteredTypes(
-                    filteredTypes: types,
-                    rootPath: rootPath,
-                  );
-            },
-          ),
-          const SizedBox(height: 16),
-          ..._buildConditionalChildren(searchState, isSelectionMode, ref, context),
-        ],
+                ButtonSegment(
+                  value: _SearchScope.storageRoot,
+                  icon: Icon(Icons.storage_rounded),
+                  label: Text('Storage'),
+                ),
+              ],
+              selected: {_scope},
+              onSelectionChanged: (selection) {
+                final nextScope = selection.first;
+                setState(() => _scope = nextScope);
+                final nextRoot = nextScope == _SearchScope.storageRoot
+                    ? storageRootPath
+                    : currentPath;
+                ref.read(fileSearchControllerProvider.notifier).searchNow(
+                      query: _textController.text,
+                      rootPath: nextRoot,
+                    );
+              },
+            ),
+            const SizedBox(height: 12),
+            _TypeFilterChips(
+              selectedTypes: searchState.filteredTypes,
+              onChanged: (types) {
+                ref
+                    .read(fileSearchControllerProvider.notifier)
+                    .setFilteredTypes(
+                      filteredTypes: types,
+                      rootPath: rootPath,
+                    );
+              },
+            ),
+            const SizedBox(height: 16),
+            ..._buildConditionalChildren(
+                searchState, isSelectionMode, ref, context),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }
 
 List<Widget> _buildConditionalChildren(
@@ -245,7 +247,9 @@ List<Widget> _buildConditionalChildren(
         shrinkWrap: true,
         onOpen: (context, ref, entry) {
           if (entry.isFolder) {
-            ref.read(explorerControllerProvider.notifier).openDirectory(entry.path);
+            ref
+                .read(explorerControllerProvider.notifier)
+                .openDirectory(entry.path);
             context.go(AppRoutes.explorer);
           } else {
             _openSearchFile(context, ref, entry, searchState.results);
@@ -255,7 +259,13 @@ List<Widget> _buildConditionalChildren(
           if (entry.isFolder) return null;
           return IconButton(
             tooltip: 'Open folder',
-            onPressed: () => _openContainingFolder(context, ref, entry, searchState.filteredTypes.isEmpty ? null : searchState.filteredTypes.first),
+            onPressed: () => _openContainingFolder(
+                context,
+                ref,
+                entry,
+                searchState.filteredTypes.isEmpty
+                    ? null
+                    : searchState.filteredTypes.first),
             visualDensity: VisualDensity.compact,
             iconSize: 18,
             icon: const Icon(Icons.folder_open_rounded),
@@ -297,7 +307,8 @@ void _openContainingFolder(
   FileSystemEntryType? activeFilter,
 ) {
   final settings = ref.read(settingsControllerProvider).settings;
-  final shouldRecordFile = !entry.isFolder && !settings.showFoldersOnlyInHistory;
+  final shouldRecordFile =
+      !entry.isFolder && !settings.showFoldersOnlyInHistory;
 
   if (activeFilter != null) {
     ref.read(explorerFilterTypeProvider.notifier).state = activeFilter;

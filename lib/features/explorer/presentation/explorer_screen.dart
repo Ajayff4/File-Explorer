@@ -7,6 +7,9 @@ import 'package:file_explorer/features/explorer/presentation/entry_filters.dart'
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
+import 'package:file_explorer/features/media/data/platform/media_store_platform.dart';
+import 'package:file_explorer/features/media/data/platform/media_store_search_results.dart';
+import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
@@ -591,6 +594,7 @@ class ExplorerScreen extends ConsumerWidget {
                           viewMode: viewMode,
                           isSelectionMode: isSelectionMode,
                           storage: ref.watch(storageRepositoryProvider),
+                          mediaStore: ref.watch(mediaStorePlatformProvider),
                         );
                       }
 
@@ -1282,6 +1286,7 @@ class _FilteredEntryListView extends StatelessWidget {
     required this.viewMode,
     required this.isSelectionMode,
     required this.storage,
+    required this.mediaStore,
   });
 
   final List<FileSystemEntry> entries;
@@ -1290,6 +1295,7 @@ class _FilteredEntryListView extends StatelessWidget {
   final ExplorerViewMode viewMode;
   final bool isSelectionMode;
   final StorageRepository storage;
+  final MediaStorePlatform? mediaStore;
 
   @override
   Widget build(BuildContext context) {
@@ -1324,8 +1330,7 @@ class _FilteredEntryListView extends StatelessWidget {
           filtered.add(entry);
         }
       } else {
-        final counts = await storage.countEntriesByType(entry.path);
-        final matchingCount = counts[filterType] ?? 0;
+        final matchingCount = await _countMatchingEntries(entry.path);
         if (matchingCount > 0) {
           filtered.add(entry.copyWith(childrenCount: matchingCount));
         }
@@ -1333,6 +1338,21 @@ class _FilteredEntryListView extends StatelessWidget {
     }
 
     return filtered;
+  }
+
+  Future<int> _countMatchingEntries(String path) async {
+    final mediaStore = this.mediaStore;
+    final mediaType =
+        mediaStore == null ? null : mediaStoreMediaTypeFor(filterType);
+    if (mediaStore != null && mediaType != null) {
+      try {
+        return await mediaStore.countMedia(mediaType, rootPath: path);
+      } on Object {
+        // Fall through to the filesystem walk.
+      }
+    }
+    final counts = await storage.countEntriesByType(path);
+    return counts[filterType] ?? 0;
   }
 }
 
