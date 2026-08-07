@@ -51,8 +51,13 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
     return BackButtonListener(
       onBackButtonPressed: () async {
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          return false;
+        }
         if (isSelectionMode) {
           ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+        } else if (context.canPop()) {
+          context.pop();
         } else {
           context.go(AppRoutes.explorer);
         }

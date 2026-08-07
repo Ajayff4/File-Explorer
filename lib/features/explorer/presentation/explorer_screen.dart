@@ -92,8 +92,13 @@ class ExplorerScreen extends ConsumerWidget {
 
     return BackButtonListener(
       onBackButtonPressed: () async {
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          return false;
+        }
         if (isSelectionMode) {
           ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+        } else if (context.canPop()) {
+          context.pop();
         } else if (_canNavigateUp(explorerState)) {
           await ref
               .read(explorerControllerProvider.notifier)

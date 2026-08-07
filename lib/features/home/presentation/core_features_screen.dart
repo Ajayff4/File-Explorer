@@ -9,6 +9,9 @@ class CoreFeaturesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return BackButtonListener(
       onBackButtonPressed: () async {
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          return false;
+        }
         if (context.canPop()) {
           context.pop();
         } else {

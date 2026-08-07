@@ -26,16 +26,7 @@ class MediaFolderScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BackButtonListener(
-      onBackButtonPressed: () async {
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          context.go(AppRoutes.media(kind));
-        }
-        return true;
-      },
-      child: Scaffold(
+    return Scaffold(
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
@@ -54,7 +45,6 @@ class MediaFolderScreen extends StatelessWidget {
           folderPath: folderPath,
           kind: kind,
         ),
-      ),
     );
   }
 }

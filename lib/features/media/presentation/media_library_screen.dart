@@ -125,7 +125,14 @@ class MediaLibraryScreen extends ConsumerWidget {
 
     return BackButtonListener(
       onBackButtonPressed: () async {
-        context.go(AppRoutes.home);
+        if (ModalRoute.of(context)?.isCurrent != true) {
+          return false;
+        }
+        if (context.canPop()) {
+          context.pop();
+        } else {
+          context.go(AppRoutes.home);
+        }
         return true;
       },
       child: Scaffold(

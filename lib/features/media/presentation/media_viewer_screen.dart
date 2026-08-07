@@ -95,16 +95,7 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
     final visualPreview = _entry.type == FileSystemEntryType.image ||
         _entry.type == FileSystemEntryType.video;
 
-    return BackButtonListener(
-      onBackButtonPressed: () async {
-        if (context.canPop()) {
-          context.pop();
-        } else {
-          context.go(AppRoutes.explorer);
-        }
-        return true;
-      },
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: visualPreview ? Colors.black : null,
         appBar: fullscreenVideo
             ? null
@@ -142,7 +133,6 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 
