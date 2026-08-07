@@ -337,7 +337,9 @@ class MainActivity: FlutterActivity() {
     @Suppress("DEPRECATION")
     private fun queryMedia(type: String): List<Map<String, Any?>> {
         val uri = mediaStoreUriFor(type) ?: return emptyList()
-        return queryMediaRows(uri, null, null)
+        val rows = queryMediaRows(uri, null, null, extensionFilterFor(type))
+        android.util.Log.d("ESFileExplorer", "queryMedia type=$type uri=$uri rows=${rows.size} grantAll=${isAllFilesAccessGranted()}")
+        return rows
     }
 
     @Suppress("DEPRECATION")
@@ -354,6 +356,7 @@ class MainActivity: FlutterActivity() {
         uri: Uri,
         selection: String?,
         selectionArgs: Array<String>?,
+        extensionFilter: Set<String>? = null,
     ): List<Map<String, Any?>> {
         val projection = arrayOf(
             MediaStore.MediaColumns.DATA,
@@ -363,28 +366,42 @@ class MainActivity: FlutterActivity() {
         )
 
         val items = mutableListOf<Map<String, Any?>>()
+        var raw = 0
+        var nullPath = 0
+        var hidden = 0
+        var filtered = 0
         contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
             val pathColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
             val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
             val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
             val modifiedColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
+            raw = cursor.count
 
             while (cursor.moveToNext()) {
                 val path = if (pathColumn >= 0) cursor.getString(pathColumn) else null
-                if (path.isNullOrEmpty() || hasHiddenSegment(path)) {
+                if (path.isNullOrEmpty()) {
+                    nullPath++
+                    continue
+                }
+                if (hasHiddenSegment(path)) {
+                    hidden++
+                    continue
+                }
+
+                val name = if (nameColumn >= 0) {
+                    cursor.getString(nameColumn) ?: File(path).name
+                } else {
+                    File(path).name
+                }
+                if (extensionFilter != null && extensionOf(name) !in extensionFilter) {
+                    filtered++
                     continue
                 }
 
                 items.add(
                     mapOf(
                         "path" to path,
-                        "name" to (
-                            if (nameColumn >= 0) {
-                                cursor.getString(nameColumn) ?: File(path).name
-                            } else {
-                                File(path).name
-                            }
-                        ),
+                        "name" to name,
                         "sizeBytes" to if (sizeColumn >= 0) cursor.getLong(sizeColumn) else 0L,
                         // DATE_MODIFIED is in seconds; expose milliseconds.
                         "modifiedAtMs" to if (modifiedColumn >= 0) {
@@ -396,7 +413,33 @@ class MainActivity: FlutterActivity() {
                 )
             }
         }
+        android.util.Log.d("ESFileExplorer", "queryMediaRows raw=$raw nullPath=$nullPath hidden=$hidden filtered=$filtered kept=${items.size}")
         return items
+    }
+
+    private fun extensionOf(name: String): String {
+        val dotIndex = name.lastIndexOf('.')
+        if (dotIndex <= 0 || dotIndex == name.length - 1) {
+            return ""
+        }
+        return name.substring(dotIndex + 1).lowercase()
+    }
+
+    /// Lowercase extension groups for non-media kinds served from
+    /// MediaStore.Files. Mirror the app's FileSystemEntryType mapping
+    /// (local_storage_repository_io.dart / media_folder_screen.dart).
+    private fun extensionFilterFor(type: String): Set<String>? = when (type) {
+        "document" -> setOf(
+            "pdf", "doc", "docx", "odt", "rtf", "txt", "md", "log",
+            "xls", "xlsx", "ods", "csv", "ppt", "pptx", "odp",
+        )
+        "archive" -> setOf(
+            "zip", "rar", "7z", "tar", "gz", "bz2", "xz", "tgz",
+        )
+        "app" -> setOf(
+            "apk", "apks", "xapk", "apkm", "aab", "app", "exe", "deb",
+        )
+        else -> null
     }
 
     private fun hasHiddenSegment(path: String): Boolean {
@@ -408,6 +451,8 @@ class MainActivity: FlutterActivity() {
         "image" -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
         "video" -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
         "audio" -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        "document", "archive", "app" ->
+            MediaStore.Files.getContentUri(MediaStore.VOLUME_EXTERNAL)
         else -> null
     }
 
@@ -421,13 +466,8 @@ class MainActivity: FlutterActivity() {
         val selection = "($dataColumn = ? OR $dataColumn LIKE ?) AND $dataColumn NOT LIKE ?"
         val selectionArgs = arrayOf(path, "$path/%", "%/.%")
 
-        contentResolver.query(uri, arrayOf("COUNT(*)"), selection, selectionArgs, null)
-            ?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                    return cursor.getLong(0)
-                }
-            }
-        return 0L
+        val rows = queryMediaRows(uri, selection, selectionArgs, extensionFilterFor(type))
+        return rows.size.toLong()
     }
 
     private fun getApkIcon(path: String): ByteArray? {

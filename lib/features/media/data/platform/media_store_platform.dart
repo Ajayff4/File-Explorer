@@ -1,6 +1,6 @@
 import 'package:flutter/services.dart';
 
-enum MediaStoreMediaType { image, audio, video }
+enum MediaStoreMediaType { image, audio, video, document, archive, app }
 
 class MediaStoreMediaItem {
   const MediaStoreMediaItem({
@@ -42,9 +42,7 @@ class MediaStorePlatform {
   /// Queries every indexed file under [rootPath] from MediaStore's Files
   /// collection.
   ///
-  /// Unlike [queryMedia], this covers non-media kinds too (documents,
-  /// archives, apps), letting the folder view answer from MediaStore instead
-  /// of a filesystem listing. Same hidden-segment filtering as [queryMedia].
+  /// Same hidden-segment filtering as [queryMedia].
   Future<List<MediaStoreMediaItem>> queryFiles({
     required String rootPath,
   }) async {

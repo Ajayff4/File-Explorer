@@ -275,8 +275,17 @@ void main() {
       expect(results, same(fallback.results));
     });
 
-    test('delegates non-media types to the walker', () async {
-      mockMediaRows(const {});
+    test('routes document types through MediaStore', () async {
+      mockMediaRows({
+        'document': [
+          {
+            'path': '/storage/emulated/0/Download/report.pdf',
+            'name': 'report.pdf',
+            'sizeBytes': 10,
+            'modifiedAtMs': 0,
+          },
+        ],
+      });
 
       final fallback = _FakeFallbackMediaLibraryRepository();
       final repository = MediaStoreMediaLibraryRepository(
@@ -289,8 +298,9 @@ void main() {
         type: FileSystemEntryType.document,
       );
 
-      expect(fallback.callCount, 1);
-      expect(results, same(fallback.results));
+      expect(fallback.callCount, 0);
+      expect(results.single.entry.path, '/storage/emulated/0/Download/report.pdf');
+      expect(results.single.entry.type, FileSystemEntryType.document);
     });
   });
 }

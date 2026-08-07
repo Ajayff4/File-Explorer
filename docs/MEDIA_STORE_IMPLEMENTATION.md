@@ -36,11 +36,11 @@ MediaLibraryScreen
        └─ mediaLibraryRepositoryProvider
             └─ createMediaLibraryRepository()     ← factory (io/stub conditional import)
                  ├─ Android: MediaStoreMediaLibraryRepository
-                 │    ├─ image/audio/video → MediaStorePlatform.queryMedia()
+                 │    ├─ image/audio/video → MediaStore.Images/Audio/Video query
+                 │    ├─ document/archive/app → MediaStore.Files + extension filter
                  │    │    └─ MethodChannel 'com.ajayff4.fileexplorer/media_store'
                  │    │         └─ MainActivity.queryMedia()  (background thread)
-                 │    │              └─ MediaStore.Images/Audio/Video query
-                 │    └─ other types / any failure → fallback walker
+                 │    └─ any failure → fallback walker
                  └─ non-Android: StorageMediaLibraryRepository (walker)
 ```
 
@@ -48,18 +48,23 @@ MediaLibraryScreen
 
 | File | Role |
 | --- | --- |
-| `android/.../MainActivity.kt` | `queryMedia` channel handler; queries the matching MediaStore collection on a background `Thread`, replies on the main thread via `Handler(Looper.getMainLooper())`. |
-| `lib/features/media/data/platform/media_store_platform.dart` | `MediaStorePlatform` — typed Dart wrapper over the channel (`MediaStoreMediaItem`: path, name, sizeBytes, modifiedAt). |
-| `lib/features/media/data/repositories/media_store_media_library_repository.dart` | `MediaStoreMediaLibraryRepository` — maps rows to `SearchResult`s (`parentPath = dirname(path)`), delegates to the walker fallback for non-media types or on query failure. |
+| `android/.../MainActivity.kt` | `queryMedia`/`countMedia` channel handlers; query the matching MediaStore collection on a background `Thread`, reply on the main thread via `Handler(Looper.getMainLooper())`. Non-media kinds (`document`/`archive`/`app`) query `MediaStore.Files` and are filtered by a lowercase extension set that mirrors the app's `FileSystemEntryType` mapping. |
+| `lib/features/media/data/platform/media_store_platform.dart` | `MediaStorePlatform` — typed Dart wrapper over the channel (`MediaStoreMediaItem`: path, name, sizeBytes, modifiedAt). `MediaStoreMediaType` covers all six library kinds. |
+| `lib/features/media/data/repositories/media_store_media_library_repository.dart` | `MediaStoreMediaLibraryRepository` — maps rows to `SearchResult`s (`parentPath = dirname(path)`), delegates to the walker fallback only on query failure. |
 | `lib/features/media/data/repositories/media_library_repository_factory_io.dart` / `_stub.dart` | `createMediaLibraryRepository()` — Android → MediaStore repo with fallback; elsewhere → walker. Mirrors the existing `createStorageRepository()` pattern. |
 | `lib/features/media/data/repositories/media_library_repository_provider.dart` | Riverpod wiring, now via the factory. |
-| `test/features/media/media_store_media_library_repository_test.dart` | 6 unit tests: row mapping, empty-path drop, parent grouping, root filtering, error fallback, non-media delegation. |
+| `test/features/media/media_store_media_library_repository_test.dart` | Unit tests: row mapping, empty-path drop, parent grouping, root filtering, error fallback, document-via-MediaStore routing. |
 
 ### Native query details
 
 - Collections: `MediaStore.Images.Media.EXTERNAL_CONTENT_URI`,
-  `MediaStore.Video…`, `MediaStore.Audio…`. The external provider covers
-  internal storage and SD cards in one query.
+  `MediaStore.Video…`, `MediaStore.Audio…`, and
+  `MediaStore.Files.getContentUri(VOLUME_EXTERNAL)` for the non-media kinds.
+  The external provider covers internal storage and SD cards in one query.
+- For `document`/`archive`/`app`, rows are additionally filtered in Kotlin by a
+  lowercase extension set mirroring the Dart `FileSystemEntryType` mapping
+  (`extensionFilterFor` in `MainActivity.kt`), so only indexed files of that
+  kind cross the channel.
 - Projection: `_data` (absolute path), `_display_name`, `_size`,
   `date_modified` (seconds → multiplied to ms before crossing the channel).
 - `_data` is deprecated on API 29+ but remains readable with the storage
@@ -78,8 +83,8 @@ These were chosen deliberately to make the swap invisible to the UI:
 3. **Empty is valid** — an empty MediaStore result means "no media", not
    failure; only a thrown error triggers the walker fallback (avoids a slow
    walk on devices that simply have no images).
-4. **Fallback coverage** — documents/apps/archives always use the walker; any
-   channel/query failure silently falls back too.
+4. **Fallback on failure** — every kind uses MediaStore; only a thrown
+   channel/query error silently falls back to the walker.
 
 ## Verification
 
@@ -97,17 +102,18 @@ These were chosen deliberately to make the swap invisible to the UI:
   Phase 3 `MediaScannerConnection.scanFile` call after completed transfers.
 - `.nomedia` folders are excluded by MediaStore (consistent with the walker's
   hidden-file behavior and with ES).
-- Documents/apps/archives are not reliably indexed by MediaStore — the
-  category views stay on the walk cache until the Phase 2 unified background
-  walk + cache lands; only `MediaFolderScreen` covers them via the FILES
-  collection (falling back to a directory walk on failure).
+- Documents/apps/archives are served from `MediaStore.Files` filtered by
+  extension. Coverage depends on the OS media scanner having indexed those
+  files; files it skipped (e.g. freshly created, or OEM-excluded extensions)
+  are invisible until scanned. On failure the walker fallback still runs.
 
 ## Extending This Approach
 
 The walk-flow inventory and per-flow strategy live in
 `ROADMAP.md` → "MediaStore Expansion Map". The reusable pieces:
 
-- `MediaStorePlatform.queryMedia()` already supports image/audio/video.
+- `MediaStorePlatform.queryMedia()` supports all six kinds
+  (image/audio/video/​document/archive/app).
 - The `SearchResult(parentPath: dirname)` mapping in
   `MediaStoreMediaLibraryRepository` is directly reusable for Search's
   type-only browse, which renders the same flattened shape.

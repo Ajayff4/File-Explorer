@@ -7,9 +7,10 @@ import 'package:file_explorer/features/search/domain/entities/search_result.dart
 /// Media-library repository backed by Android's MediaStore index.
 ///
 /// MediaStore is maintained by the OS media scanner, so querying it avoids
-/// a recursive filesystem walk and returns the complete index for a media
-/// type regardless of folder depth. Non-media types and any query failure
-/// delegate to [fallback] (the recursive walker).
+/// a recursive filesystem walk and returns the complete index for a kind
+/// regardless of folder depth. Every library kind (images, video, audio,
+/// documents, apps, archives) is answered from the index; only a query
+/// failure delegates to [fallback] (the recursive walker).
 class MediaStoreMediaLibraryRepository implements MediaLibraryRepository {
   const MediaStoreMediaLibraryRepository({
     required MediaStorePlatform platform,

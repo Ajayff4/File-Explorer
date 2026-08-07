@@ -28,7 +28,7 @@ void main() {
     });
   }
 
-  test('type-only browse merges MediaStore media with walked types', () async {
+  test('type-only browse merges MediaStore-backed types', () async {
     mockMediaRows({
       'image': [
         {
@@ -38,16 +38,17 @@ void main() {
           'modifiedAtMs': 0,
         },
       ],
+      'document': [
+        {
+          'path': '/root/Docs/report.txt',
+          'name': 'report.txt',
+          'sizeBytes': 5,
+          'modifiedAtMs': 0,
+        },
+      ],
     });
     final repository = _TreeStorageRepository({
-      '/root': [
-        _folder('Docs', '/root/Docs'),
-        _folder('Pictures', '/root/Pictures'),
-      ],
-      '/root/Docs': [
-        _entry('report.txt', '/root/Docs/report.txt',
-            FileSystemEntryType.document),
-      ],
+      '/root': [_folder('Pictures', '/root/Pictures')],
       '/root/Pictures': const [],
     });
     final controller = FileSearchController(repository, mediaStore: platform);

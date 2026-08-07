@@ -3,13 +3,20 @@ import 'package:file_explorer/features/media/data/platform/media_store_platform.
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:path/path.dart' as p;
 
-/// Returns the MediaStore collection for a media [type], or null for types
-/// MediaStore does not reliably index (documents, apps, archives, ...).
+/// Returns the MediaStore collection for a media-library [type].
+///
+/// MediaStore's Files collection also indexes non-media files (documents,
+/// archives, apps), so every kind the media library shows is answered from
+/// the index. Returns null only for types MediaStore has no rows for
+/// (folders, unknown types, ...).
 MediaStoreMediaType? mediaStoreMediaTypeFor(FileSystemEntryType type) {
   return switch (type) {
     FileSystemEntryType.image => MediaStoreMediaType.image,
     FileSystemEntryType.video => MediaStoreMediaType.video,
     FileSystemEntryType.audio => MediaStoreMediaType.audio,
+    FileSystemEntryType.document => MediaStoreMediaType.document,
+    FileSystemEntryType.archive => MediaStoreMediaType.archive,
+    FileSystemEntryType.app => MediaStoreMediaType.app,
     _ => null,
   };
 }
@@ -20,6 +27,9 @@ FileSystemEntryType fileSystemEntryTypeFor(MediaStoreMediaType type) {
     MediaStoreMediaType.image => FileSystemEntryType.image,
     MediaStoreMediaType.video => FileSystemEntryType.video,
     MediaStoreMediaType.audio => FileSystemEntryType.audio,
+    MediaStoreMediaType.document => FileSystemEntryType.document,
+    MediaStoreMediaType.archive => FileSystemEntryType.archive,
+    MediaStoreMediaType.app => FileSystemEntryType.app,
   };
 }
 
