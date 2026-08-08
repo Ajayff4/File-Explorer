@@ -6,6 +6,7 @@ import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
+import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -61,6 +62,13 @@ enum MediaLibraryKind {
   final String label;
   final FileSystemEntryType type;
   final IconData icon;
+
+  /// Kinds served from MediaStore.Files, which on Android requires
+  /// 'All files access' (MANAGE_EXTERNAL_STORAGE) to see non-media rows.
+  bool get requiresAllFilesAccess =>
+      this == MediaLibraryKind.documents ||
+      this == MediaLibraryKind.apps ||
+      this == MediaLibraryKind.archives;
 
   static MediaLibraryKind fromRouteSegment(String? segment) {
     return MediaLibraryKind.values.firstWhere(
@@ -123,6 +131,11 @@ class MediaLibraryScreen extends ConsumerWidget {
     final sortOption = ref.watch(mediaLibrarySortOptionProvider);
     final viewMode = ref.watch(mediaLibraryViewModeProvider);
 
+    final permission = explorerState.permission.valueOrNull;
+    final needsAllFilesAccess = kind.requiresAllFilesAccess &&
+        permission != null &&
+        permission.accessMode == StorageAccessMode.appSpecific;
+
     return BackButtonListener(
       onBackButtonPressed: () async {
         if (ModalRoute.of(context)?.isCurrent != true) {
@@ -161,16 +174,18 @@ class MediaLibraryScreen extends ConsumerWidget {
         body: RefreshIndicator(
           onRefresh: () async =>
               ref.refresh(mediaLibraryResultsProvider(request).future),
-          child: resultsAsync.when(
-            loading: () => const _MediaLoadingState(),
-            error: (error, _) => _MediaErrorState(error: error),
-            data: (results) => _MediaResultsView(
-              kind: kind,
-              results: results,
-              sortOption: sortOption,
-              viewMode: viewMode,
-            ),
-          ),
+          child: needsAllFilesAccess
+              ? _AllFilesAccessPrompt(kind: kind, request: request)
+              : resultsAsync.when(
+                  loading: () => const _MediaLoadingState(),
+                  error: (error, _) => _MediaErrorState(error: error),
+                  data: (results) => _MediaResultsView(
+                    kind: kind,
+                    results: results,
+                    sortOption: sortOption,
+                    viewMode: viewMode,
+                  ),
+                ),
         ),
       ),
     );
@@ -184,6 +199,56 @@ class MediaLibraryScreen extends ConsumerWidget {
     ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
     ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
     context.go(AppRoutes.explorer);
+  }
+}
+
+class _AllFilesAccessPrompt extends ConsumerWidget {
+  const _AllFilesAccessPrompt({
+    required this.kind,
+    required this.request,
+  });
+
+  final MediaLibraryKind kind;
+  final MediaLibraryRequest request;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Center(
+      child: Card(
+        margin: const EdgeInsets.all(24),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(kind.icon, size: 48),
+              const SizedBox(height: 12),
+              Text(
+                'All files access needed',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'To browse ${kind.label.toLowerCase()} quickly, grant '
+                '"All files access" for this app in system settings.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton.icon(
+                icon: const Icon(Icons.lock_open_rounded),
+                label: const Text('Grant access'),
+                onPressed: () async {
+                  await ref
+                      .read(explorerControllerProvider.notifier)
+                      .requestFullStorageAccess();
+                  ref.invalidate(mediaLibraryResultsProvider(request));
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -41,7 +41,9 @@ class PermissionHandlerStoragePermissionRepository
       return checkPermission();
     }
 
-    await Permission.manageExternalStorage.request();
+    // Blocking request: opens the system 'All files access' page and only
+    // returns after the user comes back, so the re-check below is accurate.
+    await androidStoragePlatform.requestAllFilesAccess();
     return checkPermission();
   }
 

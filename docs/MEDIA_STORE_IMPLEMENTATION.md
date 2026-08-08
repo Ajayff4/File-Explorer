@@ -67,9 +67,16 @@ MediaLibraryScreen
   kind cross the channel.
 - Projection: `_data` (absolute path), `_display_name`, `_size`,
   `date_modified` (seconds → multiplied to ms before crossing the channel).
-- `_data` is deprecated on API 29+ but remains readable with the storage
-  permissions this app already holds (`READ_MEDIA_*`,
-  `MANAGE_EXTERNAL_STORAGE`); no manifest changes were needed.
+- `_data` is deprecated on API 29+ but remains readable: with `READ_MEDIA_*`
+  for media rows, and with `MANAGE_EXTERNAL_STORAGE` ("All files access") for
+  the non-media rows served from `MediaStore.Files`. Without All-files access,
+  API 30+ redacts non-media rows entirely (the app's `MediaStore.Files` query
+  returns only media rows), so documents/apps/archives come back empty.
+  `MediaLibraryScreen` shows an "All files access needed" prompt for those
+  kinds when the permission is missing; its "Grant access" button calls a
+  blocking native request (`requestAllFilesAccess` in `MainActivity.kt`), which
+  opens `ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION` via
+  `startActivityForResult` and only resolves after the user returns.
 - Rows with null/empty paths or hidden dot-segments (`/.`) are skipped,
   matching the walker's dot-file filtering.
 
@@ -106,6 +113,14 @@ These were chosen deliberately to make the swap invisible to the UI:
   extension. Coverage depends on the OS media scanner having indexed those
   files; files it skipped (e.g. freshly created, or OEM-excluded extensions)
   are invisible until scanned. On failure the walker fallback still runs.
+- On Android 10+ (API 30+), `MediaStore.Files` hides non-media rows unless the
+  app has "All files access" (`MANAGE_EXTERNAL_STORAGE`). Without it the
+  non-media libraries show the All-files-access prompt instead of silently
+  appearing empty. Note: a reinstall (even `adb install -r`) revokes this
+  grant, so the prompt reappears after reinstall until the user re-grants it.
+- The search index seeding (`_collectIndexEntries`) deliberately skips
+  document/archive/app, so indexing millions of non-media rows doesn't crowd
+  out media; type-only browse still serves those kinds from MediaStore.
 
 ## Extending This Approach
 

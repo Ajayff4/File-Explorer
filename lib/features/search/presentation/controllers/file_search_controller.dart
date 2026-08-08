@@ -427,6 +427,11 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     final mediaStore = _mediaStore;
     if (mediaStore != null) {
       for (final mediaType in MediaStoreMediaType.values) {
+        if (mediaType == MediaStoreMediaType.document ||
+            mediaType == MediaStoreMediaType.archive ||
+            mediaType == MediaStoreMediaType.app) {
+          continue;
+        }
         List<MediaStoreMediaItem> items;
         try {
           items = await mediaStore.queryMedia(mediaType);

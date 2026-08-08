@@ -17,6 +17,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.StatFs
 import android.provider.MediaStore
+import android.provider.Settings
 import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
@@ -26,6 +27,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 class MainActivity: FlutterActivity() {
+    private val ALL_FILES_ACCESS_REQUEST_CODE = 4700
     private val storageChannel = "com.ajayff4.fileexplorer/storage"
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
     private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
@@ -50,6 +52,9 @@ class MainActivity: FlutterActivity() {
                     }
                     "isAllFilesAccessGranted" -> {
                         result.success(isAllFilesAccessGranted())
+                    }
+                    "requestAllFilesAccess" -> {
+                        requestAllFilesAccess(result)
                     }
                     else -> result.notImplemented()
                 }
@@ -334,12 +339,52 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private var pendingAllFilesAccessResult: MethodChannel.Result? = null
+
+    private fun requestAllFilesAccess(result: MethodChannel.Result) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            result.success(true)
+            return
+        }
+        if (isAllFilesAccessGranted()) {
+            result.success(true)
+            return
+        }
+        if (pendingAllFilesAccessResult != null) {
+            result.error("busy", "All files access request already in progress", null)
+            return
+        }
+        pendingAllFilesAccessResult = result
+        val intent = Intent(
+            Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+            Uri.parse("package:$packageName"),
+        )
+        try {
+            startActivityForResult(intent, ALL_FILES_ACCESS_REQUEST_CODE)
+        } catch (error: Exception) {
+            pendingAllFilesAccessResult = null
+            result.error("launch_failed", "Could not open All files access settings", null)
+        }
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?,
+    ) {
+        if (requestCode == ALL_FILES_ACCESS_REQUEST_CODE) {
+            val pending = pendingAllFilesAccessResult
+            pendingAllFilesAccessResult = null
+            pending?.success(isAllFilesAccessGranted())
+            return
+        }
+        super.onActivityResult(requestCode, resultCode, data)
+    }
+
     @Suppress("DEPRECATION")
     private fun queryMedia(type: String): List<Map<String, Any?>> {
         val uri = mediaStoreUriFor(type) ?: return emptyList()
-        val rows = queryMediaRows(uri, null, null, extensionFilterFor(type))
-        android.util.Log.d("ESFileExplorer", "queryMedia type=$type uri=$uri rows=${rows.size} grantAll=${isAllFilesAccessGranted()}")
-        return rows
+        return queryMediaRows(uri, null, null, extensionFilterFor(type))
     }
 
     @Suppress("DEPRECATION")
@@ -366,25 +411,15 @@ class MainActivity: FlutterActivity() {
         )
 
         val items = mutableListOf<Map<String, Any?>>()
-        var raw = 0
-        var nullPath = 0
-        var hidden = 0
-        var filtered = 0
         contentResolver.query(uri, projection, selection, selectionArgs, null)?.use { cursor ->
             val pathColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
             val nameColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DISPLAY_NAME)
             val sizeColumn = cursor.getColumnIndex(MediaStore.MediaColumns.SIZE)
             val modifiedColumn = cursor.getColumnIndex(MediaStore.MediaColumns.DATE_MODIFIED)
-            raw = cursor.count
 
             while (cursor.moveToNext()) {
                 val path = if (pathColumn >= 0) cursor.getString(pathColumn) else null
-                if (path.isNullOrEmpty()) {
-                    nullPath++
-                    continue
-                }
-                if (hasHiddenSegment(path)) {
-                    hidden++
+                if (path.isNullOrEmpty() || hasHiddenSegment(path)) {
                     continue
                 }
 
@@ -394,7 +429,6 @@ class MainActivity: FlutterActivity() {
                     File(path).name
                 }
                 if (extensionFilter != null && extensionOf(name) !in extensionFilter) {
-                    filtered++
                     continue
                 }
 
@@ -413,7 +447,6 @@ class MainActivity: FlutterActivity() {
                 )
             }
         }
-        android.util.Log.d("ESFileExplorer", "queryMediaRows raw=$raw nullPath=$nullPath hidden=$hidden filtered=$filtered kept=${items.size}")
         return items
     }
 

@@ -45,6 +45,12 @@ class AndroidStoragePlatform {
         false;
   }
 
+  /// Opens the system 'All files access' page and waits until the user
+  /// returns, then reports whether access was granted.
+  Future<bool> requestAllFilesAccess() async {
+    return await _channel.invokeMethod<bool>('requestAllFilesAccess') ?? false;
+  }
+
   StorageVolume _volumeFromMap(Map<Object?, Object?> map) {
     final label = map['label']?.toString() ?? 'Storage';
     final path = map['path']?.toString() ?? '/storage/emulated/0';
