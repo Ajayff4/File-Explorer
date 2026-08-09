@@ -3,9 +3,8 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
+import 'package:file_explorer/shared/archive/archive_format.dart';
 import 'package:path/path.dart' as p;
-
-enum _ArchiveFormat { zip, tar, gzip, tarGzip }
 
 class LocalTransferExecutor implements TransferExecutor {
   const LocalTransferExecutor();
@@ -280,7 +279,7 @@ class LocalTransferExecutor implements TransferExecutor {
 
     final destinationRoot = task.destinationPath ?? p.dirname(sourcePath);
     switch (format) {
-      case _ArchiveFormat.zip:
+      case ArchiveFormat.zip:
         await Directory(destinationRoot).create(recursive: true);
         final inputStream = InputFileStream(sourcePath);
         try {
@@ -308,27 +307,17 @@ class LocalTransferExecutor implements TransferExecutor {
         } finally {
           await inputStream.close();
         }
-      case _ArchiveFormat.tar:
-        await Directory(destinationRoot).create(recursive: true);
-        final inputStream = InputFileStream(sourcePath);
-        try {
-          final archive = TarDecoder().decodeStream(inputStream);
-          await _extractArchiveToDirectory(
-            archive,
-            destinationRoot,
-            task: task,
-          );
-        } finally {
-          await inputStream.close();
-        }
-      case _ArchiveFormat.tarGzip:
+      case ArchiveFormat.tar ||
+            ArchiveFormat.tarGzip ||
+            ArchiveFormat.tarBzip2 ||
+            ArchiveFormat.tarXz:
         await Directory(destinationRoot).create(recursive: true);
         final tempDir = await Directory.systemTemp.createTemp(
           'file_explorer_archive_',
         );
         final tarPath = p.join(tempDir.path, 'archive.tar');
         try {
-          await _gunzipFile(sourcePath, tarPath);
+          await _decompressToTarFile(sourcePath, tarPath, format);
           final inputStream = InputFileStream(tarPath);
           try {
             final archive = TarDecoder().decodeStream(inputStream);
@@ -345,7 +334,7 @@ class LocalTransferExecutor implements TransferExecutor {
             await tempDir.delete(recursive: true);
           }
         }
-      case _ArchiveFormat.gzip:
+      case ArchiveFormat.gzip:
         final destinationPath = await _resolveDestinationPath(
           p.join(destinationRoot, _archiveBaseName(sourcePath)),
           task: task,
@@ -355,6 +344,49 @@ class LocalTransferExecutor implements TransferExecutor {
         }
 
         await _gunzipFile(sourcePath, destinationPath);
+    }
+  }
+
+  Future<void> _decompressToTarFile(
+    String sourcePath,
+    String tarPath,
+    ArchiveFormat format,
+  ) async {
+    switch (format) {
+      case ArchiveFormat.tar:
+        await File(sourcePath).copy(tarPath);
+      case ArchiveFormat.tarGzip:
+        await _gunzipFile(sourcePath, tarPath);
+      case ArchiveFormat.tarBzip2:
+        await _decompressWith(
+          sourcePath,
+          tarPath,
+          (input, output) => BZip2Decoder().decodeStream(input, output),
+        );
+      case ArchiveFormat.tarXz:
+        await _decompressWith(
+          sourcePath,
+          tarPath,
+          (input, output) => XZDecoder().decodeStream(input, output),
+        );
+      case ArchiveFormat.zip || ArchiveFormat.gzip:
+        throw FileSystemException('Not a tar archive', sourcePath);
+    }
+  }
+
+  Future<void> _decompressWith(
+    String sourcePath,
+    String destinationPath,
+    bool Function(InputStream input, OutputStream output) decode,
+  ) async {
+    await Directory(p.dirname(destinationPath)).create(recursive: true);
+    final inputBytes = await File(sourcePath).readAsBytes();
+    final output = OutputMemoryStream();
+    try {
+      decode(InputMemoryStream(inputBytes), output);
+      await File(destinationPath).writeAsBytes(output.getBytes());
+    } finally {
+      output.closeSync();
     }
   }
 
@@ -426,8 +458,8 @@ class LocalTransferExecutor implements TransferExecutor {
       return;
     }
 
-    final format = _archiveFormatForPath(targetPath) ?? _ArchiveFormat.zip;
-    if (format == _ArchiveFormat.gzip) {
+    final format = _archiveFormatForPath(targetPath) ?? ArchiveFormat.zip;
+    if (format == ArchiveFormat.gzip) {
       if (sourcePaths.length != 1 ||
           await FileSystemEntity.type(
                 sourcePaths.single,
@@ -447,12 +479,31 @@ class LocalTransferExecutor implements TransferExecutor {
       return;
     }
 
-    if (format == _ArchiveFormat.tarGzip) {
-      await _compressTarGzip(sourcePaths, targetPath, task: task);
+    if (format == ArchiveFormat.tarGzip) {
+      await _compressTar(
+        sourcePaths,
+        targetPath,
+        codec: _ArchiveCodec.gzip,
+        level: _compressionLevelForTask(task),
+      );
       return;
     }
 
-    if (format == _ArchiveFormat.tar) {
+    if (format == ArchiveFormat.tarBzip2) {
+      await _compressTar(
+        sourcePaths,
+        targetPath,
+        codec: _ArchiveCodec.bzip2,
+      );
+      return;
+    }
+
+    if (format == ArchiveFormat.tarXz) {
+      await _compressTar(sourcePaths, targetPath, codec: _ArchiveCodec.xz);
+      return;
+    }
+
+    if (format == ArchiveFormat.tar) {
       await _compressTar(sourcePaths, targetPath);
       return;
     }
@@ -488,43 +539,27 @@ class LocalTransferExecutor implements TransferExecutor {
     }
   }
 
-  Future<void> _compressTarGzip(
+  Future<void> _compressTar(
     List<String> sourcePaths,
     String destinationPath, {
-    required TransferTask task,
+    _ArchiveCodec? codec,
+    int level = 0,
   }) async {
+    if (codec == null) {
+      await _writeTarArchive(sourcePaths, destinationPath);
+      return;
+    }
     await Directory(p.dirname(destinationPath)).create(recursive: true);
-    final tempDir = await Directory.systemTemp.createTemp(
-      'file_explorer_archive_',
-    );
+    final tempDir =
+        await Directory.systemTemp.createTemp('file_explorer_archive_');
     final tarPath = p.join(tempDir.path, 'archive.tar');
-    final encoder = TarFileEncoder();
     try {
-      encoder.create(tarPath);
-      try {
-        for (final sourcePath in sourcePaths) {
-          final type =
-              await FileSystemEntity.type(sourcePath, followLinks: false);
-          if (type == FileSystemEntityType.file) {
-            await encoder.addFile(File(sourcePath), p.basename(sourcePath));
-            continue;
-          }
-          if (type == FileSystemEntityType.directory) {
-            await encoder.addDirectory(
-              Directory(sourcePath),
-              includeDirName: sourcePaths.length > 1,
-            );
-            continue;
-          }
-          throw FileSystemException('Source path not found', sourcePath);
-        }
-      } finally {
-        await encoder.close();
-      }
-      await _gzipFile(
+      await _writeTarArchive(sourcePaths, tarPath);
+      await _encodeStream(
         tarPath,
         destinationPath,
-        level: _compressionLevelForTask(task),
+        codec: codec,
+        level: level,
       );
     } finally {
       if (await tempDir.exists()) {
@@ -533,7 +568,7 @@ class LocalTransferExecutor implements TransferExecutor {
     }
   }
 
-  Future<void> _compressTar(
+  Future<void> _writeTarArchive(
     List<String> sourcePaths,
     String destinationPath,
   ) async {
@@ -559,6 +594,29 @@ class LocalTransferExecutor implements TransferExecutor {
       }
     } finally {
       await encoder.close();
+    }
+  }
+
+  Future<void> _encodeStream(
+    String sourcePath,
+    String destinationPath, {
+    required _ArchiveCodec codec,
+    required int level,
+  }) async {
+    final input = InputFileStream(sourcePath);
+    final output = OutputFileStream(destinationPath);
+    try {
+      switch (codec) {
+        case _ArchiveCodec.gzip:
+          const GZipEncoder().encodeStream(input, output, level: level);
+        case _ArchiveCodec.bzip2:
+          BZip2Encoder().encodeStream(input, output);
+        case _ArchiveCodec.xz:
+          XZEncoder().encodeStream(input, output);
+      }
+    } finally {
+      await input.close();
+      await output.close();
     }
   }
 
@@ -654,47 +712,20 @@ class LocalTransferExecutor implements TransferExecutor {
   }
 }
 
-_ArchiveFormat? _archiveFormatForPath(String path) {
-  final name = p.basename(path).toLowerCase();
-  if (name.endsWith('.tar.gz') || name.endsWith('.tgz')) {
-    return _ArchiveFormat.tarGzip;
-  }
-  if (name.endsWith('.gz')) {
-    return _ArchiveFormat.gzip;
-  }
-  if (name.endsWith('.tar')) {
-    return _ArchiveFormat.tar;
-  }
-  if (name.endsWith('.zip')) {
-    return _ArchiveFormat.zip;
-  }
-  return null;
+ArchiveFormat? _archiveFormatForPath(String path) {
+  return archiveFormatForPath(path);
 }
 
-_ArchiveFormat _defaultCompressionFormat(List<String> sourcePaths) {
-  return _ArchiveFormat.zip;
+ArchiveFormat _defaultCompressionFormat(List<String> sourcePaths) {
+  return ArchiveFormat.zip;
 }
 
-String _extensionForArchiveFormat(_ArchiveFormat format) {
-  return switch (format) {
-    _ArchiveFormat.zip => '.zip',
-    _ArchiveFormat.tar => '.tar',
-    _ArchiveFormat.gzip => '.gz',
-    _ArchiveFormat.tarGzip => '.tar.gz',
-  };
+String _extensionForArchiveFormat(ArchiveFormat format) {
+  return extensionForArchiveFormat(format);
 }
 
 String _archiveBaseName(String path) {
-  final name = p.basename(path);
-  final lowerName = name.toLowerCase();
-  final baseName = lowerName.endsWith('.tar.gz')
-      ? name.substring(0, name.length - '.tar.gz'.length)
-      : lowerName.endsWith('.tgz')
-          ? name.substring(0, name.length - '.tgz'.length)
-          : lowerName.endsWith('.tar')
-              ? name.substring(0, name.length - '.tar'.length)
-              : p.basenameWithoutExtension(name);
-  return baseName.isEmpty ? 'Archive' : baseName;
+  return archiveBaseName(path);
 }
 
 int _compressionLevelForTask(TransferTask task) {
@@ -704,3 +735,5 @@ int _compressionLevelForTask(TransferTask task) {
 TransferExecutor createTransferExecutor() {
   return const LocalTransferExecutor();
 }
+
+enum _ArchiveCodec { gzip, bzip2, xz }

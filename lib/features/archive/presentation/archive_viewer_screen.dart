@@ -1,17 +1,17 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
-import 'package:file_explorer/features/zip/domain/entities/zip_entry.dart';
-import 'package:file_explorer/features/zip/presentation/controllers/zip_viewer_controller.dart';
-import 'package:file_explorer/features/zip/presentation/zip_file_preview_screen.dart';
+import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
+import 'package:file_explorer/features/archive/presentation/controllers/archive_viewer_controller.dart';
+import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class ZipViewerScreen extends ConsumerWidget {
-  const ZipViewerScreen({
+class ArchiveViewerScreen extends ConsumerWidget {
+  const ArchiveViewerScreen({
     required this.archivePath,
     required this.archiveName,
     super.key,
@@ -22,7 +22,7 @@ class ZipViewerScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(zipViewerControllerProvider(archivePath));
+    final state = ref.watch(archiveViewerControllerProvider(archivePath));
     final listing = state.listing;
 
     return BackButtonListener(
@@ -32,7 +32,7 @@ class ZipViewerScreen extends ConsumerWidget {
         }
         if (!state.isRoot) {
           await ref
-              .read(zipViewerControllerProvider(archivePath).notifier)
+              .read(archiveViewerControllerProvider(archivePath).notifier)
               .openParentDirectory();
         } else {
           Navigator.of(context).maybePop();
@@ -46,7 +46,7 @@ class ZipViewerScreen extends ConsumerWidget {
             onPressed: () {
               if (!state.isRoot) {
                 ref
-                    .read(zipViewerControllerProvider(archivePath).notifier)
+                    .read(archiveViewerControllerProvider(archivePath).notifier)
                     .openParentDirectory();
               } else {
                 Navigator.of(context).maybePop();
@@ -81,7 +81,7 @@ class ZipViewerScreen extends ConsumerWidget {
               tooltip: 'Refresh',
               onPressed: () {
                 ref
-                    .read(zipViewerControllerProvider(archivePath).notifier)
+                    .read(archiveViewerControllerProvider(archivePath).notifier)
                     .refresh();
               },
               icon: const Icon(Icons.refresh_rounded),
@@ -90,15 +90,15 @@ class ZipViewerScreen extends ConsumerWidget {
         ),
         body: listing.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, _) => _ZipViewerError(
+          error: (error, _) => _ArchiveViewerError(
             error: error,
             onRetry: () {
               ref
-                  .read(zipViewerControllerProvider(archivePath).notifier)
+                  .read(archiveViewerControllerProvider(archivePath).notifier)
                   .refresh();
             },
           ),
-          data: (data) => _ZipEntryList(
+          data: (data) => _ArchiveEntryList(
             archivePath: archivePath,
             entries: data.entries,
           ),
@@ -108,14 +108,14 @@ class ZipViewerScreen extends ConsumerWidget {
   }
 }
 
-class _ZipEntryList extends ConsumerWidget {
-  const _ZipEntryList({
+class _ArchiveEntryList extends ConsumerWidget {
+  const _ArchiveEntryList({
     required this.archivePath,
     required this.entries,
   });
 
   final String archivePath;
-  final List<ZipEntry> entries;
+  final List<ArchiveEntry> entries;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -129,17 +129,17 @@ class _ZipEntryList extends ConsumerWidget {
       separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
       itemBuilder: (context, index) {
         final entry = entries[index];
-        return _ZipEntryTile(
+        return _ArchiveEntryTile(
           entry: entry,
           onTap: () {
             final controller =
-                ref.read(zipViewerControllerProvider(archivePath).notifier);
+                ref.read(archiveViewerControllerProvider(archivePath).notifier);
             if (entry.isFolder) {
               controller.openDirectory(entry.path);
             } else {
               context.push(
-                AppRoutes.zipFilePreview,
-                extra: ZipFilePreviewSession(
+                AppRoutes.archiveFilePreview,
+                extra: ArchiveFilePreviewSession(
                   archivePath: archivePath,
                   entry: entry,
                 ),
@@ -152,10 +152,10 @@ class _ZipEntryList extends ConsumerWidget {
   }
 }
 
-class _ZipEntryTile extends StatelessWidget {
-  const _ZipEntryTile({required this.entry, required this.onTap});
+class _ArchiveEntryTile extends StatelessWidget {
+  const _ArchiveEntryTile({required this.entry, required this.onTap});
 
-  final ZipEntry entry;
+  final ArchiveEntry entry;
   final VoidCallback onTap;
 
   @override
@@ -221,8 +221,8 @@ class _ZipEntryTile extends StatelessWidget {
   }
 }
 
-class _ZipViewerError extends StatelessWidget {
-  const _ZipViewerError({required this.error, required this.onRetry});
+class _ArchiveViewerError extends StatelessWidget {
+  const _ArchiveViewerError({required this.error, required this.onRetry});
 
   final Object error;
   final VoidCallback onRetry;
@@ -290,9 +290,10 @@ Color _colorForExtension(BuildContext context, String extension) {
     'py' =>
       FileEntryColors.code,
     'zip' ||
-    'rar' ||
-    '7z' ||
     'tar' ||
+    'tgz' ||
+    'tbz2' ||
+    'txz' ||
     'gz' ||
     'bz2' ||
     'xz' =>

@@ -223,14 +223,16 @@ class _MediaFolderGridState extends ConsumerState<_MediaFolderGrid> {
     };
     const archiveExts = {
       'zip',
-      'rar',
-      '7z',
       'tar',
       'gz',
       'bz2',
       'xz',
       'tgz',
+      'tbz2',
+      'txz',
       'tar.gz',
+      'tar.bz2',
+      'tar.xz',
     };
     const appExts = {'apk', 'apks', 'xapk', 'apkm', 'aab'};
 

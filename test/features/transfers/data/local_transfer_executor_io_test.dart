@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:archive/archive.dart';
 import 'package:file_explorer/features/transfers/data/repositories/local_transfer_executor_io.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
@@ -425,6 +426,51 @@ void main() {
       'hello tar',
     );
   });
+
+  test('extracts a tar.bz2 archive built from the archive package', () async {
+    final archiveBytes = TarEncoder().encode(_tarArchive());
+    final sourcePath = '${tempDir.path}/bundle.tar.bz2';
+    await File(sourcePath).writeAsBytes(BZip2Encoder().encode(archiveBytes));
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: sourcePath,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await File('${tempDir.path}/nested/bz2.txt').readAsString(),
+      'hello bz2',
+    );
+  });
+
+  test('extracts a tar.xz archive built from the archive package', () async {
+    final archiveBytes = TarEncoder().encode(_tarArchive());
+    final sourcePath = '${tempDir.path}/bundle.tar.xz';
+    await File(sourcePath).writeAsBytes(XZEncoder().encode(archiveBytes));
+
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: sourcePath,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await File('${tempDir.path}/nested/xz.txt').readAsString(),
+      'hello xz',
+    );
+  });
+}
+
+Archive _tarArchive() {
+  final archive = Archive();
+  archive.addFile(ArchiveFile.string('nested/bz2.txt', 'hello bz2'));
+  archive.addFile(ArchiveFile.string('nested/xz.txt', 'hello xz'));
+  return archive;
 }
 
 TransferTask _task({

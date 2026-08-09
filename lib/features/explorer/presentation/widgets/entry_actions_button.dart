@@ -9,6 +9,7 @@ import 'package:file_explorer/features/settings/presentation/controllers/setting
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
+import 'package:file_explorer/shared/archive/archive_format.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
@@ -24,24 +25,47 @@ enum _CompressionChoice {
     subtitle: 'Works with files, folders, and selections',
     extension: '.zip',
     icon: Icons.inventory_2_rounded,
+    emoji: '📦',
+    supportsLevel: true,
+    supportsPassword: true,
   ),
   tar(
     label: 'TAR',
     subtitle: 'Archive files and folders without compression',
     extension: '.tar',
     icon: Icons.folder_zip_rounded,
+    emoji: '🗃️',
   ),
   gzip(
     label: 'GZ',
-    subtitle: 'Single-file gzip compression',
+    subtitle: 'Single-file compression',
     extension: '.gz',
     icon: Icons.compress_rounded,
+    emoji: '💨',
+    supportsLevel: true,
+    singleFileOnly: true,
   ),
   tarGzip(
     label: 'TAR.GZ',
     subtitle: 'Good for folders and multi-file selections',
     extension: '.tar.gz',
     icon: Icons.inventory_rounded,
+    emoji: '🗜️',
+    supportsLevel: true,
+  ),
+  tarBzip2(
+    label: 'TAR.BZ2',
+    subtitle: 'Good for folders and multi-file selections',
+    extension: '.tar.bz2',
+    icon: Icons.inventory_rounded,
+    emoji: '🧱',
+  ),
+  tarXz(
+    label: 'TAR.XZ',
+    subtitle: 'Good for folders and multi-file selections',
+    extension: '.tar.xz',
+    icon: Icons.inventory_rounded,
+    emoji: '💎',
   );
 
   const _CompressionChoice({
@@ -49,12 +73,20 @@ enum _CompressionChoice {
     required this.subtitle,
     required this.extension,
     required this.icon,
+    required this.emoji,
+    this.supportsLevel = false,
+    this.supportsPassword = false,
+    this.singleFileOnly = false,
   });
 
   final String label;
   final String subtitle;
   final String extension;
   final IconData icon;
+  final String emoji;
+  final bool supportsLevel;
+  final bool supportsPassword;
+  final bool singleFileOnly;
 }
 
 enum _CompressionLevel {
@@ -500,16 +532,12 @@ bool _isExtractableArchive(FileSystemEntry entry) {
   if (entry.isFolder) {
     return false;
   }
-  final name = entry.name.toLowerCase();
-  return name.endsWith('.zip') ||
-      name.endsWith('.gz') ||
-      name.endsWith('.tar') ||
-      name.endsWith('.tar.gz') ||
-      name.endsWith('.tgz');
+  return archiveFormatForPath(entry.path) != null;
 }
 
 bool _isZipArchive(FileSystemEntry entry) {
-  return !entry.isFolder && entry.name.toLowerCase().endsWith('.zip');
+  return !entry.isFolder &&
+      archiveFormatForPath(entry.path) == ArchiveFormat.zip;
 }
 
 Future<void> _extractZipEntry(
@@ -581,6 +609,8 @@ Future<bool> showCompressOptionsSheet({
     return false;
   }
   final choices = _compressionChoicesFor(sourcePaths, singleSourceKind);
+  final isSingleFile = sourcePaths.length == 1 &&
+      singleSourceKind == FileSystemEntityType.file;
   final defaultFileName = _defaultArchiveName(
     sourcePaths: sourcePaths,
     destinationDirectory: destinationDirectory,
@@ -590,6 +620,7 @@ Future<bool> showCompressOptionsSheet({
     builder: (context) => _CompressionOptionsDialog(
       defaultFileName: defaultFileName,
       choices: choices,
+      isSingleFile: isSingleFile,
     ),
   );
 
@@ -628,16 +659,7 @@ List<_CompressionChoice> _compressionChoicesFor(
   List<String> sourcePaths,
   FileSystemEntityType? singleSourceKind,
 ) {
-  return [
-    _CompressionChoice.zip,
-    _CompressionChoice.tar,
-    if (sourcePaths.length == 1 &&
-        singleSourceKind == FileSystemEntityType.file)
-      _CompressionChoice.gzip,
-    if (sourcePaths.length > 1 ||
-        singleSourceKind == FileSystemEntityType.directory)
-      _CompressionChoice.tarGzip,
-  ];
+  return _CompressionChoice.values;
 }
 
 Future<String?> _requestArchivePassword(
@@ -654,10 +676,12 @@ class _CompressionOptionsDialog extends StatefulWidget {
   const _CompressionOptionsDialog({
     required this.defaultFileName,
     required this.choices,
+    required this.isSingleFile,
   });
 
   final String defaultFileName;
   final List<_CompressionChoice> choices;
+  final bool isSingleFile;
 
   @override
   State<_CompressionOptionsDialog> createState() =>
@@ -676,6 +700,9 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
     _fileNameController = TextEditingController(text: widget.defaultFileName);
     _passwordController = TextEditingController();
     _choice = widget.choices.first;
+    if (!widget.isSingleFile) {
+      _choice = _CompressionChoice.zip;
+    }
   }
 
   @override
@@ -685,11 +712,21 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
     super.dispose();
   }
 
-  @override
+@override
   Widget build(BuildContext context) {
-    final supportsPassword = _choice == _CompressionChoice.zip;
+    final supportsPassword = _choice.supportsPassword;
     return AlertDialog(
-      title: const Text('Compress'),
+      title: Row(
+        children: [
+          const Text('Compress'),
+          const Spacer(),
+          IconButton(
+            icon: const Icon(Icons.info_outline_rounded),
+            tooltip: 'About archive formats',
+            onPressed: () => _showFormatHelp(context),
+          ),
+        ],
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -711,7 +748,12 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
                 for (final choice in widget.choices)
                   DropdownMenuItem(
                     value: choice,
-                    child: Text(choice.label),
+                    enabled: !choice.singleFileOnly || widget.isSingleFile,
+                    child: Text(
+                      choice.singleFileOnly && !widget.isSingleFile
+                          ? '${choice.label} (single file only)'
+                          : choice.label,
+                    ),
                   ),
               ],
               onChanged: (choice) {
@@ -720,44 +762,45 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
                 }
                 setState(() {
                   _choice = choice;
-                  if (choice != _CompressionChoice.zip) {
+                  if (!choice.supportsPassword) {
                     _passwordController.clear();
                   }
                 });
               },
             ),
-            const SizedBox(height: 12),
-            DropdownButtonFormField<_CompressionLevel>(
-              initialValue: _level,
-              decoration: const InputDecoration(labelText: 'Compress level'),
-              items: [
-                for (final level in _CompressionLevel.values)
-                  DropdownMenuItem(
-                    value: level,
-                    child: Text(level.label),
-                  ),
-              ],
-              onChanged: (level) {
-                if (level == null) {
-                  return;
-                }
-                setState(() => _level = level);
-              },
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _passwordController,
-              enabled: supportsPassword,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: 'Password',
-                helperText: supportsPassword
-                    ? 'Optional; ZIP only'
-                    : 'Password is supported for ZIP only',
+            if (_choice.supportsLevel) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<_CompressionLevel>(
+                initialValue: _level,
+                decoration: const InputDecoration(labelText: 'Compress level'),
+                items: [
+                  for (final level in _CompressionLevel.values)
+                    DropdownMenuItem(
+                      value: level,
+                      child: Text(level.label),
+                    ),
+                ],
+                onChanged: (level) {
+                  if (level == null) {
+                    return;
+                  }
+                  setState(() => _level = level);
+                },
               ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-            ),
+            ],
+            if (supportsPassword) ...[
+              const SizedBox(height: 12),
+              TextField(
+                controller: _passwordController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: 'Password',
+                  helperText: 'Optional; ZIP only',
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+              ),
+            ],
           ],
         ),
       ),
@@ -775,6 +818,108 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
     );
   }
 
+  void _showFormatHelp(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archive formats'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildFormatTable(context),
+              const SizedBox(height: 8),
+              Theme(
+                data: Theme.of(context).copyWith(
+                  dividerColor: Colors.transparent,
+                ),
+                child: ExpansionTile(
+                  shape: const Border(),
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.more_horiz_rounded),
+                  title: const Text('More details'),
+                  children: [
+                    for (final choice in widget.choices)
+                      ListTile(
+                        dense: true,
+                        title: Text('${choice.emoji} ${choice.label}'),
+                        subtitle: Text(
+                          choice.singleFileOnly
+                              ? '${choice.subtitle}\nSingle file only'
+                              : choice.subtitle,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFormatTable(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Table(
+          columnWidths: const {
+            0: FlexColumnWidth(3),
+            1: FlexColumnWidth(1),
+            2: FlexColumnWidth(1),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            const TableRow(
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide()),
+              ),
+              children: [
+                SizedBox(height: 40, child: Text('Format')),
+                Text('⚙️ Level'),
+                Text('🔒 Password'),
+              ],
+            ),
+            for (final choice in widget.choices)
+              TableRow(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: Row(
+                      children: [
+                        Text(
+                          choice.emoji,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(choice.label),
+                      ],
+                    ),
+                  ),
+                  Text(
+                    choice.supportsLevel ? '✅' : '❌',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                  Text(
+                    choice.supportsPassword ? '✅' : '❌',
+                    style: const TextStyle(fontSize: 18),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ],
+    );
+  }
+
   void _submit() {
     final fileName = _fileNameController.text.trim();
     if (fileName.isEmpty ||
@@ -785,7 +930,7 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
       return;
     }
     final password =
-        _choice == _CompressionChoice.zip ? _passwordController.text : '';
+        _choice.supportsPassword ? _passwordController.text : '';
     Navigator.of(context).pop(
       _CompressionOptions(
         fileName: fileName,

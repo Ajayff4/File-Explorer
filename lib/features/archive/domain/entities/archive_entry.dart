@@ -1,5 +1,5 @@
-class ZipEntry {
-  const ZipEntry({
+class ArchiveEntry {
+  const ArchiveEntry({
     required this.name,
     required this.path,
     required this.isFolder,
@@ -15,7 +15,7 @@ class ZipEntry {
   final DateTime? modifiedAt;
   final int? childrenCount;
 
-  ZipEntry copyWith({
+  ArchiveEntry copyWith({
     String? name,
     String? path,
     bool? isFolder,
@@ -23,7 +23,7 @@ class ZipEntry {
     DateTime? modifiedAt,
     int? childrenCount,
   }) {
-    return ZipEntry(
+    return ArchiveEntry(
       name: name ?? this.name,
       path: path ?? this.path,
       isFolder: isFolder ?? this.isFolder,
@@ -34,8 +34,8 @@ class ZipEntry {
   }
 }
 
-class ZipListing {
-  const ZipListing({
+class ArchiveListing {
+  const ArchiveListing({
     required this.archivePath,
     required this.directoryPath,
     required this.entries,
@@ -43,5 +43,5 @@ class ZipListing {
 
   final String archivePath;
   final String directoryPath;
-  final List<ZipEntry> entries;
+  final List<ArchiveEntry> entries;
 }

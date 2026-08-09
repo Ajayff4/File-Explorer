@@ -1,21 +1,21 @@
 import 'dart:typed_data';
 
+import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
+import 'package:file_explorer/features/archive/domain/repositories/archive_repository.dart';
 import 'package:file_explorer/features/explorer/data/repositories/fake_storage_repository.dart';
-import 'package:file_explorer/features/zip/domain/entities/zip_entry.dart';
-import 'package:file_explorer/features/zip/domain/repositories/zip_repository.dart';
 
-class FakeZipRepository implements ZipRepository {
-  const FakeZipRepository();
+class FakeArchiveRepository implements ArchiveRepository {
+  const FakeArchiveRepository();
 
   static const sampleArchivePath =
       '${FakeStorageRepository.rootPath}/Download/Archive_backup.zip';
 
   @override
-  Future<ZipListing> listDirectory(
+  Future<ArchiveListing> listDirectory(
     String archivePath, {
     String directoryPath = '',
   }) async {
-    return ZipListing(
+    return ArchiveListing(
       archivePath: archivePath,
       directoryPath: directoryPath,
       entries: _entriesFor(directoryPath),
@@ -36,26 +36,26 @@ class FakeZipRepository implements ZipRepository {
     return null;
   }
 
-  List<ZipEntry> _entriesFor(String directoryPath) {
+  List<ArchiveEntry> _entriesFor(String directoryPath) {
     final now = DateTime.now();
     switch (directoryPath) {
       case '':
         return [
-          ZipEntry(
+          ArchiveEntry(
             name: 'Documents',
             path: 'Documents',
             isFolder: true,
             childrenCount: 3,
             modifiedAt: now.subtract(const Duration(days: 2)),
           ),
-          ZipEntry(
+          ArchiveEntry(
             name: 'Photos',
             path: 'Photos',
             isFolder: true,
             childrenCount: 2,
             modifiedAt: now.subtract(const Duration(days: 1)),
           ),
-          ZipEntry(
+          ArchiveEntry(
             name: 'backup_manifest.json',
             path: 'backup_manifest.json',
             isFolder: false,
@@ -65,21 +65,21 @@ class FakeZipRepository implements ZipRepository {
         ];
       case 'Documents':
         return [
-          ZipEntry(
+          ArchiveEntry(
             name: 'Invoice_Q3.pdf',
             path: 'Documents/Invoice_Q3.pdf',
             isFolder: false,
             sizeBytes: 2 * 1024 * 1024,
             modifiedAt: now.subtract(const Duration(days: 1)),
           ),
-          ZipEntry(
+          ArchiveEntry(
             name: 'notes.txt',
             path: 'Documents/notes.txt',
             isFolder: false,
             sizeBytes: 24 * 1024,
             modifiedAt: now,
           ),
-          ZipEntry(
+          ArchiveEntry(
             name: 'Spreadsheet.xlsx',
             path: 'Documents/Spreadsheet.xlsx',
             isFolder: false,
@@ -89,14 +89,14 @@ class FakeZipRepository implements ZipRepository {
         ];
       case 'Photos':
         return [
-          ZipEntry(
+          ArchiveEntry(
             name: 'IMG_20260730.jpg',
             path: 'Photos/IMG_20260730.jpg',
             isFolder: false,
             sizeBytes: 4 * 1024 * 1024,
             modifiedAt: now.subtract(const Duration(hours: 3)),
           ),
-          ZipEntry(
+          ArchiveEntry(
             name: 'Screenshot.png',
             path: 'Photos/Screenshot.png',
             isFolder: false,
@@ -110,8 +110,8 @@ class FakeZipRepository implements ZipRepository {
   }
 }
 
-ZipRepository createZipRepository() {
-  return const FakeZipRepository();
+ArchiveRepository createArchiveRepository() {
+  return const FakeArchiveRepository();
 }
 
 const _sampleImageBytes = <int>[

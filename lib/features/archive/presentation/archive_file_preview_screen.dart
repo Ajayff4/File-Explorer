@@ -5,54 +5,54 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
-import 'package:file_explorer/features/zip/domain/entities/zip_entry.dart';
-import 'package:file_explorer/features/zip/presentation/controllers/zip_viewer_controller.dart';
+import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
+import 'package:file_explorer/features/archive/presentation/controllers/archive_viewer_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-enum ZipPreviewKind { image, video, audio, text, unsupported }
+enum ArchivePreviewKind { image, video, audio, text, unsupported }
 
-class ZipFilePreviewSession {
-  const ZipFilePreviewSession({
+class ArchiveFilePreviewSession {
+  const ArchiveFilePreviewSession({
     required this.archivePath,
     required this.entry,
   });
 
   final String archivePath;
-  final ZipEntry entry;
+  final ArchiveEntry entry;
 }
 
-class ZipFilePreviewScreen extends ConsumerStatefulWidget {
-  const ZipFilePreviewScreen({
+class ArchiveFilePreviewScreen extends ConsumerStatefulWidget {
+  const ArchiveFilePreviewScreen({
     required this.archivePath,
     required this.entry,
     super.key,
   });
 
   final String archivePath;
-  final ZipEntry entry;
+  final ArchiveEntry entry;
 
   @override
-  ConsumerState<ZipFilePreviewScreen> createState() =>
-      _ZipFilePreviewScreenState();
+  ConsumerState<ArchiveFilePreviewScreen> createState() =>
+      _ArchiveFilePreviewScreenState();
 }
 
-class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
-  late final ZipPreviewKind _kind;
+class _ArchiveFilePreviewScreenState extends ConsumerState<ArchiveFilePreviewScreen> {
+  late final ArchivePreviewKind _kind;
   Uint8List? _bytes;
   Object? _error;
   bool _loading = true;
 
   File? _tempFile;
 
-  ZipEntry get _entry => widget.entry;
+  ArchiveEntry get _entry => widget.entry;
 
   @override
   void initState() {
     super.initState();
-    _kind = kindForZipPreview(_entry.name);
+    _kind = kindForArchivePreview(_entry.name);
     _loadEntry();
   }
 
@@ -69,7 +69,7 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
   Future<void> _loadEntry() async {
     try {
       final bytes = await ref
-          .read(zipViewerControllerProvider(widget.archivePath).notifier)
+          .read(archiveViewerControllerProvider(widget.archivePath).notifier)
           .readEntry(_entry.path);
       if (!mounted) {
         return;
@@ -99,17 +99,17 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
     }
   }
 
-  bool _isMedia(ZipPreviewKind kind) {
-    return kind == ZipPreviewKind.image ||
-        kind == ZipPreviewKind.video ||
-        kind == ZipPreviewKind.audio;
+  bool _isMedia(ArchivePreviewKind kind) {
+    return kind == ArchivePreviewKind.image ||
+        kind == ArchivePreviewKind.video ||
+        kind == ArchivePreviewKind.audio;
   }
 
-  FileSystemEntryType _typeForKind(ZipPreviewKind kind) {
+  FileSystemEntryType _typeForKind(ArchivePreviewKind kind) {
     return switch (kind) {
-      ZipPreviewKind.image => FileSystemEntryType.image,
-      ZipPreviewKind.video => FileSystemEntryType.video,
-      ZipPreviewKind.audio => FileSystemEntryType.audio,
+      ArchivePreviewKind.image => FileSystemEntryType.image,
+      ArchivePreviewKind.video => FileSystemEntryType.video,
+      ArchivePreviewKind.audio => FileSystemEntryType.audio,
       _ => FileSystemEntryType.other,
     };
   }
@@ -117,7 +117,7 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
   Future<File> _writeTempMediaFile(Uint8List bytes) async {
     final extension = _extensionFor(_entry.name);
     final tempFile = File(
-      '${Directory.systemTemp.path}/zip_media_'
+      '${Directory.systemTemp.path}/archive_media_'
       '${DateTime.now().microsecondsSinceEpoch}.$extension',
     );
     await tempFile.writeAsBytes(bytes);
@@ -161,7 +161,7 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
     }
     final extension = _extensionFor(_entry.name);
     final tempFile = File(
-      '${Directory.systemTemp.path}/zip_open_'
+      '${Directory.systemTemp.path}/archive_open_'
       '${DateTime.now().microsecondsSinceEpoch}.$extension',
     );
     await tempFile.writeAsBytes(_bytes ?? Uint8List(0));
@@ -249,7 +249,7 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
 
     return Scaffold(
       backgroundColor:
-          _kind == ZipPreviewKind.image || _kind == ZipPreviewKind.video
+          _kind == ArchivePreviewKind.image || _kind == ArchivePreviewKind.video
               ? Colors.black
               : null,
       appBar: AppBar(
@@ -281,20 +281,20 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
     }
 
     if (_error != null) {
-      return _ZipPreviewError(error: _error!);
+      return _ArchivePreviewError(error: _error!);
     }
 
     final bytes = _bytes ?? Uint8List(0);
 
     return switch (_kind) {
-      ZipPreviewKind.image ||
-      ZipPreviewKind.video ||
-      ZipPreviewKind.audio =>
+      ArchivePreviewKind.image ||
+      ArchivePreviewKind.video ||
+      ArchivePreviewKind.audio =>
         const Center(child: CircularProgressIndicator()),
-      ZipPreviewKind.text => _ZipTextPreview(
+      ArchivePreviewKind.text => _ArchiveTextPreview(
           text: utf8.decode(bytes, allowMalformed: true),
         ),
-      ZipPreviewKind.unsupported => Center(
+      ArchivePreviewKind.unsupported => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -312,8 +312,8 @@ class _ZipFilePreviewScreenState extends ConsumerState<ZipFilePreviewScreen> {
   }
 }
 
-class _ZipTextPreview extends StatelessWidget {
-  const _ZipTextPreview({required this.text});
+class _ArchiveTextPreview extends StatelessWidget {
+  const _ArchiveTextPreview({required this.text});
 
   final String text;
 
@@ -337,8 +337,8 @@ class _ZipTextPreview extends StatelessWidget {
   }
 }
 
-class _ZipPreviewError extends StatelessWidget {
-  const _ZipPreviewError({required this.error});
+class _ArchivePreviewError extends StatelessWidget {
+  const _ArchivePreviewError({required this.error});
 
   final Object error;
 
@@ -373,7 +373,7 @@ class _ZipPreviewError extends StatelessWidget {
   }
 }
 
-ZipPreviewKind kindForZipPreview(String name) {
+ArchivePreviewKind kindForArchivePreview(String name) {
   final extension = _extensionFor(name);
   return switch (extension) {
     'jpg' ||
@@ -383,10 +383,10 @@ ZipPreviewKind kindForZipPreview(String name) {
     'webp' ||
     'heic' ||
     'bmp' =>
-      ZipPreviewKind.image,
-    'mp4' || 'mkv' || 'mov' || 'webm' || 'avi' => ZipPreviewKind.video,
-    'mp3' || 'flac' || 'wav' || 'm4a' || 'ogg' || 'aac' => ZipPreviewKind.audio,
-    _ => isTextFile(name) ? ZipPreviewKind.text : ZipPreviewKind.unsupported,
+      ArchivePreviewKind.image,
+    'mp4' || 'mkv' || 'mov' || 'webm' || 'avi' => ArchivePreviewKind.video,
+    'mp3' || 'flac' || 'wav' || 'm4a' || 'ogg' || 'aac' => ArchivePreviewKind.audio,
+    _ => isTextFile(name) ? ArchivePreviewKind.text : ArchivePreviewKind.unsupported,
   };
 }
 

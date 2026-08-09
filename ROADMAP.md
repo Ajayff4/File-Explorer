@@ -157,9 +157,8 @@ Recommended next slices, in order:
 | ✅ | 3 | Media | Post-transfer MediaStore rescanning (`mediaStoreScanProvider`). |
 | [ ] | 4 | Tests | Update stale test expectations for current Home/media behavior. |
 | ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
-| [ ] | 6 | Archives | Evaluate a separate engine for RAR and 7Z support. |
-| [ ] | 7 | Media | Add thumbnail cache for media libraries and Explorer. |
-| [ ] | 8 | UI | Polish media folder view on real device and tune grid density. |
+| [ ] | 6 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 7 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
 
@@ -225,7 +224,6 @@ Removed from the roadmap.
 | ✅ | Add `Compress to TAR.GZ` for folders. |
 | ✅ | Add extraction for `.tar`, `.gz`, `.tar.gz`, and `.tgz`. |
 | ✅ | Add archive browsing with folder navigation and previews of image/video/audio/text entries inside archives. |
-| [ ] | Evaluate a separate engine for RAR and 7Z support. |
 
 ### Viewers And Players
 
@@ -257,7 +255,6 @@ Removed from the roadmap.
 | [ ] | Media | Thumbnail cache. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
-| [ ] | Archives | RAR and 7Z support evaluation. |
 | [ ] | Network | Optional network providers, not first-release core. |
 
 ## Guardrails

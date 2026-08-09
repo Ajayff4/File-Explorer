@@ -11,8 +11,8 @@ import 'package:file_explorer/features/media/presentation/text_file_viewer_scree
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
-import 'package:file_explorer/features/zip/presentation/zip_file_preview_screen.dart';
-import 'package:file_explorer/features/zip/presentation/zip_viewer_screen.dart';
+import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
+import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -98,11 +98,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: AppRoutes.zipViewer,
+        path: AppRoutes.archiveViewer,
         builder: (context, state) {
           final extra = state.extra;
           if (extra is FileSystemEntry) {
-            return ZipViewerScreen(
+            return ArchiveViewerScreen(
               archivePath: extra.path,
               archiveName: extra.name,
             );
@@ -111,11 +111,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: AppRoutes.zipFilePreview,
+        path: AppRoutes.archiveFilePreview,
         builder: (context, state) {
           final extra = state.extra;
-          if (extra is ZipFilePreviewSession) {
-            return ZipFilePreviewScreen(
+          if (extra is ArchiveFilePreviewSession) {
+            return ArchiveFilePreviewScreen(
               archivePath: extra.archivePath,
               entry: extra.entry,
             );
@@ -140,8 +140,8 @@ class AppRoutes {
   static const mediaFolder = '/media/:kind/folder';
   static const mediaViewer = '/preview';
   static const textViewer = '/text-preview';
-  static const zipViewer = '/zip-viewer';
-  static const zipFilePreview = '/zip-preview';
+  static const archiveViewer = '/zip-viewer';
+  static const archiveFilePreview = '/zip-preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
 
@@ -266,10 +266,10 @@ class AppShell extends ConsumerWidget {
     if (location.startsWith(AppRoutes.textViewer)) {
       return 1;
     }
-    if (location.startsWith(AppRoutes.zipViewer)) {
+    if (location.startsWith(AppRoutes.archiveViewer)) {
       return 1;
     }
-    if (location.startsWith(AppRoutes.zipFilePreview)) {
+    if (location.startsWith(AppRoutes.archiveFilePreview)) {
       return 1;
     }
     if (location.startsWith('/media')) {

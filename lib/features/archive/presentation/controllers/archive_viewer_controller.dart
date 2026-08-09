@@ -1,18 +1,19 @@
 import 'dart:typed_data';
 
-import 'package:file_explorer/features/zip/data/repositories/zip_repository_provider.dart';
-import 'package:file_explorer/features/zip/domain/entities/zip_entry.dart';
+import 'package:file_explorer/features/archive/data/repositories/archive_repository_provider.dart';
+import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 
-final zipViewerControllerProvider = StateNotifierProvider.autoDispose
-    .family<ZipViewerController, ZipViewerState, String>((ref, archivePath) {
-  return ZipViewerController(ref, archivePath: archivePath)
+final archiveViewerControllerProvider = StateNotifierProvider.autoDispose
+    .family<ArchiveViewerController, ArchiveViewerState, String>(
+        (ref, archivePath) {
+  return ArchiveViewerController(ref, archivePath: archivePath)
     ..loadInitialDirectory();
 });
 
-class ZipViewerState {
-  const ZipViewerState({
+class ArchiveViewerState {
+  const ArchiveViewerState({
     required this.archivePath,
     this.directoryPath = '',
     this.listing = const AsyncValue.loading(),
@@ -20,15 +21,15 @@ class ZipViewerState {
 
   final String archivePath;
   final String directoryPath;
-  final AsyncValue<ZipListing> listing;
+  final AsyncValue<ArchiveListing> listing;
 
   bool get isRoot => directoryPath.isEmpty;
 
-  ZipViewerState copyWith({
+  ArchiveViewerState copyWith({
     String? directoryPath,
-    AsyncValue<ZipListing>? listing,
+    AsyncValue<ArchiveListing>? listing,
   }) {
-    return ZipViewerState(
+    return ArchiveViewerState(
       archivePath: archivePath,
       directoryPath: directoryPath ?? this.directoryPath,
       listing: listing ?? this.listing,
@@ -36,9 +37,9 @@ class ZipViewerState {
   }
 }
 
-class ZipViewerController extends StateNotifier<ZipViewerState> {
-  ZipViewerController(this._ref, {required String archivePath})
-      : super(ZipViewerState(archivePath: archivePath));
+class ArchiveViewerController extends StateNotifier<ArchiveViewerState> {
+  ArchiveViewerController(this._ref, {required String archivePath})
+      : super(ArchiveViewerState(archivePath: archivePath));
 
   final Ref _ref;
 
@@ -47,7 +48,7 @@ class ZipViewerController extends StateNotifier<ZipViewerState> {
   }
 
   Future<void> openDirectory(String directoryPath) async {
-    final repository = _ref.read(zipRepositoryProvider);
+    final repository = _ref.read(archiveRepositoryProvider);
     state = state.copyWith(
       directoryPath: directoryPath,
       listing: const AsyncValue.loading(),
@@ -73,7 +74,7 @@ class ZipViewerController extends StateNotifier<ZipViewerState> {
 
   Future<Uint8List?> readEntry(String entryPath) {
     return _ref
-        .read(zipRepositoryProvider)
+        .read(archiveRepositoryProvider)
         .readEntry(state.archivePath, entryPath);
   }
 

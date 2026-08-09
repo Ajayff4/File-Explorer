@@ -242,10 +242,16 @@ class LocalStorageRepository implements StorageRepository {
       '.xlsx' =>
         FileSystemEntryType.document,
       '.zip' ||
-      '.rar' ||
-      '.7z' ||
       '.tar' ||
-      '.gz' =>
+      '.tgz' ||
+      '.tbz2' ||
+      '.txz' ||
+      '.gz' ||
+      '.bz2' ||
+      '.xz' ||
+      '.tar.gz' ||
+      '.tar.bz2' ||
+      '.tar.xz' =>
         FileSystemEntryType.archive,
       '.apk' ||
       '.apks' ||

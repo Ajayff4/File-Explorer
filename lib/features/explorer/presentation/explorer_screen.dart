@@ -18,6 +18,7 @@ import 'package:file_explorer/features/storage_permissions/presentation/widgets/
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
+import 'package:file_explorer/shared/archive/archive_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -1115,9 +1116,9 @@ void _openEntry(
       AppRoutes.textViewer,
       extra: entry,
     );
-  } else if (isZipArchive(entry)) {
+  } else if (isBrowsableArchiveEntry(entry)) {
     context.push(
-      AppRoutes.zipViewer,
+      AppRoutes.archiveViewer,
       extra: entry,
     );
   } else {
@@ -1135,11 +1136,12 @@ bool _isMediaType(FileSystemEntry entry) {
   };
 }
 
-bool isZipArchive(FileSystemEntry entry) {
+bool isBrowsableArchiveEntry(FileSystemEntry entry) {
   if (entry.isFolder) {
     return false;
   }
-  return entry.name.toLowerCase().endsWith('.zip');
+  final format = archiveFormatForPath(entry.path);
+  return format != null && isBrowsableArchive(format);
 }
 
 Future<void> _openWithSystem(

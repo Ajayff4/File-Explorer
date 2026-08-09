@@ -104,9 +104,10 @@ bool _shouldShowBadge(String extension) {
     'md',
     'log',
     'zip',
-    'rar',
-    '7z',
     'tar',
+    'tgz',
+    'tbz2',
+    'txz',
     'gz',
     'bz2',
     'xz',
@@ -161,9 +162,10 @@ IconData iconForFileSystemEntry(FileSystemEntry entry) {
     'py' =>
       Icons.code_rounded,
     'zip' ||
-    'rar' ||
-    '7z' ||
     'tar' ||
+    'tgz' ||
+    'tbz2' ||
+    'txz' ||
     'gz' ||
     'bz2' ||
     'xz' =>
@@ -198,9 +200,10 @@ Color colorForFileSystemEntry(BuildContext context, FileSystemEntry entry) {
     'py' =>
       FileEntryColors.code,
     'zip' ||
-    'rar' ||
-    '7z' ||
     'tar' ||
+    'tgz' ||
+    'tbz2' ||
+    'txz' ||
     'gz' ||
     'bz2' ||
     'xz' =>
