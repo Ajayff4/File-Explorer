@@ -1,33 +1,117 @@
 # File Explorer
 
-A Flutter file manager built with a feature-first architecture.
+> A Flutter file manager built with a **feature-first architecture**.
 
-Package/application ID: `com.ajayff4.fileexplorer`
+[![Platform: Android](https://img.shields.io/badge/platform-Android-3ddc84)](#run-on-android)
+[![Framework: Flutter](https://img.shields.io/badge/framework-Flutter-02569b)](https://flutter.dev)
+[![Language: Dart](https://img.shields.io/badge/language-Dart-0175C2)](#requirements)
+
+**Package/application ID:** `com.ajayff4.fileexplorer`
+
+---
 
 ## Current Status
 
-The project now has a usable early file-manager vertical slice:
+A usable file-manager vertical slice with native Android integration. Almost every
+feature below works end to end on a real device over wireless ADB.
 
-- Mobile app shell with bottom navigation.
-- Home dashboard with storage summary, shortcuts, favorites, and recent folders.
-- Explorer screen with real local/Android storage browsing where permissions allow it.
-- List/grid view toggle, breadcrumb, storage selector, refresh, and folder navigation.
-- Android storage permission card and native Android storage volume discovery.
-- Transfer queue for copy, move, rename, and delete.
-- Copy/move destination picker with `Paste here`.
-- Transfer conflict actions: `Skip`, `Replace`, and `Keep both`.
-- Persistent transfer queue/history with Drift.
-- Persistent favorite folders and recent folders.
-- Search screen with current/storage scope, type filters, type-only discovery, and persisted search index.
-- Media library screens for images, videos, audio, documents, and apps.
-- Settings screen with persisted Explorer, Transfers, and Search toggles.
-- Fake storage exists only for development/tests.
+### 🧭 Platform & Shell
 
-## Requirements
+| Feature | Status |
+| --- | --- |
+| Mobile app shell with bottom navigation routing between screens. | ✅ |
+| Feature-first `lib/features/*` architecture. | ✅ |
+| Android storage permissions: legacy read/write, Android 13 media reads, Android 11+ all-files access. | ✅ |
+| Predictive back gesture (`android:enableOnBackInvokedCallback`). | ✅ |
 
-- Flutter `3.24.3` or compatible.
-- Dart `3.5.3` or compatible.
-- Android Studio / Android SDK for Android builds.
+### 🏠 Home Dashboard
+
+| Feature | Status |
+| --- | --- |
+| Storage summary, category shortcuts, recent folders, favorites, Recents entry. | ✅ |
+| Live category counts on shortcuts (MediaStore-backed). | ✅ |
+| Media library entry points via `AppRoutes.media`. | ✅ |
+| Core Features listing page with expand/collapse cards. | ✅ |
+
+### 📂 Explorer
+
+| Feature | Status |
+| --- | --- |
+| Live local/Android browsing where permissions allow. | ✅ |
+| List/grid toggle, breadcrumbs, storage selector, refresh, folder navigation. | ✅ |
+| Sorting — Name (A–Z / Z–A), Modified, Size, Type. | ✅ |
+| Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move. | ✅ |
+| "New Folder" / "New File" actions. | ✅ |
+| Properties panel with folder-size computation + multi-select summary. | ✅ |
+| Type-filter folder listings via MediaStore `countMedia`, walker fallback. | ✅ |
+| Progressive loading — no fake storage in production. | ✅ |
+
+### 🖼️ Media Libraries
+
+| Feature | Status |
+| --- | --- |
+| 6 categories: Images, Videos, Audio, Documents, Apps, Archives. | ✅ |
+| MediaStore-backed discovery — Images/Videos/Audio open in ~1–2s. | ✅ |
+| Docs/Apps/Archives served from MediaStore.Files + per-folder `queryFiles`. | ✅ |
+| Folder view grouped by parent folder with per-folder counts. | ✅ |
+| Grid + list toggle, sort via `...` menu (Name/Modified/Size/Type). | ✅ |
+| Thumbnails with APK icon extraction and typed icons. | ✅ |
+| Shared `FileEntryListTile` + formatting helpers. | ✅ |
+
+### 🎬 Viewers & Players
+
+| Feature | Status |
+| --- | --- |
+| In-app preview for images, video, audio (Explorer + within ZIPs). | ✅ |
+| Images: pinch/double-tap zoom, rotate, swipe, share, details, delete, rename, wallpaper. | ✅ |
+| Video: auto-hiding controls, landscape, 10‑s double-tap seeking, speed, loop, shuffle, mute, wakelock. | ✅ |
+| Audio: seek, speed, volume, mute, loop, shuffle, prev/next, details. | ✅ |
+| Built-in text viewer (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size. | ✅ |
+| `Open with` system chooser; `Open as` to force Text/Image/Video/Audio. | ✅ |
+
+### 🗜️ Archives
+
+| Feature | Status |
+| --- | --- |
+| In-app `.zip` browsing: folder viewer, back/refresh, breadcrumbs. | ✅ |
+| Type badges + human-readable sizes; `Open with` via system chooser. | ✅ |
+| "Extract here" workflow. | ✅ |
+
+### 🔁 Transfers
+
+| Feature | Status |
+| --- | --- |
+| Copy/move/rename/delete queue with `Paste here` picker. | ✅ |
+| Conflict choices: `Skip`, `Replace`, `Keep both`. | ✅ |
+| Persistent queue/history via Drift. | ✅ |
+| Post-transfer MediaStore rescan so new files appear, moved sources update. | ✅ |
+
+### 🔎 Search
+
+| Feature | Status |
+| --- | --- |
+| Scope (folder/storage), type filters, type-only discovery. | ✅ |
+| Persisted index (Drift), reindex, auto-invalidation on transfers. | ✅ |
+| MediaStore-backed type browse + index seeding. | ✅ |
+| Background pre-warm on permission; post-invalidation re-warm. | ✅ |
+
+### 💾 Persistence & Settings
+
+| Feature | Status |
+| --- | --- |
+| Persistent favorites, recents, transfer queue/history. | ✅ |
+| Settings screen (Explorer, Transfers, Search toggles). | ✅ |
+| Drift + build_runner codegen. | ✅ |
+
+---
+
+## 🧰 Requirements
+
+| Tool | Version |
+| --- | --- |
+| Flutter | `3.24.3` or compatible |
+| Dart | `3.5.3` or compatible |
+| Android Studio / SDK | required for Android builds |
 
 Check your setup:
 
@@ -36,64 +120,50 @@ flutter doctor
 flutter devices
 ```
 
-## Install Dependencies
+<details>
+<summary>Install dependencies from repo root vs. project folder</summary>
 
-From this folder:
+Local Android SDK location referenced by docs assumes Linux Mint/Ubuntu
+`/usr/lib/android-sdk`.
+
+**From the project folder (`project/`):**
 
 ```bash
 flutter pub get
 ```
 
-From repo root:
+**From repo root:**
 
 ```bash
 cd project
 flutter pub get
 ```
 
-## Run On Android
+</details>
 
-Start an emulator or connect a device, then run:
+---
+
+## 🚀 Run on Android
+
+Start an emulator or connect a device, then:
 
 ```bash
 flutter run -d android
 ```
 
-If multiple Android devices are connected:
+If multiple Android devices are connected, target one explicitly:
 
 ```bash
 flutter devices
 flutter run -d <device-id>
 ```
 
-For your connected phone, the command usually looks like:
+Detach from the terminal while leaving the app running with <kbd>d</kbd>, or quit with
+<kbd>q</kbd>. While running: <kbd>r</kbd> hot reload, <kbd>R</kbd> hot restart.
 
-```bash
-flutter devices
-flutter run -d HAL7EAPNFULJZPUG
-```
+## 📡 Android Wireless Debugging
 
-Detach from the terminal while leaving the app running:
-
-```text
-d
-```
-
-Quit the running app session:
-
-```text
-q
-```
-
-Useful while running:
-
-- Press `r` for hot reload.
-- Press `R` for hot restart.
-- Press `q` to quit.
-
-## Android Wireless Debugging
-
-Use USB once to switch ADB to TCP mode:
+### First-time pairing (break USB once)
 
 ```bash
 adb devices
@@ -102,29 +172,27 @@ adb connect $(adb shell ip route | awk '{print $9; exit}'):5555
 flutter run
 ```
 
-After `adb connect` succeeds, unplug USB. Hot reload still works with `r`.
+After `adb connect` succeeds, unplug USB. Hot reload still works with <kbd>r</kbd>.
 
-If the phone already has wireless debugging paired from Developer options, the
-later runs are usually only:
+If the phone already has wireless debugging paired from Developer options, later runs are
+usually only:
 
 ```bash
 adb connect <phone-ip>:<port>
-flutter run
-```
-
-If multiple devices show up, pick the wireless device explicitly:
-
-```bash
-flutter devices
 flutter run -d <phone-ip>:<port>
 ```
 
-Build and install a debug APK on a connected phone:
+<details>
+<summary>Build and install a debug APK on a connected phone</summary>
+
+**Remote debug build + install — use exactly this when asked for remote debugging:**
 
 ```bash
-flutter build apk --debug
-flutter install -d <device-id> --use-application-binary build/app/outputs/flutter-apk/app-debug.apk
+flutter build apk --debug && adb install -r build/app/outputs/flutter-apk/app-debug.apk
 ```
+
+The `-r` reinstalls over the current build. Requires the phone to be reachable over
+`adb` (see the USB `adb tcpip 5555` step above for wireless setup).
 
 Launch the installed app from terminal:
 
@@ -132,13 +200,16 @@ Launch the installed app from terminal:
 adb -s <device-id> shell monkey -p com.ajayff4.fileexplorer 1
 ```
 
-If Android builds fail because SDK licenses are not accepted, run:
+</details>
+
+If Android builds fail because SDK licenses are not accepted:
 
 ```bash
 flutter doctor --android-licenses
 ```
 
-On Linux Mint/Ubuntu, if the SDK is installed at `/usr/lib/android-sdk`, use the full `sdkmanager` path with `sudo` because that SDK folder is system-owned:
+On Linux Mint/Ubuntu, if the SDK is installed at `/usr/lib/android-sdk`, use the full
+`sdkmanager` path with `sudo` (system-owned folder):
 
 ```bash
 sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
@@ -146,7 +217,8 @@ sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
   --licenses
 ```
 
-This project compiles Android with SDK `35` because the Android plugins require it. If SDK 35 or the requested build tools are missing, install them from Android Studio SDK Manager or with `sdkmanager`:
+This project compiles Android with **SDK 35** because the plugins require it. If SDK 35
+or the requested build tools are missing, install them:
 
 ```bash
 sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
@@ -156,106 +228,55 @@ sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
   "platform-tools"
 ```
 
-## Optional Dev Run Targets
+---
 
-The product target is Android phones. These commands are only for local
-development/debugging when an Android device is not convenient.
+## 📱 Supported platforms
 
-Run in Chrome:
+**The product target is Android phones.** The entire storage/media stack is native
+Android — filesystem browsing, MediaStore queries, ZIP preview, and transfers are
+built on `dart:io` and Android MethodChannels, so **web is not supported** (there is no
+filesystem to explore, and the platform channels have no web implementation), and
+desktop has no platform channel or HC support. Only Android builds should be
+considered functional.
+
+| Platform | Status | Notes |
+| --- | --- | --- |
+| Android | ✅ | The real target — everything works here. |
+| iOS | ⚠️ | Scaffolded only; no iOS storage channel implementations. |
+| Web | ❌ | Not supported — `dart:io`/Android channels have no web path. |
+| Desktop (Linux/Windows/macOS) | ⚠️ | `dart:io` partial; storage channel implementations are Android-only. |
+
+---
+
+## 🔨 Build commands
+
+| Artifact | Command |
+| -- | -- |
+| Android debug APK | `flutter build apk --debug` |
+| Android release APK | `flutter build apk --release` |
+| Android App Bundle | `flutter build appbundle` |
+| Linux desktop build | `flutter build linux` — CLI history only; Linux support is planned for the future |
+
+---
+
+## ✅ Quality checks
 
 ```bash
-flutter run -d chrome
+dart format lib test
+flutter analyze
+flutter test
 ```
-
-Run as a web server on a fixed local URL:
-
-```bash
-flutter run -d web-server --web-hostname 127.0.0.1 --web-port 5174
-```
-
-Then open:
-
 ```text
-http://127.0.0.1:5174
+- Run the full local verification pass above after changes.
+- Do not add comments unless asked; do not touch CHANGES.md / ROADMAP.md unless asked.
 ```
 
-Run on Linux desktop:
+---
 
-```bash
-flutter run -d linux
-```
+## ⚙️ Code generation
 
-List all available targets:
-
-```bash
-flutter devices
-```
-
-## Build Commands
-
-Android debug APK:
-
-```bash
-flutter build apk --debug
-```
-
-Android release APK:
-
-```bash
-flutter build apk --release
-```
-
-Android App Bundle:
-
-```bash
-flutter build appbundle
-```
-
-Optional web dev build:
-
-```bash
-flutter build web
-```
-
-Optional Linux dev build:
-
-```bash
-flutter build linux
-```
-
-## Quality Checks
-
-Format code:
-
-```bash
-dart format lib test
-```
-
-Analyze code:
-
-```bash
-flutter analyze
-```
-
-Run tests:
-
-```bash
-flutter test
-```
-
-Run the normal local verification pass:
-
-```bash
-dart format lib test
-flutter analyze
-flutter test
-```
-
-## Code Generation
-
-Drift and `build_runner` are used for the local metadata database.
-
-Run generators after Drift schema/table changes:
+Drift and `build_runner` power the local metadata DB. Run generators after schema/table
+changes:
 
 ```bash
 dart run build_runner build --delete-conflicting-outputs
@@ -267,7 +288,9 @@ Watch mode during active schema/model work:
 dart run build_runner watch --delete-conflicting-outputs
 ```
 
-## Project Structure
+---
+
+## 🏗️ Project Structure
 
 ```text
 lib/
@@ -279,12 +302,25 @@ lib/
     explorer/
     favorites/
     home/
+    media/
     recents/
     search/
     settings/
+    storage_permissions/
     transfers/
+    zip/
   shared/
     database/
+    formatters/
 ```
 
-The codebase is organized feature-first so platform storage, transfer engine, search, settings, and future tools can grow without turning `lib/` into one large shared folder.
+The codebase is organized feature-first so platform storage, transfer engine, search,
+settings, and future tools can grow without turning `lib/` into one large shared folder.
+
+---
+
+## 📚 See also
+
+- `CHANGES.md` — chronological progress log.
+- `ROADMAP.md` — planned work and status per feature.
+- `docs/ROUTING.md` — navigation model (added on real-device routing work).
