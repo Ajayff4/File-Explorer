@@ -15,7 +15,8 @@ void main() {
     archivePath = '${tempDir.path}/sample.zip';
     final archive = Archive();
     archive.addFile(ArchiveFile.string('Documents/Invoice_Q3.pdf', 'pdf data'));
-    archive.addFile(ArchiveFile.string('Documents/notes.txt', 'hello from zip'));
+    archive
+        .addFile(ArchiveFile.string('Documents/notes.txt', 'hello from zip'));
     archive.addFile(ArchiveFile.string('Photos/IMG.jpg', 'image bytes'));
     archive.addFile(ArchiveFile.string('backup_manifest.json', '{}'));
     final bytes = ZipEncoder().encode(archive);
@@ -46,7 +47,8 @@ void main() {
   });
 
   test('lists entries inside a subfolder', () async {
-    final listing = await repository.listDirectory(archivePath, directoryPath: 'Documents');
+    final listing =
+        await repository.listDirectory(archivePath, directoryPath: 'Documents');
     expect(listing.directoryPath, 'Documents');
     final names = listing.entries.map((e) => e.name).toList();
     expect(names, ['Invoice_Q3.pdf', 'notes.txt']);
@@ -60,7 +62,8 @@ void main() {
   });
 
   test('reads entry content', () async {
-    final bytes = await repository.readEntry(archivePath, 'Documents/notes.txt');
+    final bytes =
+        await repository.readEntry(archivePath, 'Documents/notes.txt');
     expect(utf8.decode(bytes!), 'hello from zip');
   });
 

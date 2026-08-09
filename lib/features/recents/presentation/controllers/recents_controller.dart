@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:file_explorer/features/recents/data/repositories/recent_location_store_provider.dart';
 import 'package:file_explorer/features/recents/domain/entities/recent_location.dart';
 import 'package:file_explorer/features/recents/domain/repositories/recent_location_store.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final recentsControllerProvider =
     StateNotifierProvider<RecentsController, RecentsState>((ref) {

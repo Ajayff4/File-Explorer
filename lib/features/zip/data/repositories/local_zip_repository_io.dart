@@ -56,7 +56,8 @@ class LocalZipRepository implements ZipRepository {
     }
 
     final children = <String, ZipEntry>{};
-    final dirDepth = normalizedDir.isEmpty ? 0 : normalizedDir.split('/').length;
+    final dirDepth =
+        normalizedDir.isEmpty ? 0 : normalizedDir.split('/').length;
     for (final file in archive) {
       final parts = _pathParts(file.name);
       if (parts.isEmpty) {

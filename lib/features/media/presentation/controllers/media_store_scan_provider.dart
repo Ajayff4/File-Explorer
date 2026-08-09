@@ -51,7 +51,8 @@ final mediaStoreScanProvider = Provider<void>((ref) {
   });
 });
 
-Future<void> _scanSafely(MediaStorePlatform platform, List<String> paths) async {
+Future<void> _scanSafely(
+    MediaStorePlatform platform, List<String> paths) async {
   try {
     await platform.scanFiles(paths);
   } on Object {

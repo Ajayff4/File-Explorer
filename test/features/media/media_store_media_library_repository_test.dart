@@ -299,7 +299,8 @@ void main() {
       );
 
       expect(fallback.callCount, 0);
-      expect(results.single.entry.path, '/storage/emulated/0/Download/report.pdf');
+      expect(
+          results.single.entry.path, '/storage/emulated/0/Download/report.pdf');
       expect(results.single.entry.type, FileSystemEntryType.document);
     });
   });

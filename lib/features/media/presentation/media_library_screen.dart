@@ -10,6 +10,7 @@ import 'package:file_explorer/features/storage_permissions/domain/entities/stora
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
@@ -124,14 +125,14 @@ class MediaLibraryScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
-    final rootPath = explorerState.listing.valueOrNull?.volume?.path ??
-        explorerState.currentPath;
+    final rootPath =
+        explorerState.listing.value?.volume?.path ?? explorerState.currentPath;
     final request = (kind: kind, rootPath: rootPath);
     final resultsAsync = ref.watch(mediaLibraryResultsProvider(request));
     final sortOption = ref.watch(mediaLibrarySortOptionProvider);
     final viewMode = ref.watch(mediaLibraryViewModeProvider);
 
-    final permission = explorerState.permission.valueOrNull;
+    final permission = explorerState.permission.value;
     final needsAllFilesAccess = kind.requiresAllFilesAccess &&
         permission != null &&
         permission.accessMode == StorageAccessMode.appSpecific;

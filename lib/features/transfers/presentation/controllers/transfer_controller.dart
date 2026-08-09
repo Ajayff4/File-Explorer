@@ -5,7 +5,7 @@ import 'package:file_explorer/features/transfers/data/repositories/transfer_task
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_task_store.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final transferControllerProvider =
     StateNotifierProvider<TransferController, TransferState>((ref) {

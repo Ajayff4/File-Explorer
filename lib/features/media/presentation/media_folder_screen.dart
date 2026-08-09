@@ -27,24 +27,24 @@ class MediaFolderScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        appBar: AppBar(
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go(AppRoutes.media(kind));
-              }
-            },
-          ),
-          title: Text(p.basename(folderPath)),
+      appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go(AppRoutes.media(kind));
+            }
+          },
         ),
-        body: _MediaFolderGrid(
-          key: ValueKey(folderPath),
-          folderPath: folderPath,
-          kind: kind,
-        ),
+        title: Text(p.basename(folderPath)),
+      ),
+      body: _MediaFolderGrid(
+        key: ValueKey(folderPath),
+        folderPath: folderPath,
+        kind: kind,
+      ),
     );
   }
 }
@@ -104,8 +104,7 @@ class _MediaFolderGridState extends ConsumerState<_MediaFolderGrid> {
                 sizeBytes: item.sizeBytes,
               ),
         ];
-        mediaEntries
-            .removeWhere((entry) => entry.type != widget.kind.type);
+        mediaEntries.removeWhere((entry) => entry.type != widget.kind.type);
         mediaEntries.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
 
         if (mounted) {

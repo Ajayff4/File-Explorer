@@ -25,7 +25,7 @@ class HomeScreen extends ConsumerWidget {
     final recentsState = ref.watch(recentsControllerProvider);
     final settings = ref.watch(settingsControllerProvider).settings;
     final transferState = ref.watch(transferControllerProvider);
-    final summary = explorerState.summary.valueOrNull;
+    final summary = explorerState.summary.value;
     final visibleRecents = settings.showFoldersOnlyInHistory
         ? recentsState.locations.where((recent) => recent.isFolder).toList()
         : recentsState.locations;
@@ -221,12 +221,12 @@ class _StoragePanel extends ConsumerWidget {
 }
 
 StorageVolume? _selectedVolumeFor(ExplorerState state) {
-  final listingVolume = state.listing.valueOrNull?.volume;
+  final listingVolume = state.listing.value?.volume;
   if (listingVolume != null) {
     return listingVolume;
   }
 
-  final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+  final volumes = state.volumes.value ?? const <StorageVolume>[];
   for (final volume in volumes) {
     if (state.currentPath.startsWith(volume.path)) {
       return volume;

@@ -33,7 +33,7 @@ void main() {
     await _waitForExplorerLoad(container);
 
     final initialState = container.read(explorerControllerProvider);
-    expect(initialState.volumes.valueOrNull, hasLength(2));
+    expect(initialState.volumes.value, hasLength(2));
     expect(initialState.currentPath, _MultiVolumeStorageRepository.primaryPath);
 
     await container
@@ -42,8 +42,8 @@ void main() {
 
     final selectedState = container.read(explorerControllerProvider);
     expect(selectedState.currentPath, _MultiVolumeStorageRepository.sdCardPath);
-    expect(selectedState.summary.valueOrNull?.label, 'SD card');
-    expect(selectedState.listing.valueOrNull?.volume?.label, 'SD card');
+    expect(selectedState.summary.value?.label, 'SD card');
+    expect(selectedState.listing.value?.volume?.label, 'SD card');
 
     final recentPaths = (await recentStore.loadRecents()).map(
       (recent) => recent.path,

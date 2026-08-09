@@ -3,7 +3,6 @@ import 'package:file_explorer/features/explorer/data/repositories/fake_storage_r
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

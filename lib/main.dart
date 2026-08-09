@@ -22,4 +22,3 @@ Future<void> _requestMediaPermissionsForTesting() async {
   await Permission.videos.request();
   await Permission.audio.request();
 }
-

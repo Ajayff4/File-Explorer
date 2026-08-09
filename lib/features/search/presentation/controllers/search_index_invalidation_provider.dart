@@ -46,7 +46,8 @@ Future<void> _reInitAndWarm(Ref ref, List<String> touchedPaths) async {
         .read(searchIndexStoreProvider)
         .clearIndexesForPaths(touchedPaths);
     for (final root in clearedRoots) {
-      unawaited(ref.read(fileSearchControllerProvider.notifier).warmUpIndex(root));
+      unawaited(
+          ref.read(fileSearchControllerProvider.notifier).warmUpIndex(root));
     }
   } on Object {
     // Invalidation is best-effort; failures must not surface.

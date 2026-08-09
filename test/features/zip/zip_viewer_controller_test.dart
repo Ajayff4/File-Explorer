@@ -17,39 +17,42 @@ void main() {
     final loaded = container.read(zipViewerControllerProvider(archivePath));
     expect(loaded.listing.hasValue, isTrue);
 
-    final entries = loaded.listing.valueOrNull!.entries;
+    final entries = loaded.listing.value!.entries;
     expect(entries.map((e) => e.name), contains('Documents'));
     expect(entries.map((e) => e.name), contains('backup_manifest.json'));
   });
 
   test('navigates into a subfolder', () async {
     final container = makeContainer();
-    final controller = container.read(zipViewerControllerProvider(archivePath).notifier);
+    final controller =
+        container.read(zipViewerControllerProvider(archivePath).notifier);
     await controller.openDirectory('Documents');
 
     final state = container.read(zipViewerControllerProvider(archivePath));
     expect(state.directoryPath, 'Documents');
     expect(state.isRoot, isFalse);
     expect(
-      state.listing.valueOrNull!.entries.map((e) => e.name),
+      state.listing.value!.entries.map((e) => e.name),
       contains('notes.txt'),
     );
   });
 
   test('openParentDirectory returns to root', () async {
     final container = makeContainer();
-    final controller = container.read(zipViewerControllerProvider(archivePath).notifier);
+    final controller =
+        container.read(zipViewerControllerProvider(archivePath).notifier);
     await controller.openDirectory('Documents');
     await controller.openParentDirectory();
 
     final state = container.read(zipViewerControllerProvider(archivePath));
     expect(state.isRoot, isTrue);
-    expect(state.listing.valueOrNull!.entries, isNotEmpty);
+    expect(state.listing.value!.entries, isNotEmpty);
   });
 
   test('openParentDirectory at root keeps root', () async {
     final container = makeContainer();
-    final controller = container.read(zipViewerControllerProvider(archivePath).notifier);
+    final controller =
+        container.read(zipViewerControllerProvider(archivePath).notifier);
     await controller.openParentDirectory();
 
     final state = container.read(zipViewerControllerProvider(archivePath));
@@ -68,6 +71,7 @@ ProviderContainer makeContainer() {
 }
 
 Future<void> waitForListing(ProviderContainer container) async {
-  final notifier = container.read(zipViewerControllerProvider(archivePath).notifier);
+  final notifier =
+      container.read(zipViewerControllerProvider(archivePath).notifier);
   await notifier.loadInitialDirectory();
 }

@@ -236,8 +236,7 @@ class _ZipViewerError extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.inventory_2_rounded,
-                size: 48, color: colorScheme.error),
+            Icon(Icons.inventory_2_rounded, size: 48, color: colorScheme.error),
             const SizedBox(height: 16),
             Text(
               'Could not read archive',
@@ -306,7 +305,8 @@ Color _colorForExtension(BuildContext context, String extension) {
   };
 }
 
-Future<void> _openArchiveWithSystem(BuildContext context, String archivePath) async {
+Future<void> _openArchiveWithSystem(
+    BuildContext context, String archivePath) async {
   try {
     await openLocalFileWithSystem(archivePath);
   } on MissingPluginException {

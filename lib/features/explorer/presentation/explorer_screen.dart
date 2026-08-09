@@ -22,6 +22,7 @@ import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
@@ -138,10 +139,8 @@ class ExplorerScreen extends ConsumerWidget {
               IconButton(
                 tooltip: 'Select all',
                 onPressed: () {
-                  final entries = listing.valueOrNull?.entries
-                          .map((e) => e.path)
-                          .toList() ??
-                      [];
+                  final entries =
+                      listing.value?.entries.map((e) => e.path).toList() ?? [];
                   ref
                       .read(explorerControllerProvider.notifier)
                       .selectAll(entries);
@@ -560,7 +559,7 @@ class ExplorerScreen extends ConsumerWidget {
                 task: awaitingDestinationTask,
                 destinationPath: explorerState.currentPath,
               ),
-            if (listing.valueOrNull?.generatedFromSampleData ?? false)
+            if (listing.value?.generatedFromSampleData ?? false)
               const _SampleDataBanner(),
             Expanded(
               child: permission.when(
@@ -672,12 +671,12 @@ bool _canNavigateUp(ExplorerState state) {
 }
 
 StorageVolume? _selectedVolumeFor(ExplorerState state) {
-  final listingVolume = state.listing.valueOrNull?.volume;
+  final listingVolume = state.listing.value?.volume;
   if (listingVolume != null) {
     return listingVolume;
   }
 
-  final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+  final volumes = state.volumes.value ?? const <StorageVolume>[];
   for (final volume in volumes) {
     if (state.currentPath.startsWith(volume.path)) {
       return volume;

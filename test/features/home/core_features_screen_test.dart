@@ -62,12 +62,12 @@ void main() {
     await tester.tap(find.text('Built-in viewers'));
     await tester.pumpAndSettle();
 
-    final expanded = tester
-        .widget<Text>(find.textContaining('View images, play videos'));
+    final expanded =
+        tester.widget<Text>(find.textContaining('View images, play videos'));
     expect(expanded.maxLines, isNull);
 
-    final untouched = tester
-        .widget<Text>(find.textContaining('Queue copy, move, rename'));
+    final untouched =
+        tester.widget<Text>(find.textContaining('Queue copy, move, rename'));
     expect(untouched.maxLines, 3);
   });
 }

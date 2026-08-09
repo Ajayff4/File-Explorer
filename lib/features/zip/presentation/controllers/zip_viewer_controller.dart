@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:file_explorer/features/zip/data/repositories/zip_repository_provider.dart';
 import 'package:file_explorer/features/zip/domain/entities/zip_entry.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final zipViewerControllerProvider = StateNotifierProvider.autoDispose
     .family<ZipViewerController, ZipViewerState, String>((ref, archivePath) {
@@ -71,7 +72,9 @@ class ZipViewerController extends StateNotifier<ZipViewerState> {
   }
 
   Future<Uint8List?> readEntry(String entryPath) {
-    return _ref.read(zipRepositoryProvider).readEntry(state.archivePath, entryPath);
+    return _ref
+        .read(zipRepositoryProvider)
+        .readEntry(state.archivePath, entryPath);
   }
 
   String _parentOf(String path) {

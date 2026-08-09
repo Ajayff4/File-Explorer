@@ -206,8 +206,8 @@ void main() {
         _folder('Pictures', '/root/Pictures'),
       ],
       '/root/Downloads': [
-        _entry(
-            'report.pdf', '/root/Downloads/report.pdf', FileSystemEntryType.document),
+        _entry('report.pdf', '/root/Downloads/report.pdf',
+            FileSystemEntryType.document),
       ],
     });
     final controller = FileSearchController(

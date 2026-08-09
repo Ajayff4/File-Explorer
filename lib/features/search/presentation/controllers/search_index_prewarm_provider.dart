@@ -14,13 +14,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// first folder search is already fast.
 final searchIndexPreWarmProvider = Provider<void>((ref) {
   ref.listen<ExplorerState>(explorerControllerProvider, (previous, next) {
-    final permission = next.permission.valueOrNull;
+    final permission = next.permission.value;
     if (permission == null || !permission.canBrowse) {
       return;
     }
 
     final roots = <String>{
-      for (final volume in next.volumes.valueOrNull ?? const <StorageVolume>[])
+      for (final volume in next.volumes.value ?? const <StorageVolume>[])
         volume.path,
       if (next.currentPath.isNotEmpty) next.currentPath,
     };

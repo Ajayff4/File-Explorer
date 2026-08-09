@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:file_explorer/features/favorites/data/repositories/favorite_location_store_provider.dart';
 import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
 import 'package:file_explorer/features/favorites/domain/repositories/favorite_location_store.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final favoritesControllerProvider =
     StateNotifierProvider<FavoritesController, FavoritesState>((ref) {

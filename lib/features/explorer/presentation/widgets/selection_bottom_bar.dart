@@ -236,7 +236,7 @@ void _showMoreOptions(
 ) {
   if (selectedPaths.length == 1) {
     final explorerState = ref.read(explorerControllerProvider);
-    final listing = explorerState.listing.valueOrNull;
+    final listing = explorerState.listing.value;
     final searchState = ref.read(fileSearchControllerProvider);
 
     final allEntries = [
@@ -320,7 +320,7 @@ void _showProperties(BuildContext context, WidgetRef ref, List<String> paths) {
   if (paths.isEmpty) return;
 
   final explorerState = ref.read(explorerControllerProvider);
-  final listing = explorerState.listing.valueOrNull;
+  final listing = explorerState.listing.value;
   final searchState = ref.read(fileSearchControllerProvider);
 
   final allEntries = [

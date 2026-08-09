@@ -11,7 +11,7 @@ import 'package:file_explorer/features/search/data/repositories/search_index_sto
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/domain/repositories/search_index_store.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:path/path.dart' as p;
 
 final fileSearchControllerProvider =

@@ -41,7 +41,8 @@ void main() {
     container.read(searchIndexPreWarmProvider);
     await _waitForIndex(indexStore, _MultiVolumeStorageRepository.root);
 
-    expect(await indexStore.hasIndex(_MultiVolumeStorageRepository.root), isTrue);
+    expect(
+        await indexStore.hasIndex(_MultiVolumeStorageRepository.root), isTrue);
   });
 
   test('does not prewarm without browse permission', () async {
@@ -76,7 +77,8 @@ void main() {
     // exercised with a non-browsable state.
     await _pumpEventQueue();
 
-    expect(await indexStore.hasIndex(_MultiVolumeStorageRepository.root), isFalse);
+    expect(
+        await indexStore.hasIndex(_MultiVolumeStorageRepository.root), isFalse);
   });
 }
 

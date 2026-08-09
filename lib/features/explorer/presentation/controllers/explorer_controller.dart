@@ -8,6 +8,7 @@ import 'package:file_explorer/features/recents/presentation/controllers/recents_
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:path/path.dart' as p;
 
 final explorerControllerProvider =
@@ -69,7 +70,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     );
     state = state.copyWith(permission: permission);
 
-    final permissionValue = permission.valueOrNull;
+    final permissionValue = permission.value;
     if (permissionValue == null || !permissionValue.canBrowse) {
       state = state.copyWith(
         volumes: const AsyncValue.data([]),
@@ -98,7 +99,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     );
 
     final volumes = await AsyncValue.guard(repository.getStorageVolumes);
-    final volumeList = volumes.valueOrNull ?? const <StorageVolume>[];
+    final volumeList = volumes.value ?? const <StorageVolume>[];
     final primaryVolume = _primaryVolumeFrom(volumeList);
     final rootPath = primaryVolume?.path ?? FakeStorageRepository.rootPath;
     final summary = await AsyncValue.guard(
@@ -124,7 +125,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     );
     state = state.copyWith(permission: permission);
 
-    final permissionValue = permission.valueOrNull;
+    final permissionValue = permission.value;
     if (permissionValue != null && permissionValue.canBrowse) {
       await loadInitialDirectory();
     }
@@ -213,7 +214,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
   void selectInterval({List<String>? paths}) {
     if (state.selectedPaths.length < 2) return;
     final allPaths =
-        paths ?? state.listing.valueOrNull?.entries.map((e) => e.path).toList();
+        paths ?? state.listing.value?.entries.map((e) => e.path).toList();
     if (allPaths == null || allPaths.isEmpty) return;
 
     final indices = state.selectedPaths
@@ -268,12 +269,12 @@ class ExplorerController extends StateNotifier<ExplorerState> {
   }
 
   StorageVolume? _volumeForCurrentPath() {
-    final listingVolume = state.listing.valueOrNull?.volume;
+    final listingVolume = state.listing.value?.volume;
     if (listingVolume != null) {
       return listingVolume;
     }
 
-    final volumes = state.volumes.valueOrNull ?? const <StorageVolume>[];
+    final volumes = state.volumes.value ?? const <StorageVolume>[];
     for (final volume in volumes) {
       if (state.currentPath.startsWith(volume.path)) {
         return volume;

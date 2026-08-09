@@ -1,6 +1,5 @@
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
 String normalizeExplorerPath(String path) {
@@ -36,8 +35,8 @@ bool canNavigateUpInExplorer(ExplorerState state) {
   final normalizedCurrent = normalizeExplorerPath(state.currentPath);
   final volume = volumeForExplorerPath(
     normalizedCurrent,
-    state.volumes.valueOrNull ?? const <StorageVolume>[],
-    listingVolume: state.listing.valueOrNull?.volume,
+    state.volumes.value ?? const <StorageVolume>[],
+    listingVolume: state.listing.value?.volume,
   );
   final volumeRoot = volume?.path;
   if (volumeRoot != null) {

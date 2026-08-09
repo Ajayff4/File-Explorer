@@ -48,7 +48,8 @@ void main() {
 
     return ProviderContainer(
       overrides: [
-        storageRepositoryProvider.overrideWithValue(const FakeStorageRepository()),
+        storageRepositoryProvider
+            .overrideWithValue(const FakeStorageRepository()),
         storagePermissionRepositoryProvider.overrideWithValue(
           const FakeStoragePermissionRepository(
             initialState: StoragePermissionState.fullAccess(

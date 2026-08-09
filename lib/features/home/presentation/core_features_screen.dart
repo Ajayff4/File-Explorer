@@ -119,9 +119,10 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
                         feature.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
                       const SizedBox(height: 6),
                       Text(

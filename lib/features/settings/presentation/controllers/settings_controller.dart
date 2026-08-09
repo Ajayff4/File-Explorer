@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:file_explorer/features/settings/data/repositories/settings_store_provider.dart';
 import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:file_explorer/features/settings/domain/repositories/settings_store.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 
 final settingsControllerProvider =
     StateNotifierProvider<SettingsController, SettingsState>((ref) {

@@ -43,7 +43,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final searchState = ref.watch(fileSearchControllerProvider);
     final currentPath = explorerState.currentPath;
     final storageRootPath =
-        explorerState.listing.valueOrNull?.volume?.path ?? currentPath;
+        explorerState.listing.value?.volume?.path ?? currentPath;
     final rootPath =
         _scope == _SearchScope.storageRoot ? storageRootPath : currentPath;
     final isSelectionMode = explorerState.isSelectionMode;
