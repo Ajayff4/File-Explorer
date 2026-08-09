@@ -580,7 +580,7 @@ class _ImagePreviewState extends State<_ImagePreview> {
     final currentScale = _transformationController.value.getMaxScaleOnAxis();
     _transformationController.value =
         currentScale > 1 ? Matrix4.identity() : Matrix4.identity()
-          ..scale(2.0);
+          ..scaleByDouble(2.0, 2.0, 2.0, 1.0);
   }
 
   void _rotate() {
@@ -1277,7 +1277,7 @@ class _RipplePainter extends CustomPainter {
     final radius = maxRadius * progress;
     final opacity = (1.0 - progress).clamp(0.0, 1.0);
     final paint = Paint()
-      ..color = Colors.white.withOpacity(opacity * 0.4)
+      ..color = Colors.white.withValues(alpha: opacity * 0.4)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 3.0;
     canvas.drawCircle(center, radius, paint);
@@ -1348,7 +1348,7 @@ class _AudioPlayerSurface extends StatelessWidget {
                     width: 156,
                     height: 156,
                     decoration: BoxDecoration(
-                      color: color.withOpacity(0.18),
+                      color: color.withValues(alpha: 0.18),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(

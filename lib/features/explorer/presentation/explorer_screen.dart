@@ -913,7 +913,7 @@ class _ArrowShape extends ShapeBorder {
 
   @override
   Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
-    final arrowWidth = 12.0;
+    const arrowWidth = 12.0;
     return Path()
       ..moveTo(arrowWidth, 0)
       ..lineTo(rect.width - arrowWidth, 0)
@@ -1234,18 +1234,16 @@ Future<void> _openWithSystem(
   try {
     await openLocalFileWithSystem(entry.path);
   } on MissingPluginException {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Open with is available on Android')),
     );
   } on PlatformException catch (error) {
+    if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(error.message ?? 'Could not open file')),
     );
   }
-}
-
-bool _canPreviewEntry(FileSystemEntry entry) {
-  return _isMediaType(entry) || isTextFile(entry.path);
 }
 
 bool _canOpenEntry(FileSystemEntry entry) {
@@ -1666,9 +1664,9 @@ class _FileTypeBadge extends StatelessWidget {
       child: Center(
         child: Text(
           extension,
-          style: TextStyle(
+          style: const TextStyle(
             color: Colors.white,
-            fontSize: size * 0.35,
+            fontSize: _size * 0.35,
             fontWeight: FontWeight.bold,
           ),
         ),

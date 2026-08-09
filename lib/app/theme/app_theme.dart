@@ -38,7 +38,7 @@ class AppTheme {
   static ThemeData _base(ColorScheme scheme) {
     final cardColor = Color.alphaBlend(
       scheme.primary
-          .withOpacity(scheme.brightness == Brightness.dark ? 0.10 : 0.04),
+          .withValues(alpha: scheme.brightness == Brightness.dark ? 0.10 : 0.04),
       scheme.surface,
     );
 
@@ -51,7 +51,7 @@ class AppTheme {
             scheme.brightness == Brightness.dark ? _black : scheme.surface,
         foregroundColor: scheme.onSurface,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: cardColor,
         elevation: 0,
         margin: EdgeInsets.zero,

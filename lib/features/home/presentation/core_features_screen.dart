@@ -98,7 +98,7 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: feature.color.withOpacity(0.16),
+                  color: feature.color.withValues(alpha: 0.16),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SizedBox.square(

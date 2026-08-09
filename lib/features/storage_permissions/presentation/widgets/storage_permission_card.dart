@@ -51,7 +51,7 @@ class StoragePermissionCard extends StatelessWidget {
                   const SizedBox(height: 12),
                   DecoratedBox(
                     decoration: BoxDecoration(
-                      color: colors.primaryContainer.withOpacity(0.35),
+                      color: colors.primaryContainer.withValues(alpha: 0.35),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Padding(

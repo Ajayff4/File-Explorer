@@ -320,8 +320,10 @@ Future<void> _openAsSystemWithMimeType(
   try {
     await openLocalFileWithSystem(entry.path, fallbackMimeType: mimeType);
   } on MissingPluginException {
+    if (!context.mounted) return;
     _showMessage(context, 'Open with is available on Android');
   } on PlatformException catch (error) {
+    if (!context.mounted) return;
     _showMessage(context, error.message ?? 'Could not open file');
   }
 }
@@ -703,7 +705,7 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<_CompressionChoice>(
-              value: _choice,
+              initialValue: _choice,
               decoration: const InputDecoration(labelText: 'Type'),
               items: [
                 for (final choice in widget.choices)
@@ -726,7 +728,7 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<_CompressionLevel>(
-              value: _level,
+              initialValue: _level,
               decoration: const InputDecoration(labelText: 'Compress level'),
               items: [
                 for (final level in _CompressionLevel.values)
