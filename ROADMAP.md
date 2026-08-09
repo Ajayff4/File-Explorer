@@ -153,12 +153,13 @@ Recommended next slices, in order:
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
 | ✅ | 1 | Media | MediaStore-backed category discovery for images/audio/video (replace recursive filesystem walk). |
-| [ ] | 2 | Media | Remaining MediaStore Expansion Map items: optional MediaStore counts for Properties "Contains" (only Explorer type-filter counts use MediaStore today). |
-| [ ] | 3 | Media | Add category result cache with instant cached render and silent background refresh. |
+| ✅ | 2 | Media | MediaStore-backed category discovery for all kinds (documents/apps/archives via `MediaStore.Files`). |
+| ✅ | 3 | Media | Post-transfer MediaStore rescanning (`mediaStoreScanProvider`). |
 | [ ] | 4 | Tests | Update stale test expectations for current Home/media behavior. |
 | ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
-| [ ] | 6 | Media | Add thumbnail cache for media libraries and Explorer. |
-| [ ] | 7 | UI | Polish media folder view on real device and tune grid density. |
+| [ ] | 6 | Archives | Evaluate a separate engine for RAR and 7Z support. |
+| [ ] | 7 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 8 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
 
@@ -191,7 +192,7 @@ Every filesystem-walk flow in the app, its current cost, and the MediaStore stra
 | Search: index build / manual reindex | `FileSearchController._collectIndexEntries` → Drift | First search per root, manual reindex | ✅ Done — index seeded from MediaStore (dedup by path), walk skips seeded paths | — |
 | Search: live query without index | `FileSearchController._searchDirectory` | Only when no index store available | Leave as-is (rare fallback; index path covers Android) | Low |
 | Explorer: type-filter folder counts | `explorer_screen.dart` `_countMatchingEntries` | Type-filtered Explorer browsing | ✅ Done — MediaStore `countMedia` per folder with walker fallback | — |
-| Explorer: folder properties "Contains" counts | `explorer_screen.dart` → `countEntriesByType` | On demand per folder in Properties | Left as walker (single folder, async UI); MediaStore count optional if it ever gets too slow | Low |
+| Explorer: folder properties "Contains" counts | `explorer_screen.dart` → `countEntriesByType` | On demand per folder in Properties | Dropped 2026-08-09 — single-folder walk is fast enough for async UI; MediaStore count adds no macro-observable benefit | Low |
 | MediaStore freshness after transfers | `mediaStoreScanProvider` → `scanFiles` | Any completed transfer | ✅ Done — `MediaScannerConnection.scanFile` on source + destination paths | — |
 | `StorageRepository.folderContainsFileType` | (removed) | — | ✅ Done 2026-08-08 — removed (no production callers) | — |
 
@@ -202,20 +203,9 @@ Notes:
 
 ### Category Cache
 
-Goal: category shortcuts should feel instant after the first scan.
-
-| Status | Task |
-| --- | --- |
-| [ ] | Persist category scan results by `rootPath + FileSystemEntryType`. |
-| [ ] | Store file path, parent folder, name, type, size, and modified time. |
-| [ ] | Show cached category folders immediately when cache exists. |
-| [ ] | Refresh cache silently in the background after cached results render. |
-| [ ] | If refreshed result matches cache, keep UI unchanged. |
-| [ ] | If refreshed result differs, update cache and refresh visible results. |
-| [ ] | Mark related category caches stale when transfer tasks complete under the same root. |
-| [ ] | Show full-screen loading only when no cache exists. |
-| [ ] | Show small header refresh state when background scan is active. |
-| [ ] | Allow user to leave/back out while scan continues or cancels safely. |
+Superseded 2026-08-09: MediaStore category discovery (all six kinds) already opens
+categories in ~1–2s, so a persist-and-refresh category cache no longer adds user value.
+Removed from the roadmap.
 
 ### Archives
 
@@ -265,7 +255,6 @@ Goal: category shortcuts should feel instant after the first scan.
 | Status | Area | Task |
 | --- | --- | --- |
 | [ ] | Media | Thumbnail cache. |
-| [ ] | Media | Tune category scan performance with progress and cancellation. |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
 | [ ] | Archives | RAR and 7Z support evaluation. |

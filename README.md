@@ -17,101 +17,82 @@ feature below works end to end on a real device over wireless ADB.
 
 ### 🧭 Platform & Shell
 
-| Feature | Status |
-| --- | --- |
-| Mobile app shell with bottom navigation routing between screens. | ✅ |
-| Feature-first `lib/features/*` architecture. | ✅ |
-| Android storage permissions: legacy read/write, Android 13 media reads, Android 11+ all-files access. | ✅ |
-| Predictive back gesture (`android:enableOnBackInvokedCallback`). | ✅ |
+- ✅ Mobile app shell with bottom navigation routing between screens.
+- ✅ Feature-first `lib/features/*` architecture.
+- ✅ Android storage permissions: legacy read/write, Android 13 media reads, Android 11+ all-files access.
+- ✅ Predictive back gesture (`android:enableOnBackInvokedCallback`).
 
 ### 🏠 Home Dashboard
 
-| Feature | Status |
-| --- | --- |
-| Storage summary, category shortcuts, recent folders, favorites, Recents entry. | ✅ |
-| Live category counts on shortcuts (MediaStore-backed). | ✅ |
-| Media library entry points via `AppRoutes.media`. | ✅ |
-| Core Features listing page with expand/collapse cards. | ✅ |
+- ✅ Storage summary, category shortcuts, recent files, favorites, Recents entry.
+- ✅ Live category counts on shortcuts (MediaStore-backed).
+- ✅ Media library entry points via `AppRoutes.media`.
+- ✅ Core Features listing page with expand/collapse cards.
 
 ### 📂 Explorer
 
-| Feature | Status |
-| --- | --- |
-| Live local/Android browsing where permissions allow. | ✅ |
-| List/grid toggle, breadcrumbs, storage selector, refresh, folder navigation. | ✅ |
-| Sorting — Name (A–Z / Z–A), Modified, Size, Type. | ✅ |
-| Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move. | ✅ |
-| "New Folder" / "New File" actions. | ✅ |
-| Properties panel with folder-size computation + multi-select summary. | ✅ |
-| Type-filter folder listings via MediaStore `countMedia`, walker fallback. | ✅ |
-| Progressive loading — no fake storage in production. | ✅ |
+- ✅ Live local/Android browsing where permissions allow.
+- ✅ List/grid toggle, breadcrumbs, storage selector, refresh, folder navigation.
+- ✅ Sorting — Name (A–Z / Z–A), Modified, Size, Type.
+- ✅ Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move.
+- ✅ "New Folder" / "New File" actions.
+- ✅ Properties panel with folder-size computation + multi-select summary.
+- ✅ Type-filter folder listings via MediaStore `countMedia`, walker fallback.
+- ✅ Progressive loading — no fake storage in production.
 
 ### 🖼️ Media Libraries
 
-| Feature | Status |
-| --- | --- |
-| 6 categories: Images, Videos, Audio, Documents, Apps, Archives. | ✅ |
-| MediaStore-backed discovery — Images/Videos/Audio open in ~1–2s. | ✅ |
-| Docs/Apps/Archives served from MediaStore.Files + per-folder `queryFiles`. | ✅ |
-| Folder view grouped by parent folder with per-folder counts. | ✅ |
-| Grid + list toggle, sort via `...` menu (Name/Modified/Size/Type). | ✅ |
-| Thumbnails with APK icon extraction and typed icons. | ✅ |
-| Shared `FileEntryListTile` + formatting helpers. | ✅ |
+- ✅ 6 categories: Images, Videos, Audio, Documents, Apps, Archives.
+- ✅ MediaStore-backed discovery — Images/Videos/Audio open in ~1–2s.
+- ✅ Docs/Apps/Archives served from MediaStore.Files + per-folder `queryFiles`.
+- ✅ Folder view grouped by parent folder with per-folder counts.
+- ✅ Grid + list toggle, sort via `...` menu (Name/Modified/Size/Type).
+- ✅ Thumbnails with APK icon extraction and typed icons.
+- ✅ Shared `FileEntryListTile` + formatting helpers.
 
 ### 🎬 Viewers & Players
 
-| Feature | Status |
-| --- | --- |
-| In-app preview for images, video, audio (Explorer + within ZIPs). | ✅ |
-| Images: pinch/double-tap zoom, rotate, swipe, share, details, delete, rename, wallpaper. | ✅ |
-| Video: auto-hiding controls, landscape, 10‑s double-tap seeking, speed, loop, shuffle, mute, wakelock. | ✅ |
-| Audio: seek, speed, volume, mute, loop, shuffle, prev/next, details. | ✅ |
-| Built-in text viewer (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size. | ✅ |
-| `Open with` system chooser; `Open as` to force Text/Image/Video/Audio. | ✅ |
+- ✅ In-app preview for images, video, audio (Explorer + within ZIPs).
+- ✅ Images: pinch/double-tap zoom, rotate, swipe, share, details, delete, rename, wallpaper.
+- ✅ Video: auto-hiding controls, landscape, 10‑s double-tap seeking, speed, loop, shuffle, mute, wakelock.
+- ✅ Audio: seek, speed, volume, mute, loop, shuffle, prev/next, details.
+- ✅ Built-in text viewer (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size.
+- ✅ `Open with` system chooser; `Open as` to force Text/Image/Video/Audio.
 
 ### 🗜️ Archives
 
-| Feature | Status |
-| --- | --- |
-| In-app `.zip` browsing: folder viewer, back/refresh, breadcrumbs. | ✅ |
-| Type badges + human-readable sizes; `Open with` via system chooser. | ✅ |
-| "Extract here" workflow. | ✅ |
+- ✅ In-app `.zip` browsing, folder viewer, back/refresh, breadcrumbs.
+- ✅ Type badges + human-readable sizes; `Open with` via system chooser.
+- ✅ "Extract here" workflow.
 
 ### 🔁 Transfers
 
-| Feature | Status |
-| --- | --- |
-| Copy/move/rename/delete queue with `Paste here` picker. | ✅ |
-| Conflict choices: `Skip`, `Replace`, `Keep both`. | ✅ |
-| Persistent queue/history via Drift. | ✅ |
-| Post-transfer MediaStore rescan so new files appear, moved sources update. | ✅ |
+- ✅ Copy/move/rename/delete queue with `Paste here` picker.
+- ✅ Conflict choices: `Skip`, `Replace`, `Keep both`.
+- ✅ Persistent queue/history via Drift.
+- ✅ Post-transfer MediaStore rescan so new files appear, moved sources update.
 
 ### 🔎 Search
 
-| Feature | Status |
-| --- | --- |
-| Scope (folder/storage), type filters, type-only discovery. | ✅ |
-| Persisted index (Drift), reindex, auto-invalidation on transfers. | ✅ |
-| MediaStore-backed type browse + index seeding. | ✅ |
-| Background pre-warm on permission; post-invalidation re-warm. | ✅ |
+- ✅ Scope (folder/storage), type filters, type-only discovery.
+- ✅ Persisted index (Drift), reindex, auto-invalidation on transfers.
+- ✅ MediaStore-backed type browse + index seeding.
+- ✅ Background pre-warm on permission; post-invalidation re-warm.
 
 ### 💾 Persistence & Settings
 
-| Feature | Status |
-| --- | --- |
-| Persistent favorites, recents, transfer queue/history. | ✅ |
-| Settings screen (Explorer, Transfers, Search toggles). | ✅ |
-| Drift + build_runner codegen. | ✅ |
+- ✅ Persistent favorites, recents, transfer queue/history.
+- ✅ Settings screen (Explorer, Transfers, Search toggles).
+- ✅ Drift + build_runner codegen.
 
 ---
 
 ## 🧰 Requirements
 
-| Tool | Version |
-| --- | --- |
-| Flutter | `3.24.3` or compatible |
-| Dart | `3.5.3` or compatible |
-| Android Studio / SDK | required for Android builds |
+- **Flutter** — `3.44.9` (stable channel)
+- **Dart** — `3.12.2` (bundled with Flutter)
+- **Java** — JDK `17` (required by AGP 9 / Gradle 9)
+- **Android Studio / SDK** — SDK 36, build-tools 36.0.0, platform-tools
 
 Check your setup:
 
@@ -119,6 +100,38 @@ Check your setup:
 flutter doctor
 flutter devices
 ```
+
+## 📦 Dependency management
+
+Operate on the project folder (`project/`) first — it is its own Flutter package.
+
+| Tool | Scope | Version |
+| --- | --- | --- |
+| Flutter | framework | `3.44.9` |
+| Dart | language/SDK | `3.12.2` |
+| Android Gradle Plugin | `android/settings.gradle` | `9.0.1` |
+| Kotlin | `android/settings.gradle` | `2.3.20` |
+| Gradle | `android/gradle/wrapper/gradle-wrapper.properties` | `9.1.0` |
+| Java toolchain | `android/app/build.gradle` | 17 |
+
+- **Pub packages** (`lib`, `third_party/`) are pinned in `pubspec.yaml`/`pubspec.lock`.
+- **Drift + build_runner** versions must move together (`drift` ↔ `drift_dev`); regenerate
+  `*.g.dart` after any bump:
+  ```bash
+  dart run build_runner build --delete-conflicting-outputs
+  ```
+- **Android toolchain versions** live in `android/settings.gradle` (AGP/Kotlin) and
+  `gradle-wrapper.properties` (Gradle); keep them compatible — AGP 9.x requires Java 17.
+- A vendored copy of `video_thumbnail` lives in `third_party/video_thumbnail` with its own
+  `android/build.gradle` (AGP 8.0.2, Java 17) — make sure it stays buildable when bumping AGP.
+- After any Flutter/Dart upgrade, run:
+  ```bash
+  dart format lib test
+  flutter analyze
+  flutter test
+  ```
+  Deprecated-but-valid API calls (`withOpacity`, `CardTheme`, `Matrix4.scale`, …) break or
+  emit lints on newer SDKs and should be migrated as part of the same upgrade.
 
 <details>
 <summary>Install dependencies from repo root vs. project folder</summary>
@@ -217,14 +230,14 @@ sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
   --licenses
 ```
 
-This project compiles Android with **SDK 35** because the plugins require it. If SDK 35
+This project compiles Android with **SDK 36** (Flutter's default `compileSdk`). If SDK 36
 or the requested build tools are missing, install them:
 
 ```bash
 sudo /usr/lib/android-sdk/cmdline-tools/13.0/bin/sdkmanager \
   --sdk_root=/usr/lib/android-sdk \
-  "platforms;android-35" \
-  "build-tools;33.0.1" \
+  "platforms;android-36" \
+  "build-tools;36.0.0" \
   "platform-tools"
 ```
 
@@ -250,12 +263,10 @@ considered functional.
 
 ## 🔨 Build commands
 
-| Artifact | Command |
-| -- | -- |
-| Android debug APK | `flutter build apk --debug` |
-| Android release APK | `flutter build apk --release` |
-| Android App Bundle | `flutter build appbundle` |
-| Linux desktop build | `flutter build linux` — CLI history only; Linux support is planned for the future |
+- **Android debug APK** — `flutter build apk --debug`
+- **Android release APK** — `flutter build apk --release`
+- **Android App Bundle** — `flutter build appbundle`
+- **Linux desktop build** — `flutter build linux` — CLI history only; Linux support is planned for the future
 
 ---
 

@@ -18,7 +18,6 @@ import 'package:file_explorer/features/storage_permissions/presentation/widgets/
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
-import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -685,91 +684,6 @@ StorageVolume? _selectedVolumeFor(ExplorerState state) {
     }
   }
   return volumes.isEmpty ? null : volumes.first;
-}
-
-class _VolumeSwitcher extends ConsumerWidget {
-  const _VolumeSwitcher({
-    required this.volumes,
-    required this.selectedVolume,
-  });
-
-  final List<StorageVolume> volumes;
-  final StorageVolume? selectedVolume;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final label = selectedVolume?.label ?? 'Files';
-    if (volumes.length < 2) {
-      return Text(label);
-    }
-
-    return PopupMenuButton<StorageVolume>(
-      tooltip: 'Storage roots',
-      onSelected: (volume) {
-        // Clear any active type filter when switching storage roots so the
-        // selected storage displays its full listing instead of a filtered view.
-        ref.read(explorerFilterTypeProvider.notifier).state = null;
-        ref.read(explorerControllerProvider.notifier).openStorageVolume(volume);
-      },
-      itemBuilder: (context) {
-        return volumes.map((volume) {
-          final isSelected = volume.path == selectedVolume?.path;
-          return PopupMenuItem<StorageVolume>(
-            value: volume,
-            child: Row(
-              children: [
-                Icon(
-                  volume.isPrimary
-                      ? Icons.phone_android_rounded
-                      : Icons.sd_storage_rounded,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        volume.label,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        volume.summary == null
-                            ? volume.path
-                            : '${formatBytes(volume.summary!.freeBytes)} free',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
-                ),
-                if (isSelected) ...[
-                  const SizedBox(width: 12),
-                  const Icon(Icons.check_rounded),
-                ],
-              ],
-            ),
-          );
-        }).toList();
-      },
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.expand_more_rounded),
-        ],
-      ),
-    );
-  }
 }
 
 class _BreadcrumbBar extends ConsumerWidget {
@@ -1645,18 +1559,18 @@ class _FileTypeBadge extends StatelessWidget {
   const _FileTypeBadge({
     required this.extension,
     required this.color,
-    this.size = 24,
   });
+
+  static const double _size = 24;
 
   final String extension;
   final Color color;
-  final double size;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: size,
-      height: size,
+      width: _size,
+      height: _size,
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(4),
