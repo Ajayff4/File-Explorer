@@ -1202,6 +1202,11 @@ void _openEntry(
       AppRoutes.textViewer,
       extra: entry,
     );
+  } else if (isZipArchive(entry)) {
+    context.push(
+      AppRoutes.zipViewer,
+      extra: entry,
+    );
   } else {
     _openWithSystem(context, entry);
   }
@@ -1215,6 +1220,13 @@ bool _isMediaType(FileSystemEntry entry) {
       true,
     _ => false,
   };
+}
+
+bool isZipArchive(FileSystemEntry entry) {
+  if (entry.isFolder) {
+    return false;
+  }
+  return entry.name.toLowerCase().endsWith('.zip');
 }
 
 Future<void> _openWithSystem(

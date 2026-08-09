@@ -1,6 +1,7 @@
 package com.ajayff4.fileexplorer
 
 import android.app.WallpaperManager
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -115,10 +116,17 @@ class MainActivity: FlutterActivity() {
                         val mimeType = call.argument<String>("mimeType") ?: "*/*"
                         if (path == null) {
                             result.error("missing_path", "Path is required", null)
-                        } else if (openFile(path, mimeType)) {
-                            result.success(null)
                         } else {
-                            result.error("open_failed", "Could not open file", null)
+                            val outcome = openFileWithSystem(path, mimeType)
+                            if (outcome.first) {
+                                result.success(null)
+                            } else {
+                                result.error(
+                                    "open_failed",
+                                    outcome.second,
+                                    null,
+                                )
+                            }
                         }
                     }
                     else -> result.notImplemented()
@@ -553,11 +561,11 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun openFile(path: String, mimeType: String): Boolean {
+    private fun openFileWithSystem(path: String, mimeType: String): Pair<Boolean, String> {
         return try {
             val file = File(path)
             if (!file.isFile) {
-                return false
+                return false to "File not found: $path"
             }
 
             val uri = contentUriFor(file)
@@ -569,17 +577,38 @@ class MainActivity: FlutterActivity() {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             }
             startActivity(chooser)
-            true
+            true to ""
+        } catch (error: ActivityNotFoundException) {
+            false to "No app can open this file type"
         } catch (error: Exception) {
-            false
+            false to (error.message ?: "Could not open file")
         }
     }
 
-    private fun contentUriFor(file: File) = FileProvider.getUriForFile(
-        this,
-        "${applicationContext.packageName}.fileprovider",
-        file,
-    )
+    /// Builds a shareable content URI for [file]. If the file lives outside the
+    /// FileProvider's configured roots (e.g. `Directory.systemTemp` on some
+    /// devices), copies it into the app cache dir and shares the copy so the
+    /// recipient can read it.
+    private fun contentUriFor(file: File): Uri {
+        return try {
+            FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                file,
+            )
+        } catch (error: IllegalArgumentException) {
+            val cacheCopy = File(
+                cacheDir,
+                "shared_${System.currentTimeMillis()}_${file.name}",
+            )
+            file.copyTo(cacheCopy, overwrite = true)
+            FileProvider.getUriForFile(
+                this,
+                "${applicationContext.packageName}.fileprovider",
+                cacheCopy,
+            )
+        }
+    }
 
     @Suppress("DEPRECATION")
     private fun getPackageArchiveInfo(path: String): PackageInfo? {

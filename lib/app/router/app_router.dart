@@ -11,6 +11,8 @@ import 'package:file_explorer/features/media/presentation/text_file_viewer_scree
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
+import 'package:file_explorer/features/zip/presentation/zip_file_preview_screen.dart';
+import 'package:file_explorer/features/zip/presentation/zip_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -95,6 +97,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const MissingMediaViewerScreen();
         },
       ),
+      GoRoute(
+        path: AppRoutes.zipViewer,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is FileSystemEntry) {
+            return ZipViewerScreen(
+              archivePath: extra.path,
+              archiveName: extra.name,
+            );
+          }
+          return const MissingMediaViewerScreen();
+        },
+      ),
+      GoRoute(
+        path: AppRoutes.zipFilePreview,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is ZipFilePreviewSession) {
+            return ZipFilePreviewScreen(
+              archivePath: extra.archivePath,
+              entry: extra.entry,
+            );
+          }
+          return const MissingMediaViewerScreen();
+        },
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -112,6 +140,8 @@ class AppRoutes {
   static const mediaFolder = '/media/:kind/folder';
   static const mediaViewer = '/preview';
   static const textViewer = '/text-preview';
+  static const zipViewer = '/zip-viewer';
+  static const zipFilePreview = '/zip-preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
 
@@ -234,6 +264,12 @@ class AppShell extends ConsumerWidget {
       return 1;
     }
     if (location.startsWith(AppRoutes.textViewer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.zipViewer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.zipFilePreview)) {
       return 1;
     }
     if (location.startsWith('/media')) {

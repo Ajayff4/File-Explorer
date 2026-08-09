@@ -54,6 +54,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Archives | Single files can compress/extract with GZ. |
 | ✅ | Archives | Files, folders, and selected entries can compress/extract with TAR. |
 | ✅ | Archives | Folders can compress/extract with TAR.GZ. |
+| ✅ | Archives | ZIP contents can be browsed in-app without extracting (folder navigation, refresh, and "Open with" for the archive). |
+| ✅ | Archives | Files inside ZIP archives preview in-app: images, video, audio, and text. |
 | ✅ | Favorites | Persisted favorite folders, Home list, and Explorer star action. |
 | ✅ | Recents | Persisted recent folders/files and Home recent section setting support. |
 | ✅ | Search | Search screen and route. |
@@ -87,6 +89,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Viewers | Non-previewable files open Android's system app chooser on tap. |
 | ✅ | Viewers | "Open as" action lets users force-open any file as Text, Image, Video, or Audio with choice of built-in or system viewer. |
 | ✅ | Viewers | Built-in text file viewer with monospace font, line wrap toggle, adjustable font size, and support for 40+ text/code file extensions. |
+| ✅ | Viewers | Files inside ZIP archives open in the same full image viewer / video player / audio player as regular files. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
 | ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
 | ✅ | Players | Video player mute/unmute button. |
@@ -149,7 +152,7 @@ Recommended next slices, in order:
 | [ ] | 2 | Media | Remaining MediaStore Expansion Map items: optional MediaStore counts for folder properties "Contains"; `folderContainsFileType` cleanup decision. |
 | [ ] | 3 | Media | Add category result cache with instant cached render and silent background refresh. |
 | [ ] | 4 | Tests | Update stale widget tests for current Home/media behavior. |
-| [ ] | 5 | Archives | Add archive browsing (view contents without extracting). |
+| ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
 | [ ] | 6 | Media | Add thumbnail cache for media libraries and Explorer. |
 | [ ] | 7 | UI | Polish media folder view on real device and tune grid density. |
 
@@ -224,7 +227,7 @@ Goal: category shortcuts should feel instant after the first scan.
 | ✅ | Add `Compress to TAR` for files, folders, and selected entries. |
 | ✅ | Add `Compress to TAR.GZ` for folders. |
 | ✅ | Add extraction for `.tar`, `.gz`, `.tar.gz`, and `.tgz`. |
-| [ ] | Add archive browsing. |
+| ✅ | Add archive browsing with folder navigation and previews of image/video/audio/text entries inside archives. |
 | [ ] | Evaluate a separate engine for RAR and 7Z support. |
 
 ### Viewers And Players

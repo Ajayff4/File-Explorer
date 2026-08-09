@@ -148,7 +148,7 @@ const _coreFeatures = [
     icon: Icons.play_circle_fill_rounded,
     title: 'Built-in viewers',
     description:
-        'View images, play videos with double-tap seek and mute, listen to audio, read text and code files, and open any file with system apps or force-open as a specific type.',
+        'View images, play videos with double-tap seek and mute, listen to audio, read text and code files, and open any file with system apps or force-open as a specific type — including files inside ZIP archives.',
     color: Color(0xFF26A69A),
   ),
   _CoreFeature(
@@ -162,7 +162,7 @@ const _coreFeatures = [
     icon: Icons.inventory_2_rounded,
     title: 'Archive tools',
     description:
-        'Compress ZIP, TAR, GZ, and TAR.GZ with level and password options; extract ZIP, TAR, GZ, TGZ, and TAR.GZ.',
+        'Browse ZIP contents in-app and preview images, video, audio, and text inside archives; compress ZIP, TAR, GZ, and TAR.GZ with level and password options and extract them.',
     color: Color(0xFF8D6E63),
   ),
   _CoreFeature(

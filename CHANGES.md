@@ -2,6 +2,24 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-09
+
+### Completed
+
+- Added in-app ZIP archive browsing:
+  - Opening a `.zip` file shows its contents directly in a folder-style viewer (`ZipViewerScreen`) instead of only offering "Extract here".
+  - Folder navigation, back-to-parent, and refresh inside the archive.
+  - Archive entries render with folder/file type badges and human-readable sizes.
+  - "Open with" opens the whole archive via Android's system app chooser.
+- Added in-app preview for files inside ZIP archives:
+  - Images, videos, audio, text/code files, and "Open as" for forcing a type.
+  - ZIP media previews now reuse the **same** full-featured viewer/player used for regular files (`MediaViewerScreen`):
+    - Images: pinch/double-tap zoom, rotate, swipe next/previous, share, details, delete, transfer-backed rename, and set-as-wallpaper.
+    - Video: auto-hiding controls, landscape mode, 10-second double-tap seeking with ripple, playback speed, loop, shuffle, previous/next, mute, and screen-wake wakelock.
+    - Audio: seek, speed, volume, mute, loop, shuffle, previous/next, and details.
+  - Entries are extracted to a temporary file for playback and cleaned up when the preview closes.
+- Replaced the separate, reduced-feature ZIP image/video/audio screens with the shared viewers/players (single implementation, no duplicated media UI).
+
 ## 2026-08-06
 
 ### Completed
