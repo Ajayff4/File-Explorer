@@ -20,6 +20,24 @@ Progress log for the Flutter application.
   - Entries are extracted to a temporary file for playback and cleaned up when the preview closes.
 - Replaced the separate, reduced-feature ZIP image/video/audio screens with the shared viewers/players (single implementation, no duplicated media UI).
 
+## 2026-08-08
+
+### Completed
+
+- Expanded the MediaStore API from images/video/audio to **every** library kind — documents, apps, and archives are now answered from Android's MediaStore `Files` collection:
+  - Native `queryMedia` gained extension filtering (`extensionFilterFor`) so `document`/`archive`/`app` kinds are served from `MediaStore.Files` instead of the recursive walker; the walker remains the fallback for non-Android platforms and query failures.
+  - `MediaStoreMediaLibraryRepository` now answers all kinds (image, video, audio, document, archive, app) from the index, matching the app's `FileSystemEntryType` mapping.
+  - New native `queryFiles` MethodChannel: per-folder MediaStore listing, used by the media folder view for a fast path instead of walking the directory tree.
+  - New native `countMedia` MethodChannel: per-folder type counts from MediaStore, used by Explorer's type-filter folder listings (with filesystem walker fallback).
+  - New native `scanFiles` MethodChannel wrapping `MediaScannerConnection.scanFile`.
+- Added post-transfer MediaStore rescanning (`mediaStoreScanProvider`, watched from `app.dart`):
+  - When a transfer completes, its source and destination paths are sent to the OS media scanner so newly created files (copy/move/rename/extract/compress destinations) appear in MediaStore-backed views immediately and moved/deleted source rows are pruned.
+  - Best-effort scanning; failures never surface as unhandled errors.
+  - Fresh tests for completed-transfer scanning and the non-Android no-op path.
+- Cleaned up `StorageRepository`: removed `folderContainsFileType` (no production callers) and its recursive walker, keeping the interface minimal.
+- Fixed "Open with"/share for files outside the FileProvider root (e.g. `Directory.systemTemp`), and returned readable error messages when no app can open a file.
+- Device permission and routing fixes on the real Android device (permission recovery guidance, media library screen permission handling, routing docs added in `docs/ROUTING.md`).
+
 ## 2026-08-06
 
 ### Completed
@@ -145,6 +163,8 @@ Progress log for the Flutter application.
   - Archive extraction supports `.zip`, `.tar`, `.gz`, `.tar.gz`, and `.tgz`.
   - Archive operations run through Transfers with progress, retry, cancel, and conflict policy handling.
   - Added the `archive` package as a direct dependency with transfer executor tests.
+- Added "New folder" and "New file" actions to Explorer:
+  - App-bar/dropdown actions create a folder (`createFolder`) or an empty text file (`createFile`) in the current directory with inline dialogs and confirmation feedback.
 - Polished grid-first browsing across the app:
   - Explorer, Search, and Media libraries now default to grid view for denser folder/file browsing.
   - Selecting the Files tab resets Explorer to grid view.

@@ -30,6 +30,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Folder-first sorting by name, modified date, size, and type. |
 | ✅ | Explorer | Current-folder favorite toggle. |
 | ✅ | Explorer | Multi-select, select-all, clear-selection, and batch copy/move/delete. |
+| ✅ | Explorer | New folder and new file creation with validation dialogs. |
 | ✅ | Explorer | File type browsing from Home shortcuts with filtered folder counts. |
 | ✅ | Explorer | Properties sheet with multi-select support: path, contents (files/folders), total size (async for folders), bytes, type, MIME type, modified. |
 | ✅ | Android storage | Storage permission state model. |
@@ -78,7 +79,9 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media library `...` more menu with view toggle and sort options (matching explorer). |
 | ✅ | Media | Date, size, type, and name sorting controls in media libraries. |
 | ✅ | Media | Media/category scanning behind repository boundaries. |
-| ✅ | Media | MediaStore-backed category discovery for images/audio/video with walker fallback. |
+| ✅ | Media | MediaStore-backed category discovery for every kind (images/video/audio/documents/apps/archives) with walker fallback. |
+| ✅ | Media | Media folder view and Explorer type-filter counts use MediaStore fast paths (`queryFiles`/`countMedia`) with filesystem fallback. |
+| ✅ | Media | MediaStore index kept fresh: completed transfers re-scan their paths via `MediaScannerConnection.scanFile`. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
@@ -149,9 +152,9 @@ Recommended next slices, in order:
 | Status | Priority | Area | Task |
 | --- | --- | --- | --- |
 | ✅ | 1 | Media | MediaStore-backed category discovery for images/audio/video (replace recursive filesystem walk). |
-| [ ] | 2 | Media | Remaining MediaStore Expansion Map items: optional MediaStore counts for folder properties "Contains"; `folderContainsFileType` cleanup decision. |
+| [ ] | 2 | Media | Remaining MediaStore Expansion Map items: optional MediaStore counts for Properties "Contains" (only Explorer type-filter counts use MediaStore today). |
 | [ ] | 3 | Media | Add category result cache with instant cached render and silent background refresh. |
-| [ ] | 4 | Tests | Update stale widget tests for current Home/media behavior. |
+| [ ] | 4 | Tests | Update stale test expectations for current Home/media behavior. |
 | ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
 | [ ] | 6 | Media | Add thumbnail cache for media libraries and Explorer. |
 | [ ] | 7 | UI | Polish media folder view on real device and tune grid density. |
@@ -160,7 +163,7 @@ Recommended next slices, in order:
 
 ### MediaStore Category Discovery
 
-Goal: media category views (images/audio/video) open in ~1–2s by querying Android's MediaStore index instead of recursively walking the filesystem. No depth or count limits — MediaStore returns the complete OS-maintained index. Documents stay on the filesystem walker until Phase 2.
+Goal: media category views (images/audio/video) open in ~1–2s by querying Android's MediaStore index instead of recursively walking the filesystem. No depth or count limits — MediaStore returns the complete OS-maintained index. Documents/apps/archives are now served from the MediaStore Files collection too (extension-filtered), with the filesystem walker only as fallback.
 
 | Status | Task |
 | --- | --- |
@@ -171,8 +174,9 @@ Goal: media category views (images/audio/video) open in ~1–2s by querying Andr
 | ✅ | Wire `mediaLibraryRepositoryProvider` with a platform check. |
 | ✅ | Unit tests for row mapping and fallback. |
 | ✅ | Verify category open timing on a real device (target ~1–2s like ES) — confirmed lightning fast on device. |
-| ✅ | Phase 2: one complete single-pass background walk with in-memory cache, reused for documents and other non-indexed types (no depth/count limits). |
-| [ ] | Follow-up: call `MediaScannerConnection.scanFile` after transfers so new files appear in MediaStore immediately. |
+| ✅ | Phase 2: one complete single-pass background walk with in-memory cache, reused as fallback (no depth/count limits). |
+| ✅ | Expand MediaStore to documents/apps/archives via `MediaStore.Files` with extension filters (2026-08-08). |
+| ✅ | Follow-up: call `MediaScannerConnection.scanFile` after transfers so new files appear in MediaStore immediately (2026-08-08 via `mediaStoreScanProvider`). |
 
 ### MediaStore Expansion Map
 
@@ -180,18 +184,20 @@ Every filesystem-walk flow in the app, its current cost, and the MediaStore stra
 
 | Flow | Walk site | When it runs | MediaStore strategy | Priority |
 | --- | --- | --- | --- | --- |
-| Media category: images/videos/audio | `StorageMediaLibraryRepository._collectResults` | Category tap from Home | ✅ Done — `MediaStoreMediaLibraryRepository` | — |
-| Media category: documents/apps/archives | `StorageMediaLibraryRepository._collectResults` (still primary) | Category tap from Home | ✅ Done — `MediaLibraryWalkCache` single-pass walk + TTL cache | — |
-| Search: type-only browse (filter chips, no query) | `FileSearchController._collectMatchingEntries` | Type filter selected in Search | ✅ Done — media types from MediaStore, merged with walker for other types | — |
+| Media category: all kinds (images/videos/audio AND documents/apps/archives) | `MediaStoreMediaLibraryRepository._find` | Category tap from Home | ✅ Done — every kind queried from MediaStore (Files + extension filter); walker fallback on failure/non-Android | — |
+| Media folder view | `media_folder_screen.dart` → `queryFiles` | Folder view of any media kind | ✅ Done — per-folder MediaStore listing with directory fallback | — |
+| Search: type-only browse (filter chips, no query) | `FileSearchController._collectMatchingEntries` | Type filter selected in Search | ✅ Done — all kinds from MediaStore, merged with walker for non-indexed types | — |
 | Search: index build / manual reindex | `FileSearchController._collectIndexEntries` → Drift | First search per root, manual reindex | ✅ Done — index seeded from MediaStore (dedup by path), walk skips seeded paths | — |
 | Search: live query without index | `FileSearchController._searchDirectory` | Only when no index store available | Leave as-is (rare fallback; index path covers Android) | Low |
-| Explorer: folder properties "Contains" counts | `explorer_screen.dart` → `countEntriesByType` | On demand per folder in Properties | Optional: MediaStore count per folder for media; walker for rest. Low value (single folder, async UI) | Low |
-| `StorageRepository.folderContainsFileType` | `LocalStorageRepository._folderContainsFileTypeRecursive` | No production callers (tests/fakes only) | Candidate for removal or keep for interface parity | Cleanup |
+| Explorer: type-filter folder counts | `explorer_screen.dart` `_countMatchingEntries` | Type-filtered Explorer browsing | ✅ Done — MediaStore `countMedia` per folder with walker fallback | — |
+| Explorer: folder properties "Contains" counts | `explorer_screen.dart` → `countEntriesByType` | On demand per folder in Properties | Left as walker (single folder, async UI); MediaStore count optional if it ever gets too slow | Low |
+| MediaStore freshness after transfers | `mediaStoreScanProvider` → `scanFiles` | Any completed transfer | ✅ Done — `MediaScannerConnection.scanFile` on source + destination paths | — |
+| `StorageRepository.folderContainsFileType` | (removed) | — | ✅ Done 2026-08-08 — removed (no production callers) | — |
 
 Notes:
 - Search type-only browse and category discovery share the same flattened-by-parent shape, so `MediaStoreMediaLibraryRepository` mapping is reusable there.
 - The Drift search index persists, so its walk is once-per-root; MediaStore seeding still cuts first-search and reindex cost sharply.
-- Non-indexed types (documents/apps/archives/other) always need a real walk — the Phase 2 unified background walk + cache is the answer for those, one pass instead of per-type passes.
+- `MediaStore.Files` serves documents, apps, and archives too (extension-filtered), so only the walk cache/`other` types really need a filesystem walk; the Phase 2 unified background walk + cache still covers fallback and non-indexed types. MediaStore row freshness is maintained by post-transfer `MediaScannerConnection.scanFile`.
 
 ### Category Cache
 
