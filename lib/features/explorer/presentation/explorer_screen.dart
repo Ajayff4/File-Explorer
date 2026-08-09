@@ -10,18 +10,14 @@ import 'package:file_explorer/features/favorites/presentation/controllers/favori
 import 'package:file_explorer/features/media/data/platform/media_store_platform.dart';
 import 'package:file_explorer/features/media/data/platform/media_store_search_results.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
-import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
-import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
-import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/storage_permissions/presentation/widgets/storage_permission_card.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
-import 'package:file_explorer/shared/archive/archive_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
@@ -1106,59 +1102,12 @@ void _openEntry(
     ref.read(explorerControllerProvider.notifier).openDirectory(entry.path);
     return;
   }
-  if (_isMediaType(entry)) {
-    context.push(
-      AppRoutes.mediaViewer,
-      extra: MediaViewerSession(entry: entry, entries: entries),
-    );
-  } else if (isTextFile(entry.path)) {
-    context.push(
-      AppRoutes.textViewer,
-      extra: entry,
-    );
-  } else if (isBrowsableArchiveEntry(entry)) {
-    context.push(
-      AppRoutes.archiveViewer,
-      extra: entry,
-    );
-  } else {
-    _openWithSystem(context, entry);
-  }
-}
-
-bool _isMediaType(FileSystemEntry entry) {
-  return switch (entry.type) {
-    FileSystemEntryType.image ||
-    FileSystemEntryType.video ||
-    FileSystemEntryType.audio =>
-      true,
-    _ => false,
-  };
-}
-
-bool isBrowsableArchiveEntry(FileSystemEntry entry) {
-  if (entry.isFolder) {
-    return false;
-  }
-  final format = archiveFormatForPath(entry.path);
-  return format != null && isBrowsableArchive(format);
-}
-
-Future<void> _openWithSystem(
-    BuildContext context, FileSystemEntry entry) async {
-  try {
-    await openLocalFileWithSystem(entry.path);
-  } on MissingPluginException {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Open with is available on Android')),
-    );
-  } on PlatformException catch (error) {
-    if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error.message ?? 'Could not open file')),
-    );
-  }
+  openFileForPreview(
+    context: context,
+    ref: ref,
+    entry: entry,
+    playlist: entries,
+  );
 }
 
 bool _canOpenEntry(FileSystemEntry entry) {

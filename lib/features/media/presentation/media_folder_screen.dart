@@ -6,7 +6,7 @@ import 'package:file_explorer/features/explorer/presentation/controllers/explore
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
-import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:flutter/material.dart';
@@ -309,9 +309,11 @@ class _MediaFolderGridState extends ConsumerState<_MediaFolderGrid> {
   }
 
   void _openMedia(BuildContext context, FileSystemEntry entry) {
-    context.push(
-      AppRoutes.mediaViewer,
-      extra: MediaViewerSession(entry: entry, entries: _entries),
+    openFileForPreview(
+      context: context,
+      ref: ref,
+      entry: entry,
+      playlist: _entries,
     );
   }
 

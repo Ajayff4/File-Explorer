@@ -58,7 +58,7 @@ class SearchIndexEntryRows extends Table {
   DateTimeColumn get indexedAt => dateTime()();
 
   @override
-  Set<Column<Object>> get primaryKey => {path};
+  Set<Column<Object>> get primaryKey => {rootPath, path};
 }
 
 class SettingRows extends Table {
@@ -83,7 +83,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration {
@@ -104,6 +104,14 @@ class AppDatabase extends _$AppDatabase {
         if (from < 6) {
           await migrator.addColumn(
               recentLocationRows, recentLocationRows.isFolder);
+        }
+        if (from < 7) {
+          // The search index used `path` as a single-column primary key. Since
+          // entries are partitioned by rootPath, the same file path could be
+          // indexed under multiple roots, violating the global UNIQUE on path.
+          // Rebuild with a composite (rootPath, path) primary key.
+          await customStatement('DROP TABLE IF EXISTS search_index_entry_rows');
+          await migrator.createTable(searchIndexEntryRows);
         }
       },
     );

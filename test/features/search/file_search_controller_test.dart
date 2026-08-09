@@ -217,6 +217,48 @@ void main() {
 
     expect(repository.listedPaths, isEmpty);
   });
+
+  test('hides dotfiles and files inside dotfolders by default', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('.cache', '/root/.cache'),
+        _file('report.txt', '/root/report.txt'),
+        _file('.gitignore', '/root/.gitignore'),
+      ],
+      '/root/.cache': [
+        _file('cache.db', '/root/.cache/cache.db'),
+      ],
+    });
+    final controller = FileSearchController(repository);
+
+    await controller.searchNow(query: 'cache', rootPath: '/root');
+
+    expect(controller.state.results, isEmpty);
+  });
+
+  test('includes dotfiles and dotfolder contents when hidden files shown', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('.cache', '/root/.cache'),
+        _file('report.txt', '/root/report.txt'),
+        _file('.gitignore', '/root/.gitignore'),
+      ],
+      '/root/.cache': [
+        _file('cache.db', '/root/.cache/cache.db'),
+      ],
+    });
+    final controller = FileSearchController(
+      repository,
+      showHiddenFiles: true,
+    );
+
+    await controller.searchNow(query: 'cache', rootPath: '/root');
+
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      containsAll(['/root/.cache', '/root/.cache/cache.db']),
+    );
+  });
 }
 
 FileSystemEntry _folder(String name, String path) {

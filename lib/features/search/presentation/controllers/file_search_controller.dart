@@ -22,6 +22,7 @@ final fileSearchControllerProvider =
     indexStore:
         settings.useIndexedSearch ? ref.read(searchIndexStoreProvider) : null,
     mediaStore: createMediaStorePlatform(),
+    showHiddenFiles: settings.showHiddenFiles,
   );
 });
 
@@ -73,15 +74,18 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     this._repository, {
     SearchIndexStore? indexStore,
     MediaStorePlatform? mediaStore,
+    bool showHiddenFiles = false,
     Duration debounceDuration = const Duration(milliseconds: 300),
   })  : _indexStore = indexStore,
         _mediaStore = mediaStore,
+        _showHiddenFiles = showHiddenFiles,
         _debounceDuration = debounceDuration,
         super(const FileSearchState());
 
   final StorageRepository _repository;
   final SearchIndexStore? _indexStore;
   final MediaStorePlatform? _mediaStore;
+  final bool _showHiddenFiles;
   final Duration _debounceDuration;
   Timer? _debounceTimer;
   int _requestSequence = 0;
@@ -199,7 +203,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       if (!mounted || requestId != _requestSequence) return;
       results.sort(_compareResults);
       state = state.copyWith(
-        results: results,
+        results: _filterHidden(results),
         isSearching: false,
         clearError: true,
       );
@@ -211,6 +215,33 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         error: error,
       );
     }
+  }
+
+  /// Removes hidden files/folders from [results] unless the user has enabled
+  /// showing hidden files.
+  List<SearchResult> _filterHidden(List<SearchResult> results) {
+    if (_showHiddenFiles) {
+      return results;
+    }
+    return results
+        .where((result) => !_isHiddenResult(result.entry, state.rootPath))
+        .toList(growable: false);
+  }
+
+  bool _isHiddenResult(FileSystemEntry entry, String rootPath) {
+    if (entry.name.startsWith('.') && entry.name.length > 1) {
+      return true;
+    }
+    final prefix = rootPath == '/' ? rootPath : '$rootPath/';
+    if (rootPath.isNotEmpty && !entry.path.startsWith(prefix)) {
+      return false;
+    }
+    final relative = entry.path.startsWith(prefix)
+        ? entry.path.substring(prefix.length)
+        : entry.path;
+    return relative
+        .split('/')
+        .any((segment) => segment.startsWith('.') && segment.length > 1);
   }
 
   /// Recursively collect all files and folders matching the filtered types.
@@ -333,7 +364,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       }
       results.sort(_compareResults);
       state = state.copyWith(
-        results: results,
+        results: _filterHidden(results),
         isSearching: false,
         isIndexing: false,
         clearError: true,

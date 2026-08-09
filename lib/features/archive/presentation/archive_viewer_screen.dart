@@ -136,6 +136,14 @@ class _ArchiveEntryList extends ConsumerWidget {
                 ref.read(archiveViewerControllerProvider(archivePath).notifier);
             if (entry.isFolder) {
               controller.openDirectory(entry.path);
+            } else if (kindForArchivePreview(entry.name) ==
+                ArchivePreviewKind.unsupported) {
+              showUnsupportedArchiveEntrySheet(
+                context: context,
+                ref: ref,
+                archivePath: archivePath,
+                entry: entry,
+              );
             } else {
               context.push(
                 AppRoutes.archiveFilePreview,

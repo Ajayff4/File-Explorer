@@ -191,7 +191,7 @@ const _coreFeatures = [
   ),
   _CoreFeature(
     icon: Icons.sync_alt_rounded,
-    title: 'Transfer station',
+    title: 'Transfer Station',
     description:
         'Queue copy, move, rename, delete, retry, and conflict handling with progress.',
     color: Color(0xFF1E88E5),

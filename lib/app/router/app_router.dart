@@ -10,6 +10,7 @@ import 'package:file_explorer/features/media/presentation/media_viewer_screen.da
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
+import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
@@ -167,6 +168,8 @@ class AppShell extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final isSelectionMode = explorerState.isSelectionMode;
     final selectedPaths = explorerState.selectedPaths.toList();
+    final activeTransferCount =
+        ref.watch(transferControllerProvider).pendingCount;
 
     if (width >= 840) {
       return Scaffold(
@@ -183,23 +186,29 @@ class AppShell extends ConsumerWidget {
                   color: Theme.of(context).colorScheme.primary,
                 ),
               ),
-              destinations: const [
-                NavigationRailDestination(
+              destinations: [
+                const NavigationRailDestination(
                   icon: Icon(Icons.dashboard_outlined),
                   selectedIcon: Icon(Icons.dashboard_rounded),
                   label: Text('Home'),
                 ),
-                NavigationRailDestination(
+                const NavigationRailDestination(
                   icon: Icon(Icons.folder_outlined),
                   selectedIcon: Icon(Icons.folder_rounded),
                   label: Text('Files'),
                 ),
                 NavigationRailDestination(
-                  icon: Icon(Icons.sync_alt_outlined),
-                  selectedIcon: Icon(Icons.sync_alt_rounded),
-                  label: Text('Transfers'),
+                  icon: _TransferTabIcon(
+                    count: activeTransferCount,
+                    icon: const Icon(Icons.sync_alt_outlined),
+                  ),
+                  selectedIcon: _TransferTabIcon(
+                    count: activeTransferCount,
+                    icon: const Icon(Icons.sync_alt_rounded),
+                  ),
+                  label: const Text('Transfers'),
                 ),
-                NavigationRailDestination(
+                const NavigationRailDestination(
                   icon: Icon(Icons.tune_outlined),
                   selectedIcon: Icon(Icons.tune_rounded),
                   label: Text('Settings'),
@@ -227,23 +236,29 @@ class AppShell extends ConsumerWidget {
           : NavigationBar(
               selectedIndex: selectedIndex,
               onDestinationSelected: (index) => _go(context, ref, index),
-              destinations: const [
-                NavigationDestination(
+              destinations: [
+                const NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),
                   selectedIcon: Icon(Icons.dashboard_rounded),
                   label: 'Home',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.folder_outlined),
                   selectedIcon: Icon(Icons.folder_rounded),
                   label: 'Files',
                 ),
                 NavigationDestination(
-                  icon: Icon(Icons.sync_alt_outlined),
-                  selectedIcon: Icon(Icons.sync_alt_rounded),
+                  icon: _TransferTabIcon(
+                    count: activeTransferCount,
+                    icon: const Icon(Icons.sync_alt_outlined),
+                  ),
+                  selectedIcon: _TransferTabIcon(
+                    count: activeTransferCount,
+                    icon: const Icon(Icons.sync_alt_rounded),
+                  ),
                   label: 'Transfers',
                 ),
-                NavigationDestination(
+                const NavigationDestination(
                   icon: Icon(Icons.tune_outlined),
                   selectedIcon: Icon(Icons.tune_rounded),
                   label: 'Settings',
@@ -296,5 +311,27 @@ class AppShell extends ConsumerWidget {
       _ => AppRoutes.home,
     };
     context.go(route);
+  }
+}
+
+class _TransferTabIcon extends StatelessWidget {
+  const _TransferTabIcon({
+    required this.count,
+    required this.icon,
+  });
+
+  final int count;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Badge.count(
+      count: count,
+      isLabelVisible: count > 0,
+      backgroundColor: scheme.primary,
+      textColor: scheme.onPrimary,
+      child: icon,
+    );
   }
 }

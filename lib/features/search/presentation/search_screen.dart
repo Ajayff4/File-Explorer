@@ -2,7 +2,7 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
-import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
@@ -296,12 +296,11 @@ void _openSearchFile(
         );
   }
 
-  context.push(
-    AppRoutes.mediaViewer,
-    extra: MediaViewerSession(
-      entry: entry,
-      entries: [for (final r in results) r.entry],
-    ),
+  openFileForPreview(
+    context: context,
+    ref: ref,
+    entry: entry,
+    playlist: [for (final r in results) r.entry],
   );
 }
 

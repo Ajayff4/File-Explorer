@@ -245,8 +245,6 @@ class _ArchiveFilePreviewScreenState extends ConsumerState<ArchiveFilePreviewScr
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-
     return Scaffold(
       backgroundColor:
           _kind == ArchivePreviewKind.image || _kind == ArchivePreviewKind.video
@@ -271,11 +269,11 @@ class _ArchiveFilePreviewScreenState extends ConsumerState<ArchiveFilePreviewScr
           ),
         ],
       ),
-      body: _buildBody(colorScheme),
+      body: _buildBody(),
     );
   }
 
-  Widget _buildBody(ColorScheme colorScheme) {
+  Widget _buildBody() {
     if (_loading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -294,20 +292,7 @@ class _ArchiveFilePreviewScreenState extends ConsumerState<ArchiveFilePreviewScr
       ArchivePreviewKind.text => _ArchiveTextPreview(
           text: utf8.decode(bytes, allowMalformed: true),
         ),
-      ArchivePreviewKind.unsupported => Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.visibility_off_rounded,
-                  size: 48, color: colorScheme.onSurfaceVariant),
-              const SizedBox(height: 16),
-              Text(
-                'Preview not available for this file type',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-            ],
-          ),
-        ),
+      ArchivePreviewKind.unsupported => const SizedBox.shrink(),
     };
   }
 }
@@ -388,6 +373,206 @@ ArchivePreviewKind kindForArchivePreview(String name) {
     'mp3' || 'flac' || 'wav' || 'm4a' || 'ogg' || 'aac' => ArchivePreviewKind.audio,
     _ => isTextFile(name) ? ArchivePreviewKind.text : ArchivePreviewKind.unsupported,
   };
+}
+
+/// Bottom sheet offered when an entry inside an archive cannot be previewed by
+/// any built-in viewer, replacing the dedicated "Preview unavailable" screen.
+void showUnsupportedArchiveEntrySheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String archivePath,
+  required ArchiveEntry entry,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(
+                Icons.visibility_off_rounded,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+              title: Text(
+                entry.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: const Text('Preview not available'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Open with'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _openArchiveEntryWithSystem(
+                  context: context,
+                  ref: ref,
+                  archivePath: archivePath,
+                  entry: entry,
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.category_rounded),
+              title: const Text('Open as'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _showArchiveOpenAsSheet(
+                  context: context,
+                  ref: ref,
+                  archivePath: archivePath,
+                  entry: entry,
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Future<File> _writeArchiveEntryToTempFile({
+  required WidgetRef ref,
+  required String archivePath,
+  required ArchiveEntry entry,
+}) async {
+  final bytes = await ref
+      .read(archiveViewerControllerProvider(archivePath).notifier)
+      .readEntry(entry.path);
+  if (bytes == null) {
+    throw Exception('Could not read entry from archive');
+  }
+  final extension = _extensionFor(entry.name);
+  final tempFile = File(
+    '${Directory.systemTemp.path}/archive_open_'
+    '${DateTime.now().microsecondsSinceEpoch}.$extension',
+  );
+  await tempFile.writeAsBytes(bytes);
+  return tempFile;
+}
+
+Future<void> _openArchiveEntryWithSystem({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String archivePath,
+  required ArchiveEntry entry,
+}) async {
+  try {
+    final file = await _writeArchiveEntryToTempFile(
+      ref: ref,
+      archivePath: archivePath,
+      entry: entry,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    await openLocalFileWithSystem(file.path);
+  } on MissingPluginException {
+    if (!context.mounted) {
+      return;
+    }
+    _showArchiveMessage(context, 'Open with is available on Android');
+  } on PlatformException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showArchiveMessage(context, error.message ?? 'Could not open file');
+  }
+}
+
+void _showArchiveMessage(BuildContext context, String message) {
+  if (!context.mounted) {
+    return;
+  }
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(message)),
+  );
+}
+
+void _showArchiveOpenAsSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String archivePath,
+  required ArchiveEntry entry,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: const Icon(Icons.category_rounded),
+              title: Text(
+                entry.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: const Text('Open as'),
+            ),
+            const Divider(),
+            for (final option in _OpenAsOption.values)
+              ListTile(
+                leading: Icon(option.icon),
+                title: Text(option.label),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _openArchiveEntryAs(
+                    context: context,
+                    ref: ref,
+                    archivePath: archivePath,
+                    entry: entry,
+                    mimeType: option.mimeType,
+                  );
+                },
+              ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+Future<void> _openArchiveEntryAs({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String archivePath,
+  required ArchiveEntry entry,
+  required String mimeType,
+}) async {
+  try {
+    final file = await _writeArchiveEntryToTempFile(
+      ref: ref,
+      archivePath: archivePath,
+      entry: entry,
+    );
+    if (!context.mounted) {
+      return;
+    }
+    await openLocalFileWithSystem(file.path, fallbackMimeType: mimeType);
+  } on MissingPluginException {
+    if (!context.mounted) {
+      return;
+    }
+    _showArchiveMessage(context, 'Open with is available on Android');
+  } on PlatformException catch (error) {
+    if (!context.mounted) {
+      return;
+    }
+    _showArchiveMessage(context, error.message ?? 'Could not open file');
+  }
 }
 
 enum _OpenAsOption {

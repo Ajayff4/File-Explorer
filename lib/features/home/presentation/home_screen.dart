@@ -37,13 +37,60 @@ class HomeScreen extends ConsumerWidget {
           actions: [
             IconButton(
               tooltip: 'Search',
-              onPressed: () => context.go(AppRoutes.search),
+              onPressed: () {
+                // Reset to storage root so search from Home covers all storage,
+                // not the last folder browsed in Explorer.
+                final rootPath = _selectedVolumeFor(explorerState)?.path ?? '/';
+                ref
+                    .read(explorerControllerProvider.notifier)
+                    .openDirectory(rootPath);
+                context.go(AppRoutes.search);
+              },
               icon: const Icon(Icons.search_rounded),
             ),
             IconButton(
               tooltip: 'More',
-              onPressed: () {},
               icon: const Icon(Icons.more_vert_rounded),
+              onPressed: () {
+                showModalBottomSheet<void>(
+                  context: context,
+                  showDragHandle: true,
+                  builder: (sheetContext) {
+                    return SafeArea(
+                      child: ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                        children: [
+                          ListTile(
+                            leading: const Icon(Icons.sync_alt_rounded),
+                            title: const Text('Transfer Station'),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              context.go(AppRoutes.transfers);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.hexagon_rounded),
+                            title: const Text('Core Features'),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              context.go(AppRoutes.coreFeatures);
+                            },
+                          ),
+                          ListTile(
+                            leading: const Icon(Icons.settings_rounded),
+                            title: const Text('Settings'),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              context.go(AppRoutes.settings);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                );
+              },
             ),
           ],
         ),
@@ -137,7 +184,7 @@ class _TransferStationTile extends StatelessWidget {
     return Card(
       child: ListTile(
         leading: const Icon(Icons.sync_alt_rounded),
-        title: const Text('Transfer station'),
+        title: const Text('Transfer Station'),
         subtitle: Text(
           '${state.pendingCount} pending - ${state.finishedCount} finished - ${state.failedCount} failed',
         ),

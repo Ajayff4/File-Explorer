@@ -5,6 +5,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
+import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
@@ -220,6 +221,108 @@ void showOpenAsSheet({
   );
 }
 
+/// Opens [entry] in the best available built-in viewer.
+///
+/// Routes previewable media to the media viewer, text to the text viewer and
+/// browsable archives to the archive viewer. When none applies (preview not
+/// available) a sheet with "Open with" / "Open as" is shown instead.
+void openFileForPreview({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FileSystemEntry entry,
+  List<FileSystemEntry> playlist = const [],
+}) {
+  final type = entry.type;
+  if (type == FileSystemEntryType.image ||
+      type == FileSystemEntryType.video ||
+      type == FileSystemEntryType.audio) {
+    context.push(
+      AppRoutes.mediaViewer,
+      extra: MediaViewerSession(
+        entry: entry,
+        entries: playlist.isEmpty ? [entry] : playlist,
+      ),
+    );
+    return;
+  }
+
+  if (isTextFile(entry.path)) {
+    context.push(
+      AppRoutes.textViewer,
+      extra: entry,
+    );
+    return;
+  }
+
+  if (_isBrowsableArchiveFile(entry)) {
+    context.push(
+      AppRoutes.archiveViewer,
+      extra: entry,
+    );
+    return;
+  }
+
+  showPreviewUnavailableSheet(context: context, ref: ref, entry: entry);
+}
+
+bool _isBrowsableArchiveFile(FileSystemEntry entry) {
+  if (entry.isFolder) {
+    return false;
+  }
+  final format = archiveFormatForPath(entry.path);
+  return format != null && isBrowsableArchive(format);
+}
+
+/// Bottom sheet offered when [entry] cannot be previewed by any built-in
+/// viewer, replacing the old dedicated "Preview unavailable" screen.
+void showPreviewUnavailableSheet({
+  required BuildContext context,
+  required WidgetRef ref,
+  required FileSystemEntry entry,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheetContext) {
+      return SafeArea(
+        child: ListView(
+          shrinkWrap: true,
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: fileIconForEntry(context, entry),
+              title: Text(
+                entry.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: const Text('Preview not available'),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.open_in_new_rounded),
+              title: const Text('Open with'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _openEntryWithSystem(context, entry);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.category_rounded),
+              title: const Text('Open as'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                showOpenAsSheet(context: context, ref: ref, entry: entry);
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
 void _openEntryAs(
   BuildContext context,
   WidgetRef ref,
@@ -321,10 +424,10 @@ void _showViewerChoiceSheet(
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 final forcedEntry = entry.copyWith(type: forcedType);
-                context.push(
-                  AppRoutes.mediaViewer,
-                  extra: MediaViewerSession(
-                      entry: forcedEntry, entries: [forcedEntry]),
+                openFileForPreview(
+                  context: context,
+                  ref: ref,
+                  entry: forcedEntry,
                 );
               },
             ),
@@ -1162,6 +1265,7 @@ void _showQueuedSnackBar(
   _showMessage(
     context,
     '${operation.label} task queued',
+    duration: const Duration(seconds: 4),
     action: SnackBarAction(
       label: 'Transfers',
       onPressed: () => context.go(AppRoutes.transfers),
@@ -1173,11 +1277,13 @@ void _showMessage(
   BuildContext context,
   String message, {
   SnackBarAction? action,
+  Duration duration = const Duration(seconds: 4),
 }) {
   _showMessageWithMessenger(
     ScaffoldMessenger.of(context),
     message,
     action: action,
+    duration: duration,
   );
 }
 
@@ -1185,13 +1291,17 @@ void _showMessageWithMessenger(
   ScaffoldMessengerState messenger,
   String message, {
   SnackBarAction? action,
+  Duration duration = const Duration(seconds: 4),
 }) {
-  messenger.showSnackBar(
-    SnackBar(
-      content: Text(message),
-      action: action,
-    ),
-  );
+  messenger
+    ..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(message),
+        action: action,
+        duration: duration,
+      ),
+    );
 }
 
 void showEntryProperties(

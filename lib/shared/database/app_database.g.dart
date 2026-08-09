@@ -1464,7 +1464,7 @@ class $SearchIndexEntryRowsTable extends SearchIndexEntryRows
   }
 
   @override
-  Set<GeneratedColumn> get $primaryKey => {path};
+  Set<GeneratedColumn> get $primaryKey => {rootPath, path};
   @override
   SearchIndexEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
