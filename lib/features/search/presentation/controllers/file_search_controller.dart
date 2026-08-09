@@ -74,23 +74,18 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     SearchIndexStore? indexStore,
     MediaStorePlatform? mediaStore,
     Duration debounceDuration = const Duration(milliseconds: 300),
-    int maxResults = 100,
-    int maxIndexedEntries = 1000,
   })  : _indexStore = indexStore,
         _mediaStore = mediaStore,
         _debounceDuration = debounceDuration,
-        _maxResults = maxResults,
-        _maxIndexedEntries = maxIndexedEntries,
         super(const FileSearchState());
 
   final StorageRepository _repository;
   final SearchIndexStore? _indexStore;
   final MediaStorePlatform? _mediaStore;
   final Duration _debounceDuration;
-  final int _maxResults;
-  final int _maxIndexedEntries;
   Timer? _debounceTimer;
   int _requestSequence = 0;
+  final Map<String, Future<void>> _indexBuilds = {};
 
   void setQuery({
     required String query,
@@ -204,7 +199,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       if (!mounted || requestId != _requestSequence) return;
       results.sort(_compareResults);
       state = state.copyWith(
-        results: results.take(_maxResults).toList(growable: false),
+        results: results,
         isSearching: false,
         clearError: true,
       );
@@ -226,7 +221,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     required Set<String> visitedPaths,
     int depth = 0,
   }) async {
-    if (visitedPaths.contains(path) || results.length >= _maxResults) {
+    if (visitedPaths.contains(path)) {
       return;
     }
     visitedPaths.add(path);
@@ -235,8 +230,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
     // Add matching folders and files at this level
     for (final entry in listing.entries) {
-      if (results.length >= _maxResults) break;
-
       if (filteredTypes.contains(entry.type)) {
         results.add(
           SearchResult(
@@ -250,7 +243,6 @@ class FileSearchController extends StateNotifier<FileSearchState> {
 
     // Recurse into folders
     for (final folder in listing.entries.where((e) => e.isFolder)) {
-      if (results.length >= _maxResults) break;
       try {
         await _collectMatchingEntries(
           folder.path,
@@ -290,6 +282,40 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     }
 
     await _runSearch(query, rootPath);
+  }
+
+  /// Pre-builds the persisted index for [rootPath] so the first search there
+  /// does not have to walk the tree on demand.
+  ///
+  /// Safe to call any time (e.g. after storage permission arrives): it is a
+  /// no-op when indexed search is off, when the root is already indexed, or
+  /// when a build for the same root is already in flight.
+  Future<void> warmUpIndex(String rootPath) async {
+    final indexStore = _indexStore;
+    if (indexStore == null) {
+      return;
+    }
+    if (await indexStore.hasIndex(rootPath)) {
+      return;
+    }
+    final inFlight = _indexBuilds[rootPath];
+    if (inFlight != null) {
+      return inFlight;
+    }
+    final build = () async {
+      final entries = await _collectIndexEntries(
+        rootPath,
+        visitedPaths: <String>{},
+      );
+      entries.sort(_compareResults);
+      await indexStore.replaceIndex(rootPath: rootPath, entries: entries);
+    }();
+    _indexBuilds[rootPath] = build;
+    try {
+      await build;
+    } finally {
+      _indexBuilds.remove(rootPath);
+    }
   }
 
   Future<void> _runSearch(String query, String rootPath) async {
@@ -346,19 +372,16 @@ class FileSearchController extends StateNotifier<FileSearchState> {
         return const [];
       }
       state = state.copyWith(isIndexing: true);
-      final entries = await _collectIndexEntries(
-        rootPath,
-        visitedPaths: <String>{},
-      );
-      entries.sort(_compareResults);
-      await indexStore.replaceIndex(rootPath: rootPath, entries: entries);
+      await warmUpIndex(rootPath);
+      if (!mounted || requestId != _requestSequence) {
+        return const [];
+      }
     }
 
     final results = await indexStore.search(
       rootPath: rootPath,
       query: query,
       filteredTypes: filteredTypes,
-      maxResults: _maxResults,
     );
     results.sort(_compareResults);
     return results;
@@ -389,15 +412,9 @@ class FileSearchController extends StateNotifier<FileSearchState> {
           ),
         );
       }
-      if (results.length >= _maxResults) {
-        return results;
-      }
     }
 
     for (final folder in listing.entries.where((entry) => entry.isFolder)) {
-      if (results.length >= _maxResults) {
-        break;
-      }
       try {
         results.addAll(
           await _searchDirectory(
@@ -413,9 +430,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       }
     }
 
-    return results.length > _maxResults
-        ? results.take(_maxResults).toList(growable: false)
-        : results;
+    return results;
   }
 
   Future<List<SearchResult>> _collectIndexEntries(
@@ -456,23 +471,20 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       rootPath,
       visitedPaths: visitedPaths,
       excludePaths: seededPaths,
-      maxEntries: _maxIndexedEntries - seeded.length,
     );
 
-    final entries = [...seeded, ...walked];
-    return entries.length > _maxIndexedEntries
-        ? entries.take(_maxIndexedEntries).toList(growable: false)
-        : entries;
+    // Folders sort ahead of files so they are not buried by media rows.
+    final entries = [...seeded, ...walked]..sort(_compareResults);
+    return entries;
   }
 
   Future<List<SearchResult>> _walkIndexEntries(
     String path, {
     required Set<String> visitedPaths,
     required Set<String> excludePaths,
-    required int maxEntries,
     int depth = 0,
   }) async {
-    if (visitedPaths.contains(path) || maxEntries <= 0) {
+    if (visitedPaths.contains(path)) {
       return const [];
     }
     visitedPaths.add(path);
@@ -489,16 +501,12 @@ class FileSearchController extends StateNotifier<FileSearchState> {
     ];
 
     for (final folder in listing.entries.where((entry) => entry.isFolder)) {
-      if (results.length >= maxEntries) {
-        break;
-      }
       try {
         results.addAll(
           await _walkIndexEntries(
             folder.path,
             visitedPaths: visitedPaths,
             excludePaths: excludePaths,
-            maxEntries: maxEntries - results.length,
             depth: depth + 1,
           ),
         );
@@ -507,9 +515,7 @@ class FileSearchController extends StateNotifier<FileSearchState> {
       }
     }
 
-    return results.length > maxEntries
-        ? results.take(maxEntries).toList(growable: false)
-        : results;
+    return results;
   }
 
   bool _matches(

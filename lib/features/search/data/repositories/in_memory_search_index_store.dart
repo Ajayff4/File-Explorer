@@ -15,14 +15,12 @@ class InMemorySearchIndexStore implements SearchIndexStore {
     required String rootPath,
     required String query,
     required Set<FileSystemEntryType> filteredTypes,
-    required int maxResults,
   }) async {
     final normalizedQuery = query.toLowerCase();
     return (_entriesByRoot[rootPath] ?? const <SearchResult>[])
         .where(
           (result) => _matches(result.entry, normalizedQuery, filteredTypes),
         )
-        .take(maxResults)
         .toList(growable: false);
   }
 
@@ -40,13 +38,19 @@ class InMemorySearchIndexStore implements SearchIndexStore {
   }
 
   @override
-  Future<void> clearIndexesForPaths(List<String> paths) async {
+  Future<List<String>> clearIndexesForPaths(List<String> paths) async {
     if (paths.isEmpty) {
-      return;
+      return const [];
     }
-    _entriesByRoot.removeWhere(
-      (rootPath, entries) => paths.any((path) => _pathsOverlap(rootPath, path)),
-    );
+    final clearedRoots = <String>[];
+    _entriesByRoot.removeWhere((rootPath, entries) {
+      if (paths.any((path) => _pathsOverlap(rootPath, path))) {
+        clearedRoots.add(rootPath);
+        return true;
+      }
+      return false;
+    });
+    return clearedRoots;
   }
 
   bool _matches(

@@ -8,7 +8,6 @@ abstract interface class SearchIndexStore {
     required String rootPath,
     required String query,
     required Set<FileSystemEntryType> filteredTypes,
-    required int maxResults,
   });
 
   Future<void> replaceIndex({
@@ -18,5 +17,7 @@ abstract interface class SearchIndexStore {
 
   Future<void> clearIndex(String rootPath);
 
-  Future<void> clearIndexesForPaths(List<String> paths);
+  /// Clears every index that overlaps any of [paths], returning the root
+  /// paths whose indexes were actually removed.
+  Future<List<String>> clearIndexesForPaths(List<String> paths);
 }

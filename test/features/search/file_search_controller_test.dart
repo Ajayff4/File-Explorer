@@ -176,6 +176,47 @@ void main() {
       ['banana.txt'],
     );
   });
+
+  test('warmUpIndex pre-builds index so the first search reuses it', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('Reports', '/root/Reports'),
+        _file('report.txt', '/root/report.txt'),
+      ],
+      '/root/Reports': [
+        _file('annual.txt', '/root/Reports/annual.txt'),
+      ],
+    });
+    final indexStore = InMemorySearchIndexStore();
+    final controller = FileSearchController(
+      repository,
+      indexStore: indexStore,
+    );
+
+    await controller.warmUpIndex('/root');
+    expect(repository.listedPaths, ['/root', '/root/Reports']);
+    expect(await indexStore.hasIndex('/root'), isTrue);
+
+    repository.listedPaths.clear();
+    await controller.searchNow(query: 'annual', rootPath: '/root');
+
+    expect(repository.listedPaths, isEmpty);
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      ['/root/Reports/annual.txt'],
+    );
+  });
+
+  test('warmUpIndex is a no-op when indexed search is disabled', () async {
+    final repository = _TreeStorageRepository({
+      '/root': [_file('report.txt', '/root/report.txt')],
+    });
+    final controller = FileSearchController(repository);
+
+    await controller.warmUpIndex('/root');
+
+    expect(repository.listedPaths, isEmpty);
+  });
 }
 
 FileSystemEntry _folder(String name, String path) {

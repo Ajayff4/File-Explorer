@@ -66,6 +66,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Search | Persisted search index. |
 | ✅ | Search | Manual reindex. |
 | ✅ | Search | Transfer-driven index invalidation. |
+| ✅ | Search | Background index pre-warm: storage volume roots are indexed once permission is granted, and roots cleared by a completed transfer are re-warmed automatically. |
 | ✅ | Search | File result taps open previews, with a visible `Open folder` action for containing-folder navigation. |
 | ✅ | Search | Search results reuse media thumbnails for images, videos, and apps. |
 | ✅ | Search | Search results render as grid tiles by default. |

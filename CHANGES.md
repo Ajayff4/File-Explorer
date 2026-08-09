@@ -6,6 +6,12 @@ Progress log for the Flutter application.
 
 ### Completed
 
+- Added background search index pre-warm and post-invalidation re-warm so indexed folder searches stay fast:
+  - `FileSearchController.warmUpIndex(root)` pre-builds/persists a root's index (walks the tree once, seeds MediaStore rows); it is a no-op when the index exists, when a build is already in flight, or when indexed search is disabled.
+  - `searchIndexPreWarmProvider` (watched from `app.dart`) warms every storage volume root once browse permission is confirmed, so the first folder search never forces an on-demand walk.
+  - `searchIndexInvalidationProvider` now re-warms the roots it clears after a completed transfer instead of leaving them missing: `SearchIndexStore.clearIndexesForPaths` reports the cleared root paths and each root is rebuilt in the background.
+  - Fresh tests: `warmUpIndex` pre-builds and is gated on indexed search, completed transfers clear then re-warm overlapping roots, and volume roots pre-warm only once permission is granted.
+
 - Added in-app ZIP archive browsing:
   - Opening a `.zip` file shows its contents directly in a folder-style viewer (`ZipViewerScreen`) instead of only offering "Extract here".
   - Folder navigation, back-to-parent, and refresh inside the archive.

@@ -23,7 +23,6 @@ class DriftSearchIndexStore implements SearchIndexStore {
     required String rootPath,
     required String query,
     required Set<FileSystemEntryType> filteredTypes,
-    required int maxResults,
   }) async {
     final normalizedQuery = query.toLowerCase();
     final rows = await (_database.select(_database.searchIndexEntryRows)
@@ -42,7 +41,6 @@ class DriftSearchIndexStore implements SearchIndexStore {
             filteredTypes,
           ),
         )
-        .take(maxResults)
         .map(_toSearchResult)
         .toList(growable: false);
   }
@@ -79,9 +77,9 @@ class DriftSearchIndexStore implements SearchIndexStore {
   }
 
   @override
-  Future<void> clearIndexesForPaths(List<String> paths) async {
+  Future<List<String>> clearIndexesForPaths(List<String> paths) async {
     if (paths.isEmpty) {
-      return;
+      return const [];
     }
 
     final rows = await _database.select(_database.searchIndexEntryRows).get();
@@ -94,6 +92,7 @@ class DriftSearchIndexStore implements SearchIndexStore {
     for (final rootPath in rootPaths) {
       await clearIndex(rootPath);
     }
+    return rootPaths.toList(growable: false);
   }
 
   SearchResult _toSearchResult(SearchIndexEntryRow row) {

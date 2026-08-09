@@ -167,8 +167,8 @@ null elsewhere) and uses it in two flows:
 2. **Index build / reindex** (`_collectIndexEntries`): all three MediaStore
    collections seed the index first (deduped by path, root-filtered), then the
    walker (`_walkIndexEntries`) adds every non-seeded entry and skips seeded
-   paths, so media files remain searchable even when the walk hits
-   `_maxIndexedEntries`.
+   paths, so media files and walker-only entries (folders, non-media files) all
+   remain searchable with no entry cap.
 
 Shared helpers live in
 `lib/features/media/data/platform/media_store_search_results.dart`:

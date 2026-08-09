@@ -188,6 +188,41 @@ void main() {
       ['/root/Pictures/photo.jpg'],
     );
   });
+
+  test('folders stay indexed regardless of media row count', () async {
+    final mediaRows = [
+      for (var i = 0; i < 3000; i++)
+        {
+          'path': '/root/Pictures/img$i.jpg',
+          'name': 'img$i.jpg',
+          'sizeBytes': i,
+          'modifiedAtMs': 0,
+        },
+    ];
+    mockMediaRows({'image': mediaRows});
+    final repository = _TreeStorageRepository({
+      '/root': [
+        _folder('Downloads', '/root/Downloads'),
+        _folder('Pictures', '/root/Pictures'),
+      ],
+      '/root/Downloads': [
+        _entry(
+            'report.pdf', '/root/Downloads/report.pdf', FileSystemEntryType.document),
+      ],
+    });
+    final controller = FileSearchController(
+      repository,
+      indexStore: InMemorySearchIndexStore(),
+      mediaStore: platform,
+    );
+
+    await controller.searchNow(query: 'Downloads', rootPath: '/root');
+
+    expect(
+      controller.state.results.map((result) => result.entry.path),
+      contains('/root/Downloads'),
+    );
+  });
 }
 
 FileSystemEntry _folder(String name, String path) {
