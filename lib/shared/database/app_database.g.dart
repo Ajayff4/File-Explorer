@@ -14,8 +14,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
       'id', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _operationMeta =
-      const VerificationMeta('operation');
   @override
   late final GeneratedColumnWithTypeConverter<TransferOperation, int>
       operation = GeneratedColumn<int>('operation', aliasedName, false,
@@ -34,7 +32,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
   late final GeneratedColumn<String> displayName = GeneratedColumn<String>(
       'display_name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _statusMeta = const VerificationMeta('status');
   @override
   late final GeneratedColumnWithTypeConverter<TransferTaskStatus, int> status =
       GeneratedColumn<int>('status', aliasedName, false,
@@ -79,8 +76,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
   late final GeneratedColumn<String> currentItemPath = GeneratedColumn<String>(
       'current_item_path', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _conflictPolicyMeta =
-      const VerificationMeta('conflictPolicy');
   @override
   late final GeneratedColumnWithTypeConverter<ConflictPolicy, int>
       conflictPolicy = GeneratedColumn<int>(
@@ -94,8 +89,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
   late final GeneratedColumn<String> failureMessage = GeneratedColumn<String>(
       'failure_message', aliasedName, true,
       type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _failureCodeMeta =
-      const VerificationMeta('failureCode');
   @override
   late final GeneratedColumnWithTypeConverter<TransferFailureCode?, int>
       failureCode = GeneratedColumn<int>('failure_code', aliasedName, true,
@@ -134,7 +127,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
     } else if (isInserting) {
       context.missing(_idMeta);
     }
-    context.handle(_operationMeta, const VerificationResult.success());
     if (data.containsKey('source_paths_json')) {
       context.handle(
           _sourcePathsJsonMeta,
@@ -151,7 +143,6 @@ class $TransferTaskRowsTable extends TransferTaskRows
     } else if (isInserting) {
       context.missing(_displayNameMeta);
     }
-    context.handle(_statusMeta, const VerificationResult.success());
     if (data.containsKey('created_at')) {
       context.handle(_createdAtMeta,
           createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
@@ -188,14 +179,12 @@ class $TransferTaskRowsTable extends TransferTaskRows
           currentItemPath.isAcceptableOrUnknown(
               data['current_item_path']!, _currentItemPathMeta));
     }
-    context.handle(_conflictPolicyMeta, const VerificationResult.success());
     if (data.containsKey('failure_message')) {
       context.handle(
           _failureMessageMeta,
           failureMessage.isAcceptableOrUnknown(
               data['failure_message']!, _failureMessageMeta));
     }
-    context.handle(_failureCodeMeta, const VerificationResult.success());
     return context;
   }
 
@@ -1356,7 +1345,6 @@ class $SearchIndexEntryRowsTable extends SearchIndexEntryRows
   late final GeneratedColumn<String> name = GeneratedColumn<String>(
       'name', aliasedName, false,
       type: DriftSqlType.string, requiredDuringInsert: true);
-  static const VerificationMeta _typeMeta = const VerificationMeta('type');
   @override
   late final GeneratedColumnWithTypeConverter<FileSystemEntryType, int> type =
       GeneratedColumn<int>('type', aliasedName, false,
@@ -1442,7 +1430,6 @@ class $SearchIndexEntryRowsTable extends SearchIndexEntryRows
     } else if (isInserting) {
       context.missing(_nameMeta);
     }
-    context.handle(_typeMeta, const VerificationResult.success());
     if (data.containsKey('modified_at')) {
       context.handle(
           _modifiedAtMeta,
