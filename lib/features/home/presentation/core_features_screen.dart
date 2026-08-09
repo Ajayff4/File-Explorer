@@ -37,18 +37,23 @@ class CoreFeaturesScreen extends StatelessWidget {
         body: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _coreFeatures.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: MediaQuery.sizeOf(context).width >= 720 ? 2 : 1,
-                mainAxisExtent: 112,
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-              ),
-              itemBuilder: (context, index) {
-                return _CoreFeatureCard(feature: _coreFeatures[index]);
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth >= 720 ? 2 : 1;
+                final cardWidth =
+                    (constraints.maxWidth - (columns - 1) * _cardSpacing) /
+                        columns;
+                return Wrap(
+                  spacing: _cardSpacing,
+                  runSpacing: _cardSpacing,
+                  children: [
+                    for (final feature in _coreFeatures)
+                      SizedBox(
+                        width: cardWidth,
+                        child: _CoreFeatureCard(feature: feature),
+                      ),
+                  ],
+                );
               },
             ),
           ],
@@ -58,57 +63,89 @@ class CoreFeaturesScreen extends StatelessWidget {
   }
 }
 
-class _CoreFeatureCard extends StatelessWidget {
+const _cardSpacing = 10.0;
+
+class _CoreFeatureCard extends StatefulWidget {
   const _CoreFeatureCard({required this.feature});
 
   final _CoreFeature feature;
 
   @override
+  State<_CoreFeatureCard> createState() => _CoreFeatureCardState();
+}
+
+class _CoreFeatureCardState extends State<_CoreFeatureCard> {
+  bool _expanded = false;
+
+  void _toggle() {
+    setState(() => _expanded = !_expanded);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final feature = widget.feature;
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: feature.color.withOpacity(0.16),
-                borderRadius: BorderRadius.circular(8),
+      margin: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: _toggle,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: feature.color.withOpacity(0.16),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: SizedBox.square(
+                  dimension: 46,
+                  child: Icon(feature.icon, color: feature.color),
+                ),
               ),
-              child: SizedBox.square(
-                dimension: 46,
-                child: Icon(feature.icon, color: feature.color),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    feature.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: AnimatedSize(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeInOut,
+                  alignment: Alignment.topCenter,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        feature.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        feature.description,
+                        maxLines: _expanded ? null : 3,
+                        overflow: _expanded ? null : TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    feature.description,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Icon(
+                _expanded
+                    ? Icons.expand_less_rounded
+                    : Icons.expand_more_rounded,
+                size: 20,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -55,8 +55,6 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _ShortcutGrid(),
               const SizedBox(height: 16),
-              const _MediaLibraryStrip(),
-              const SizedBox(height: 16),
               const _CoreFeaturesTile(),
               if (settings.showTransferStation) ...[
                 const SizedBox(height: 16),
@@ -125,38 +123,6 @@ class _CoreFeaturesTile extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right_rounded),
         onTap: () => context.push(AppRoutes.coreFeatures),
       ),
-    );
-  }
-}
-
-class _MediaLibraryStrip extends StatelessWidget {
-  const _MediaLibraryStrip();
-
-  @override
-  Widget build(BuildContext context) {
-    const libraries = MediaLibraryKind.values;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Media libraries', style: Theme.of(context).textTheme.titleMedium),
-        const SizedBox(height: 8),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              for (final library in libraries) ...[
-                ActionChip(
-                  avatar: Icon(library.icon, size: 18),
-                  label: Text(library.label),
-                  onPressed: () => context.go(AppRoutes.media(library)),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
