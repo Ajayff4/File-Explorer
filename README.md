@@ -72,6 +72,15 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Persistent queue/history via Drift.
 - ✅ Post-transfer MediaStore rescan so new files appear, moved sources update.
 
+### ⬇️ Universal Downloader
+
+- ✅ Paste a YouTube/Instagram/Twitter/other media link and download as video or audio.
+- ✅ yt-dlp bundled into the APK via Chaquopy (CPython 3.12, 64-bit ABIs).
+- ✅ Queue with live progress/speed, retry, cancel, and a concurrent-download limit.
+- ✅ Persistent history and download settings via Drift.
+- ✅ Finished files expose Move-to (transfer-backed), Open folder, and Browse.
+- See `docs/DOWNLOADER.md` for the architecture.
+
 ### 🔎 Search
 
 - ✅ Scope (folder/storage), type filters, type-only discovery.
@@ -93,6 +102,8 @@ feature below works end to end on a real device over wireless ADB.
 - **Dart** — `3.12.2` (bundled with Flutter)
 - **Java** — JDK `17` (required by AGP 9 / Gradle 9)
 - **Android Studio / SDK** — SDK 36, build-tools 36.0.0, platform-tools
+- **Python** — `3.12` on the build host (Chaquopy uses it as its build Python
+  when bundling yt-dlp for the Universal Downloader)
 
 Check your setup:
 
@@ -111,6 +122,7 @@ Operate on the project folder (`project/`) first — it is its own Flutter packa
 | Dart | language/SDK | `3.12.2` |
 | Android Gradle Plugin | `android/settings.gradle` | `9.0.1` |
 | Kotlin | `android/settings.gradle` | `2.3.20` |
+| Chaquopy | `android/settings.gradle` | `17.0.0` (Python 3.12, bundles `yt-dlp`) |
 | Gradle | `android/gradle/wrapper/gradle-wrapper.properties` | `9.1.0` |
 | Java toolchain | `android/app/build.gradle` | 17 |
 
@@ -279,7 +291,7 @@ flutter test
 ```
 ```text
 - Run the full local verification pass above after changes.
-- Do not add comments unless asked; do not touch CHANGES.md / ROADMAP.md unless asked.
+- Do not add comments unless asked; do not touch CHANGELOG.md / ROADMAP.md unless asked.
 ```
 
 ---
@@ -319,6 +331,7 @@ lib/
     settings/
     storage_permissions/
     transfers/
+    downloader/
     zip/
   shared/
     database/
@@ -332,6 +345,7 @@ settings, and future tools can grow without turning `lib/` into one large shared
 
 ## 📚 See also
 
-- `CHANGES.md` — chronological progress log.
+- `CHANGELOG.md` — chronological progress log.
 - `ROADMAP.md` — planned work and status per feature.
 - `docs/ROUTING.md` — navigation model (added on real-device routing work).
+- `docs/DOWNLOADER.md` — Universal Downloader architecture (Chaquopy + yt-dlp).

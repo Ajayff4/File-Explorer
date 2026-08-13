@@ -169,6 +169,13 @@ class _CoreFeature {
 
 const _coreFeatures = [
   _CoreFeature(
+    icon: Icons.download_rounded,
+    title: 'Universal Downloader',
+    description:
+        'Paste a YouTube, Instagram, Twitter, or other media link and download it as video or audio with yt-dlp, queue, progress/speed, retry, and concurrent download limits.',
+    color: Color(0xFFD81B60),
+  ),
+  _CoreFeature(
     icon: Icons.folder_open_rounded,
     title: 'Storage browser',
     description:

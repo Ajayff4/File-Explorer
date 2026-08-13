@@ -2,6 +2,48 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-14
+
+### Completed
+
+- Rounded out the Universal Downloader after the first live end-to-end download on a real device:
+  - **Pause/resume** — a full-stack `paused` status: `pause`/`resume` on the engine seam, MethodChannel cases in `MainActivity.kt`, Python `_pause_events` (the progress hook blocks in place on the worker thread so the connection stays alive; resume sets the event and the download continues seamlessly, cancel wakes a blocked hook and aborts).
+    - `DownloadTaskStatus.paused` was appended at the end of the enum so existing Drift rows (persisted by index) stay valid.
+    - Cancel now also cancels paused tasks (previously a blocked thread would have kept running).
+    - Interrupted `paused` tasks restore as failed, same as `running`.
+    - UI: pause/resume icons on active tasks, a paused status color/icon, and paused shows progress.
+  - **Copy-error button** — failed tasks expose a one-tap "copy error" action that puts the failure message on the clipboard.
+  - **Browse as a separate view** — "Open folder"/"Browse" now push a dedicated `DownloadBrowseScreen` (`/downloader/browse`) instead of switching to the Explorer tab, so back returns to the downloader (not Explorer). The browse view lists folder contents, navigates up/down, and opens files through the existing preview pipeline.
+  - **Grid view for browse + folder picker** — the downloader browse view and the change-folder picker now render entries as grids (thumbnails/icons, 4–8 responsive columns) via a shared `DownloadEntryGrid` widget, matching Explorer's grid instead of plain list rows.
+  - **Kebab menu polish** — completed-task actions (Move to / Open folder / Browse) moved into a polished `PopupMenuButton` on the card's right side (rounded surface, soft icon tiles) instead of the in-card button row.
+  - **Full path in folder picker** — the current-path text in the output-folder picker wraps to 2 lines instead of hard-truncating with `...`.
+  - **Completion datetime** — finished tasks show when they completed via a new `formatDownloadTimestamp` helper (Today/Yesterday at HH:MM, or `DD Mon HH:MM`).
+  - **Folder-create crash fix** — the new-folder dialog no longer uses a `TextEditingController` (disposing an in-use controller mid-teardown tripped a framework assert); it captures input directly instead.
+- Documented downloader limitations in `docs/DOWNLOADER.md`: site support is limited to what `yt-dlp` can resolve (e.g. Threads and sites without a working extractor will not download), no playlist handling, no ffmpeg-based format conversion/merging, no DRM/logged-in content, and no resumed byte-range downloads after a network drop.
+- Downloader controller tests grew from 10 to **15** (pause, resume, ignore-pause-on-failed, cancel-paused, restore-paused-as-failed).
+
+### Verified
+
+- `flutter analyze` — clean.
+- Downloader controller tests — 15/15 pass.
+- Live YouTube download confirmed end-to-end on a real device (wireless debug).
+
+## 2026-08-13
+
+### Completed
+
+- Added a Universal Downloader: paste a YouTube/Instagram/Twitter/other media link and download it as video or audio with queueing, live progress/speed, retry, cancel, and a concurrent-download limit. Implementation reference: `docs/DOWNLOADER.md`.
+  - **Engine** — yt-dlp is bundled into the APK through the Chaquopy Gradle plugin (CPython 3.12 + `pip install yt-dlp`). `download_engine.dart` defines the seam; `ChaquopyDownloadEngine` drives it over a MethodChannel/EventChannel, with a `FakeDownloadEngine` stand-in for non-Android dev and tests.
+  - **Python module** — `android/app/src/main/python/downloader.py` wraps yt-dlp: `resolve`/`start`/`cancel`, single-file video/audio formats (no ffmpeg needed), progress hooks pushed into a drain queue.
+  - **Kotlin bridge** — `MainActivity.kt` exposes `resolve`/`start`/`cancel` plus an EventChannel that polls the drain queue every 150 ms; values are `unbox()`ed from Chaquopy `PyObject`s into codec-safe types.
+  - **Controller** — `DownloaderController` handles enqueue, concurrency gating (`maxConcurrentDownloads`, 1–16), progress/status event application, cancel, retry, clear-finished, and restoring interrupted running tasks as failed. Settings (concurrency + output folder) persist via drift.
+  - **Persistence** — new `DownloadTaskRows` drift table (schema v8 + migration); task rows saved on every change so history survives restarts.
+  - **UI** — `DownloaderScreen`: URL entry with paste-from-clipboard and video/audio chips, active/finished queues with progress bars and speed, a summary card (pending/done/failed), settings card with concurrency stepper and a folder picker, and per-task cancel/retry/move-to/open-browse actions.
+  - **Navigation** — new `/downloader` route plus Home tile, More-sheet entry, and Core Features card.
+  - **Gradle** — Chaquopy v17.0.0, 64-bit ABIs only (`disable-abi-filtering=true` so Flutter doesn't re-add `armeabi-v7a`, which Chaquopy doesn't ship for Python 3.12+), `minSdk` raised to 24.
+  - **Tests** — 10 fresh `DownloaderController` tests: enqueue→running→completed, failure + clear-finished, retry, cancel, concurrency cap and next-start-on-finish, persistence restore, interrupted→failed, and settings save/load.
+  - Verification: `flutter analyze` clean, `flutter test` all green, `flutter build apk --debug` succeeds with yt-dlp bundled. Live end-to-end download on a real device is still pending.
+
 ## 2026-08-09
 
 ### Completed

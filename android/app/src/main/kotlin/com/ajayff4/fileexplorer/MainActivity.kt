@@ -23,9 +23,13 @@ import android.view.WindowManager
 import androidx.core.content.FileProvider
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.android.FlutterActivity
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import com.chaquo.python.Python
+import com.chaquo.python.PyObject
+import com.chaquo.python.android.AndroidPlatform
 
 class MainActivity: FlutterActivity() {
     private val ALL_FILES_ACCESS_REQUEST_CODE = 4700
@@ -35,9 +39,16 @@ class MainActivity: FlutterActivity() {
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
     private val mediaStoreChannel = "com.ajayff4.fileexplorer/media_store"
     private val wakelockChannel = "com.ajayff4.fileexplorer/wakelock"
+    private val downloaderChannel = "com.ajayff4.fileexplorer/downloader"
+    private val downloaderEventsChannel = "com.ajayff4.fileexplorer/downloader/events"
+
+    private val downloaderEventsPollIntervalMs = 150L
+    private var downloaderPollTimer: Handler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        initChaquopy()
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, storageChannel)
             .setMethodCallHandler { call, result ->
@@ -250,6 +261,211 @@ class MainActivity: FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        setupDownloaderChannels(flutterEngine)
+    }
+
+    private fun setupDownloaderChannels(flutterEngine: FlutterEngine) {
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, downloaderChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "resolve" -> {
+                        val url = call.argument<String>("url")
+                        val mediaType = call.argument<String>("mediaType") ?: "video"
+                        if (url == null || url.isBlank()) {
+                            result.error("missing_url", "URL is required", null)
+                        } else {
+                            handleDownloaderAsync({
+                                val info = downloaderModule.callAttr("resolve", url, mediaType)
+                                val resultMap = HashMap<String, Any?>()
+                                for ((key, value) in info.asMap()) {
+                                    resultMap[key.toString()] = unbox(value)
+                                }
+                                result.success(resultMap)
+                            }) { error ->
+                                result.error(
+                                    "resolve_failed",
+                                    error.message ?: "Failed to resolve URL",
+                                    null,
+                                )
+                            }
+                        }
+                    }
+                    "start" -> {
+                        val taskId = call.argument<String>("taskId")
+                        val url = call.argument<String>("url")
+                        val mediaType = call.argument<String>("mediaType") ?: "video"
+                        val outputDirectory = call.argument<String>("outputDirectory")
+                        if (taskId == null || url == null || outputDirectory == null) {
+                            result.error("missing_argument", "taskId, url, outputDirectory are required", null)
+                        } else {
+                            handleDownloaderAsync({
+                                downloaderModule.callAttr(
+                                    "start",
+                                    taskId,
+                                    url,
+                                    mediaType,
+                                    outputDirectory,
+                                )
+                                result.success(null)
+                            }) { error ->
+                                result.error(
+                                    "start_failed",
+                                    error.message ?: "Failed to start download",
+                                    null,
+                                )
+                            }
+                        }
+                    }
+                    "cancel" -> {
+                        val taskId = call.argument<String>("taskId")
+                        if (taskId == null) {
+                            result.error("missing_task_id", "taskId is required", null)
+                        } else {
+                            try {
+                                downloaderModule.callAttr("cancel", taskId)
+                                result.success(null)
+                            } catch (error: Exception) {
+                                result.error(
+                                    "cancel_failed",
+                                    error.message ?: "Failed to cancel download",
+                                    null,
+                                )
+                            }
+                        }
+                    }
+                    "pause" -> {
+                        val taskId = call.argument<String>("taskId")
+                        if (taskId == null) {
+                            result.error("missing_task_id", "taskId is required", null)
+                        } else {
+                            try {
+                                downloaderModule.callAttr("pause", taskId)
+                                result.success(null)
+                            } catch (error: Exception) {
+                                result.error(
+                                    "pause_failed",
+                                    error.message ?: "Failed to pause download",
+                                    null,
+                                )
+                            }
+                        }
+                    }
+                    "resume" -> {
+                        val taskId = call.argument<String>("taskId")
+                        if (taskId == null) {
+                            result.error("missing_task_id", "taskId is required", null)
+                        } else {
+                            try {
+                                downloaderModule.callAttr("resume", taskId)
+                                result.success(null)
+                            } catch (error: Exception) {
+                                result.error(
+                                    "resume_failed",
+                                    error.message ?: "Failed to resume download",
+                                    null,
+                                )
+                            }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        EventChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            downloaderEventsChannel,
+        ).setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                    startDownloaderPolling(events)
+                }
+
+                override fun onCancel(arguments: Any?) {
+                    stopDownloaderPolling()
+                }
+            },
+        )
+    }
+
+    private val downloaderModule: PyObject
+        get() = Python.getInstance().getModule("downloader")
+
+    private fun initChaquopy() {
+        if (!Python.isStarted()) {
+            Python.start(AndroidPlatform(this))
+        }
+    }
+
+    private fun handleDownloaderAsync(
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit,
+    ) {
+        Thread {
+            try {
+                onSuccess()
+            } catch (error: Exception) {
+                android.os.Handler(Looper.getMainLooper()).post {
+                    onError(error)
+                }
+            }
+        }.start()
+    }
+
+    private fun startDownloaderPolling(events: EventChannel.EventSink?) {
+        stopDownloaderPolling()
+        val handler = Handler(Looper.getMainLooper())
+        downloaderPollTimer = handler
+        handler.post(object : Runnable {
+            override fun run() {
+                if (events == null) {
+                    return
+                }
+                try {
+                    val drained = downloaderModule.callAttr("drain")
+                    val list = drained.asList()
+                    for (item in list) {
+                        val map = item.asMap()
+                        val payload = HashMap<String, Any?>()
+                        for ((key, value) in map) {
+                            payload[key.toString()] = unbox(value)
+                        }
+                        events.success(payload)
+                    }
+                } catch (_: Exception) {
+                    // Python runtime not ready or module missing; ignore and retry.
+                }
+                handler.postDelayed(this, downloaderEventsPollIntervalMs)
+            }
+        })
+    }
+
+    /// Converts a Chaquopy PyObject (or plain JVM value) into a type the Flutter
+    /// StandardMessageCodec can serialize. Chaquopy primitives are PyObjects
+    /// that don't map directly to codec types.
+    private fun unbox(value: Any?): Any? {
+        if (value == null ||
+            value is String ||
+            value is Boolean ||
+            value is Int ||
+            value is Long ||
+            value is Double ||
+            value is Float
+        ) {
+            return value
+        }
+        val text = value.toString()
+        if (text == "True") return true
+        if (text == "False") return false
+        if (text == "None") return null
+        text.toLongOrNull()?.let { return it }
+        text.toFloatOrNull()?.let { return it.toDouble() }
+        return text
+    }
+
+    private fun stopDownloaderPolling() {
+        downloaderPollTimer?.removeCallbacksAndMessages(null)
+        downloaderPollTimer = null
     }
 
     private fun getStorageVolumes(): List<Map<String, Any?>> {

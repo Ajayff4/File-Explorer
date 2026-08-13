@@ -107,6 +107,12 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
+| ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. |
+| ✅ | Downloader | Pause/resume (in-place blocking hook; resume continues the same connection), cancel-of-paused, and paused-task restore. |
+| ✅ | Downloader | Completed tasks: copy-error action, completion datetime, and a polished kebab menu (Move to / Open folder / Browse). |
+| ✅ | Downloader | Browse/open-folder open a dedicated pushed view (`/downloader/browse`) so back returns to the downloader, not Explorer. |
+| ✅ | Downloader | Browse view and change-folder picker render as grids (thumbnails/icons, 4–8 responsive columns) via shared `DownloadEntryGrid`. |
+| ⚠️ | Downloader | Site support limited to what `yt-dlp` can resolve (Threads and sites without a working extractor fail); no playlists, no ffmpeg conversion/merging, no DRM/login-gated content. See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
 
 ## Last Verified
@@ -138,6 +144,10 @@ The latest debug APK path, after running a build, is:
 build/app/outputs/flutter-apk/app-debug.apk
 ```
 
+Last full check on 2026-08-13 after the Universal Downloader (Chaquopy + yt-dlp) landed: `flutter analyze` clean, `flutter test` all passing, `flutter build apk --debug` succeeds with yt-dlp bundled. A live end-to-end download on a real device is still unverified.
+
+Update 2026-08-14: `flutter analyze` clean, downloader controller tests 15/15 passing, and a live YouTube download was confirmed end-to-end on a real device (wireless debug). Pause/resume, copy-error, kebab-menu, browse-view, and datetime polish landed.
+
 ## Resume Checklist
 
 When coming back:
@@ -157,8 +167,12 @@ Recommended next slices, in order:
 | ✅ | 3 | Media | Post-transfer MediaStore rescanning (`mediaStoreScanProvider`). |
 | [ ] | 4 | Tests | Update stale test expectations for current Home/media behavior. |
 | ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
-| [ ] | 6 | Media | Add thumbnail cache for media libraries and Explorer. |
-| [ ] | 7 | UI | Polish media folder view on real device and tune grid density. |
+| ✅ | 6 | Downloader | Universal Downloader: yt-dlp bundled via Chaquopy, queue + progress + retry + concurrency limit (2026-08-13, `docs/DOWNLOADER.md`). |
+| ✅ | 7 | Downloader | Pause/resume, copy-error, kebab-menu completed actions, separate browse view, full picker path, completion datetime (2026-08-14). |
+| ✅ | 8 | Downloader | Verify a live download end-to-end on a real Android device (Dart ↔ Chaquopy event flow) — confirmed 2026-08-14. |
+| [ ] | 9 | Downloader | Optional ffmpeg bundling for format conversion (audio → mp3) and video/audio merging. |
+| [ ] | 10 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 11 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
 
@@ -225,6 +239,27 @@ Removed from the roadmap.
 | ✅ | Add extraction for `.tar`, `.gz`, `.tar.gz`, and `.tgz`. |
 | ✅ | Add archive browsing with folder navigation and previews of image/video/audio/text entries inside archives. |
 
+### Downloader
+
+| Status | Task |
+| --- | --- |
+| ✅ | Bundle yt-dlp via Chaquopy (CPython 3.12, 64-bit ABIs, `minSdk` 24). |
+| ✅ | `DownloadEngine` seam + `ChaquopyDownloadEngine` over Method/Event channels. |
+| ✅ | Python module: `resolve`/`start`/`cancel` with progress hooks and a drain queue. |
+| ✅ | Kotlin bridge: MethodChannel handlers + EventChannel polling with `unbox()`. |
+| ✅ | `DownloaderController`: enqueue, concurrency gating, progress/status events, cancel, retry, clear-finished. |
+| ✅ | Persistence: `DownloadTaskRows` (schema v8) + drift settings (`downloader.*`). |
+| ✅ | `DownloaderScreen` UI: URL entry, video/audio chips, queue, settings, folder picker, move-to/open actions. |
+| ✅ | Navigation: `/downloader` route + Home tile + More sheet + Core Features card. |
+| ✅ | Tests: 15 controller tests (queue, fail, retry, cancel, pause/resume, concurrency, restore, settings). |
+| ✅ | Pause/resume: in-place blocking hook, pause/resume/cancel-of-paused engine+Python+UI support, restore-paused-as-failed. |
+| ✅ | Completed-task polish: copy-error action, completion datetime, polished kebab menu (Move to / Open folder / Browse). |
+| ✅ | Browse/open-folder in a dedicated pushed view (`/downloader/browse`) so back returns to the downloader. |
+| ✅ | Browse view and change-folder picker render as grids via shared `DownloadEntryGrid` (2026-08-14). |
+| ✅ | Verify a live download end-to-end on a real device — confirmed 2026-08-14 (wireless debug). |
+| [ ] | Bundle ffmpeg for format conversion (audio → mp3) and video/audio merging. |
+| [ ] | Playlist/`noplaylist` handling refinement. |
+
 ### Viewers And Players
 
 | Status | Area | Task |
@@ -267,7 +302,7 @@ Removed from the roadmap.
 
 ## Useful References
 
-- Detailed progress log: `CHANGES.md`.
+- Detailed progress log: `CHANGELOG.md`.
 - Run/build commands: `README.md`.
 - Design and phase plan: `../documentation/docs/SOFTWARE_DESIGN_DOCUMENT.md`.
 - POC plan: `../documentation/docs/POC_IMPLEMENTATION_PLAN_IN_PHASES.md`.

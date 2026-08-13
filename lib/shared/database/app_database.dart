@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 
@@ -70,6 +71,25 @@ class SettingRows extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
+class DownloadTaskRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get url => text()();
+  IntColumn get mediaType => intEnum<DownloadMediaType>()();
+  TextColumn get title => text().nullable()();
+  IntColumn get status => intEnum<DownloadTaskStatus>()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+  TextColumn get outputDirectory => text()();
+  IntColumn get transferredBytes => integer().withDefault(const Constant(0))();
+  IntColumn get totalBytes => integer().nullable()();
+  RealColumn get speedBytesPerSecond => real().withDefault(const Constant(0))();
+  TextColumn get fileName => text().nullable()();
+  TextColumn get failureMessage => text().nullable()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     TransferTaskRows,
@@ -77,13 +97,14 @@ class SettingRows extends Table {
     RecentLocationRows,
     SearchIndexEntryRows,
     SettingRows,
+    DownloadTaskRows,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration {
@@ -112,6 +133,9 @@ class AppDatabase extends _$AppDatabase {
           // Rebuild with a composite (rootPath, path) primary key.
           await customStatement('DROP TABLE IF EXISTS search_index_entry_rows');
           await migrator.createTable(searchIndexEntryRows);
+        }
+        if (from < 8) {
+          await migrator.createTable(downloadTaskRows);
         }
       },
     );

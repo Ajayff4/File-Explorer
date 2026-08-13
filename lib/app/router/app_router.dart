@@ -14,6 +14,8 @@ import 'package:file_explorer/features/transfers/presentation/controllers/transf
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
+import 'package:file_explorer/features/downloader/presentation/download_browse_screen.dart';
+import 'package:file_explorer/features/downloader/presentation/downloader_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -70,6 +72,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const TransferManagerScreen(),
           ),
           GoRoute(
+            path: AppRoutes.downloader,
+            builder: (context, state) => const DownloaderScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.settings,
             builder: (context, state) => const SettingsScreen(),
           ),
@@ -124,6 +130,16 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const MissingMediaViewerScreen();
         },
       ),
+      GoRoute(
+        path: AppRoutes.downloaderBrowse,
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is String && extra.isNotEmpty) {
+            return DownloadBrowseScreen(startPath: extra);
+          }
+          return const DownloaderScreen();
+        },
+      ),
     ],
   );
   ref.onDispose(router.dispose);
@@ -145,6 +161,8 @@ class AppRoutes {
   static const archiveFilePreview = '/zip-preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
+  static const downloader = '/downloader';
+  static const downloaderBrowse = '/downloader/browse';
 
   static String media(MediaLibraryKind kind) {
     return '/media/${kind.routeSegment}';

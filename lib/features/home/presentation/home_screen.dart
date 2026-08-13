@@ -1,4 +1,5 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/downloader/presentation/controllers/downloader_controller.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
@@ -25,6 +26,7 @@ class HomeScreen extends ConsumerWidget {
     final recentsState = ref.watch(recentsControllerProvider);
     final settings = ref.watch(settingsControllerProvider).settings;
     final transferState = ref.watch(transferControllerProvider);
+    final downloaderState = ref.watch(downloaderControllerProvider);
     final summary = explorerState.summary.value;
     final visibleRecents = settings.showFoldersOnlyInHistory
         ? recentsState.locations.where((recent) => recent.isFolder).toList()
@@ -70,6 +72,14 @@ class HomeScreen extends ConsumerWidget {
                             },
                           ),
                           ListTile(
+                            leading: const Icon(Icons.download_rounded),
+                            title: const Text('Universal Downloader'),
+                            onTap: () {
+                              Navigator.of(sheetContext).pop();
+                              context.go(AppRoutes.downloader);
+                            },
+                          ),
+                          ListTile(
                             leading: const Icon(Icons.hexagon_rounded),
                             title: const Text('Core Features'),
                             onTap: () {
@@ -103,6 +113,8 @@ class HomeScreen extends ConsumerWidget {
               const _ShortcutGrid(),
               const SizedBox(height: 16),
               const _CoreFeaturesTile(),
+              const SizedBox(height: 16),
+              _DownloaderTile(state: downloaderState),
               if (settings.showTransferStation) ...[
                 const SizedBox(height: 16),
                 _TransferStationTile(state: transferState),
@@ -171,6 +183,43 @@ class _CoreFeaturesTile extends StatelessWidget {
         onTap: () => context.push(AppRoutes.coreFeatures),
       ),
     );
+  }
+}
+
+class _DownloaderTile extends StatelessWidget {
+  const _DownloaderTile({required this.state});
+
+  final DownloaderState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final summary = _downloaderSummary(context, state);
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.download_rounded),
+        title: const Text('Universal Downloader'),
+        subtitle: Text(summary),
+        trailing: const Icon(Icons.chevron_right_rounded),
+        onTap: () => context.go(AppRoutes.downloader),
+      ),
+    );
+  }
+
+  String _downloaderSummary(BuildContext context, DownloaderState state) {
+    if (state.isLoading) {
+      return 'Loading downloads';
+    }
+    final parts = <String>[];
+    if (state.pendingCount > 0) {
+      parts.add('${state.pendingCount} active');
+    }
+    if (state.completedCount > 0) {
+      parts.add('${state.completedCount} done');
+    }
+    if (state.failedCount > 0) {
+      parts.add('${state.failedCount} failed');
+    }
+    return parts.isEmpty ? 'Paste a link to download videos and audio' : parts.join(' · ');
   }
 }
 
