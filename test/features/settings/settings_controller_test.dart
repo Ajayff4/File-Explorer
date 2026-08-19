@@ -37,4 +37,29 @@ void main() {
     expect(controller.state.settings, isA<AppSettings>());
     expect(controller.state.settings.showHiddenFiles, isFalse);
   });
+
+  test('defaults to dark purple theme', () async {
+    final controller = SettingsController(InMemorySettingsStore());
+    await controller.loadSettings();
+
+    expect(controller.state.settings.themeMode, AppThemeMode.dark);
+    expect(controller.state.settings.themeAccent, AppThemeAccent.purple);
+  });
+
+  test('updates and persists theme mode and accent', () async {
+    final store = InMemorySettingsStore();
+    final controller = SettingsController(store);
+
+    await controller.setThemeMode(AppThemeMode.light);
+    await controller.setThemeAccent(AppThemeAccent.royalBlue);
+
+    final reloadedController = SettingsController(store);
+    await reloadedController.loadSettings();
+
+    expect(reloadedController.state.settings.themeMode, AppThemeMode.light);
+    expect(
+      reloadedController.state.settings.themeAccent,
+      AppThemeAccent.royalBlue,
+    );
+  });
 }

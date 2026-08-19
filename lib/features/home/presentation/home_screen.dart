@@ -362,6 +362,7 @@ class _ShortcutGrid extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final shortcut = shortcuts[index];
+            final colors = Theme.of(context).colorScheme;
             return Card(
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
@@ -373,7 +374,7 @@ class _ShortcutGrid extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(shortcut.icon, size: 26),
+                      Icon(shortcut.icon, size: 26, color: colors.primary),
                       const SizedBox(height: 6),
                       Text(
                         shortcut.label,

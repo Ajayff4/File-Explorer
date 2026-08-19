@@ -1,70 +1,96 @@
+import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:flutter/material.dart';
+
+/// Maps each theme accent to its seed color (Material seed for the scheme).
+Color appThemeSeed(AppThemeAccent accent) {
+  return switch (accent) {
+    AppThemeAccent.purple => const Color(0xFF9B5CFF),
+    AppThemeAccent.green => const Color(0xFF00C853),
+    AppThemeAccent.pink => const Color(0xFFFF4081),
+    AppThemeAccent.red => const Color(0xFFFF5252),
+    AppThemeAccent.royalBlue => const Color(0xFF2979FF),
+  };
+}
+
+/// Picks black or white for text/icons placed on top of [color], using the
+/// framework's standard luminance threshold (WCAG-aware).
+Color onAccent(Color color) {
+  return ThemeData.estimateBrightnessForColor(color) == Brightness.dark
+      ? Colors.white
+      : Colors.black;
+}
 
 class AppTheme {
   const AppTheme._();
 
-  static const _brandPurple = Color(0xFF9B5CFF);
-  static const _deepPurple = Color(0xFF6D39F2);
-  static const _black = Color(0xFF050508);
+  static const _lightSurface = Color(0xFFF2F2F2);
+  static const _lightSurfaceContainer = Color(0xFFECECEC);
 
-  static ThemeData light() {
-    final scheme = ColorScheme.fromSeed(seedColor: _brandPurple).copyWith(
-      primary: _deepPurple,
-      secondary: const Color(0xFF7A4CE0),
-      surface: const Color(0xFFFBF9FF),
+  static ThemeData light([AppThemeAccent accent = AppThemeAccent.purple]) {
+    final seed = appThemeSeed(accent);
+    final scheme = ColorScheme.fromSeed(seedColor: seed).copyWith(
+      primary: seed,
+      onPrimary: onAccent(seed),
+      surface: const Color(0xFFFFFFFF),
     );
-
-    return _base(scheme).copyWith(
-      scaffoldBackgroundColor: const Color(0xFFF8F6FC),
-    );
+    return _base(scheme);
   }
 
-  static ThemeData dark() {
+  static ThemeData dark([AppThemeAccent accent = AppThemeAccent.purple]) {
+    final seed = appThemeSeed(accent);
     final scheme = ColorScheme.fromSeed(
-      seedColor: _brandPurple,
+      seedColor: seed,
       brightness: Brightness.dark,
     ).copyWith(
-      primary: _brandPurple,
-      secondary: const Color(0xFFC7A7FF),
-      surface: const Color(0xFF101016),
-      onSurface: const Color(0xFFF2ECFF),
+      primary: seed,
+      onPrimary: onAccent(seed),
     );
-
-    return _base(scheme).copyWith(
-      scaffoldBackgroundColor: _black,
-    );
+    return _base(scheme);
   }
 
   static ThemeData _base(ColorScheme scheme) {
-    final cardColor = Color.alphaBlend(
-      scheme.primary.withValues(
-          alpha: scheme.brightness == Brightness.dark ? 0.10 : 0.04),
-      scheme.surface,
-    );
+    final isDark = scheme.brightness == Brightness.dark;
+    final surfaceColor = isDark ? scheme.surface : _lightSurface;
+    final containerColor = isDark ? scheme.surfaceContainer : _lightSurfaceContainer;
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
+      scaffoldBackgroundColor: surfaceColor,
       appBarTheme: AppBarTheme(
         centerTitle: false,
-        backgroundColor:
-            scheme.brightness == Brightness.dark ? _black : scheme.surface,
+        backgroundColor: surfaceColor,
         foregroundColor: scheme.onSurface,
+        scrolledUnderElevation: 1,
       ),
       cardTheme: CardThemeData(
-        color: cardColor,
-        elevation: 0,
+        color: isDark ? scheme.surfaceContainerLow : Colors.white,
+        elevation: isDark ? 0 : 1,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
+          side: isDark
+              ? BorderSide.none
+              : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.7)),
         ),
       ),
-      listTileTheme: const ListTileThemeData(
+      listTileTheme: ListTileThemeData(
         minLeadingWidth: 40,
-        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(8)),
         ),
+      ),
+      chipTheme: ChipThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        side: BorderSide(color: scheme.outlineVariant),
+        selectedColor: scheme.primary,
+        checkmarkColor: scheme.onPrimary,
+        labelStyle: TextStyle(color: scheme.onSurface),
+        secondarySelectedColor: scheme.primary,
+        secondaryLabelStyle: TextStyle(color: scheme.onPrimary),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: IconButton.styleFrom(
@@ -73,18 +99,16 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor:
-            scheme.brightness == Brightness.dark ? _black : scheme.surface,
+        backgroundColor: containerColor,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor:
-            scheme.brightness == Brightness.dark ? _black : scheme.surface,
+        backgroundColor: containerColor,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant),

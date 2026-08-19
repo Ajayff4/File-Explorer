@@ -16,12 +16,16 @@ import 'package:file_explorer/features/archive/presentation/archive_file_preview
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/download_browse_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_screen.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
+  final refresh = ValueNotifier(0);
+  ref.listen(settingsControllerProvider, (_, __) => refresh.value++);
   final router = GoRouter(
+    refreshListenable: refresh,
     initialLocation: AppRoutes.home,
     routes: [
       ShellRoute(

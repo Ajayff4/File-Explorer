@@ -11,10 +11,43 @@ class DriftSettingsStore implements SettingsStore {
   Future<AppSettings> loadSettings() async {
     final rows = await _database.select(_database.settingRows).get();
     final values = {
-      for (final row in rows)
-        if (_keyFor(row.key) != null) _keyFor(row.key)!: row.value == 'true',
+      for (final row in rows) row.key: row.value,
     };
-    return _toSettings(values);
+
+    const defaults = AppSettings();
+
+    AppThemeMode readThemeMode() {
+      final raw = values[SettingKey.themeMode.storageKey];
+      for (final mode in AppThemeMode.values) {
+        if (mode.name == raw) {
+          return mode;
+        }
+      }
+      return defaults.themeMode;
+    }
+
+    AppThemeAccent readThemeAccent() {
+      final raw = values[SettingKey.themeAccent.storageKey];
+      for (final accent in AppThemeAccent.values) {
+        if (accent.name == raw) {
+          return accent;
+        }
+      }
+      return defaults.themeAccent;
+    }
+
+    return defaults.copyWith(
+      showHiddenFiles: values[SettingKey.showHiddenFiles.storageKey] == 'true',
+      confirmDestructiveActions:
+          values[SettingKey.confirmDestructiveActions.storageKey] == 'true',
+      showFoldersOnlyInHistory:
+          values[SettingKey.showFoldersOnlyInHistory.storageKey] == 'true',
+      useIndexedSearch: values[SettingKey.useIndexedSearch.storageKey] == 'true',
+      showTransferStation:
+          values[SettingKey.showTransferStation.storageKey] == 'true',
+      themeMode: readThemeMode(),
+      themeAccent: readThemeAccent(),
+    );
   }
 
   @override
@@ -29,32 +62,18 @@ class DriftSettingsStore implements SettingsStore {
   }
 
   @override
+  Future<void> saveString(SettingKey key, String value) {
+    return _database.into(_database.settingRows).insertOnConflictUpdate(
+          SettingRowsCompanion.insert(
+            key: key.storageKey,
+            value: value,
+            updatedAt: DateTime.now(),
+          ),
+        );
+  }
+
+  @override
   Future<void> resetSettings() {
     return _database.delete(_database.settingRows).go();
-  }
-
-  SettingKey? _keyFor(String storageKey) {
-    for (final key in SettingKey.values) {
-      if (key.storageKey == storageKey) {
-        return key;
-      }
-    }
-    return null;
-  }
-
-  AppSettings _toSettings(Map<SettingKey, bool> values) {
-    const defaults = AppSettings();
-    return defaults.copyWith(
-      showHiddenFiles:
-          values[SettingKey.showHiddenFiles] ?? defaults.showHiddenFiles,
-      confirmDestructiveActions: values[SettingKey.confirmDestructiveActions] ??
-          defaults.confirmDestructiveActions,
-      showFoldersOnlyInHistory: values[SettingKey.showFoldersOnlyInHistory] ??
-          defaults.showFoldersOnlyInHistory,
-      useIndexedSearch:
-          values[SettingKey.useIndexedSearch] ?? defaults.useIndexedSearch,
-      showTransferStation: values[SettingKey.showTransferStation] ??
-          defaults.showTransferStation,
-    );
   }
 }

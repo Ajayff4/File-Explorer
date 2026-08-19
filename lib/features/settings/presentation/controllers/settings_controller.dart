@@ -54,6 +54,26 @@ class SettingsController extends StateNotifier<SettingsState> {
     state = state.copyWith(settings: _copyWith(key, value));
   }
 
+  Future<void> setThemeMode(AppThemeMode mode) async {
+    await _store.saveString(SettingKey.themeMode, mode.name);
+    if (!mounted) {
+      return;
+    }
+    state = state.copyWith(
+      settings: state.settings.copyWith(themeMode: mode),
+    );
+  }
+
+  Future<void> setThemeAccent(AppThemeAccent accent) async {
+    await _store.saveString(SettingKey.themeAccent, accent.name);
+    if (!mounted) {
+      return;
+    }
+    state = state.copyWith(
+      settings: state.settings.copyWith(themeAccent: accent),
+    );
+  }
+
   Future<void> resetSettings() async {
     await _store.resetSettings();
     if (!mounted) {
@@ -73,6 +93,8 @@ class SettingsController extends StateNotifier<SettingsState> {
       SettingKey.useIndexedSearch => current.copyWith(useIndexedSearch: value),
       SettingKey.showTransferStation =>
         current.copyWith(showTransferStation: value),
+      SettingKey.themeMode => current,
+      SettingKey.themeAccent => current,
     };
   }
 }

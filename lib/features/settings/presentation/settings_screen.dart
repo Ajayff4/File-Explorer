@@ -1,3 +1,4 @@
+import 'package:file_explorer/app/theme/app_theme.dart';
 import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,19 @@ class SettingsScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           if (state.isLoading) const LinearProgressIndicator(),
+          _SettingsSection(
+            title: 'Appearance',
+            children: [
+              _ThemeModeCard(
+                mode: settings.themeMode,
+                onChanged: controller.setThemeMode,
+              ),
+              _AccentPickerCard(
+                accent: settings.themeAccent,
+                onChanged: controller.setThemeAccent,
+              ),
+            ],
+          ),
           _SettingsSection(
             title: 'Explorer',
             children: [
@@ -94,6 +108,153 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+class _ThemeModeCard extends StatelessWidget {
+  const _ThemeModeCard({
+    required this.mode,
+    required this.onChanged,
+  });
+
+  final AppThemeMode mode;
+  final ValueChanged<AppThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Theme mode'),
+              subtitle: const Text('System, light, or dark appearance'),
+            ),
+            SegmentedButton<AppThemeMode>(
+              segments: const [
+                ButtonSegment(
+                  value: AppThemeMode.system,
+                  label: Text('System'),
+                  icon: Icon(Icons.brightness_auto_outlined),
+                ),
+                ButtonSegment(
+                  value: AppThemeMode.light,
+                  label: Text('Light'),
+                  icon: Icon(Icons.light_mode_outlined),
+                ),
+                ButtonSegment(
+                  value: AppThemeMode.dark,
+                  label: Text('Dark'),
+                  icon: Icon(Icons.dark_mode_outlined),
+                ),
+              ],
+              selected: {mode},
+              onSelectionChanged: (selection) => onChanged(selection.first),
+              showSelectedIcon: false,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccentPickerCard extends StatelessWidget {
+  const _AccentPickerCard({
+    required this.accent,
+    required this.onChanged,
+  });
+
+  final AppThemeAccent accent;
+  final ValueChanged<AppThemeAccent> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text('Accent color'),
+              subtitle: Text('Black & white theme variants share this accent'),
+            ),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final value in AppThemeAccent.values)
+                  _AccentSwatch(
+                    accent: value,
+                    selected: value == accent,
+                    onTap: () => onChanged(value),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccentSwatch extends StatelessWidget {
+  const _AccentSwatch({
+    required this.accent,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final AppThemeAccent accent;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = appThemeSeed(accent);
+    return Tooltip(
+      message: accent.label,
+      child: InkWell(
+        onTap: onTap,
+        customBorder: const CircleBorder(),
+        child: Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+            border: selected
+                ? Border.all(
+                    color: Theme.of(context).colorScheme.onSurface,
+                    width: 3,
+                  )
+                : null,
+          ),
+          child: selected
+              ? Icon(
+                  Icons.check_rounded,
+                  color: onAccent(appThemeSeed(accent)),
+                  size: 24,
+                )
+              : null,
+        ),
+      ),
+    );
+  }
+}
+
+extension on AppThemeAccent {
+  String get label => switch (this) {
+        AppThemeAccent.purple => 'Purple',
+        AppThemeAccent.green => 'Green',
+        AppThemeAccent.pink => 'Pink',
+        AppThemeAccent.red => 'Red',
+        AppThemeAccent.royalBlue => 'Royal blue',
+      };
+}
+
 class _SettingsSection extends StatelessWidget {
   const _SettingsSection({
     required this.title,
@@ -106,7 +267,7 @@ class _SettingsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -117,7 +278,10 @@ class _SettingsSection extends StatelessWidget {
               style: Theme.of(context).textTheme.titleMedium,
             ),
           ),
-          ...children,
+          for (var i = 0; i < children.length; i++) ...[
+            if (i > 0) const SizedBox(height: 8),
+            children[i],
+          ],
         ],
       ),
     );
