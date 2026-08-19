@@ -1,5 +1,7 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/downloader/data/repositories/download_engine_provider.dart';
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
+import 'package:file_explorer/features/downloader/domain/repositories/download_engine.dart';
 import 'package:file_explorer/features/downloader/presentation/controllers/downloader_controller.dart';
 import 'package:file_explorer/features/downloader/presentation/download_entry_grid.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_visuals.dart';
@@ -25,6 +27,7 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
   final _urlController = TextEditingController();
   final _urlFocusNode = FocusNode();
   DownloadMediaType _mediaType = DownloadMediaType.video;
+  DownloadQuality _quality = DownloadQuality.auto;
 
   @override
   void dispose() {
@@ -41,6 +44,7 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
     ref.read(downloaderControllerProvider.notifier).enqueue(
           url: url,
           mediaType: _mediaType,
+          quality: _quality,
         );
     _urlController.clear();
     _urlFocusNode.requestFocus();
@@ -56,6 +60,16 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
     _urlFocusNode.requestFocus();
   }
 
+  Future<void> _showYtDlpUpdateSheet() async {
+    final engine = ref.read(downloadEngineProvider);
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (context) => _YtDlpUpdateSheet(engine: engine),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(downloaderControllerProvider);
@@ -66,6 +80,11 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
       appBar: AppBar(
         title: const Text('Universal Downloader'),
         actions: [
+          IconButton(
+            tooltip: 'yt-dlp update',
+            onPressed: _showYtDlpUpdateSheet,
+            icon: const Icon(Icons.system_update_alt_rounded),
+          ),
           if (state.finishedTasks.isNotEmpty)
             IconButton(
               tooltip: 'Clear finished',
@@ -81,8 +100,10 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
             controller: _urlController,
             focusNode: _urlFocusNode,
             mediaType: _mediaType,
+            quality: _quality,
             onUrlChanged: (_) => setState(() {}),
             onMediaTypeChanged: (value) => setState(() => _mediaType = value),
+            onQualityChanged: (value) => setState(() => _quality = value),
             onAdd: canEnqueue ? _addDownload : null,
             onPaste: _pasteUrl,
           ),
@@ -124,8 +145,10 @@ class _UrlEntryCard extends StatelessWidget {
     required this.controller,
     required this.focusNode,
     required this.mediaType,
+    required this.quality,
     required this.onUrlChanged,
     required this.onMediaTypeChanged,
+    required this.onQualityChanged,
     required this.onAdd,
     required this.onPaste,
   });
@@ -133,8 +156,10 @@ class _UrlEntryCard extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final DownloadMediaType mediaType;
+  final DownloadQuality quality;
   final ValueChanged<String> onUrlChanged;
   final ValueChanged<DownloadMediaType> onMediaTypeChanged;
+  final ValueChanged<DownloadQuality> onQualityChanged;
   final VoidCallback? onAdd;
   final VoidCallback onPaste;
 
@@ -191,6 +216,26 @@ class _UrlEntryCard extends StatelessWidget {
                   ),
               ],
             ),
+            if (mediaType == DownloadMediaType.video) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Quality',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final q in DownloadQuality.values)
+                    ChoiceChip(
+                      label: Text(q.label),
+                      selected: quality == q,
+                      onSelected: (_) => onQualityChanged(q),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,
@@ -612,6 +657,7 @@ class _DownloadTaskCard extends ConsumerWidget {
     final speed = progress.speedBytesPerSecond;
     final details = <String>[
       task.mediaType.label,
+      if (task.mediaType == DownloadMediaType.video) task.quality.label,
       task.status.label,
     ];
     if (speed > 0) {
@@ -1060,5 +1106,215 @@ class _FolderPickerSheetState extends State<_FolderPickerSheet> {
     }
     final index = path.lastIndexOf('/');
     return index <= 0 ? '/' : path.substring(0, index);
+  }
+}
+
+class _YtDlpUpdateSheet extends ConsumerStatefulWidget {
+  const _YtDlpUpdateSheet({required this.engine});
+
+  final DownloadEngine engine;
+
+  @override
+  ConsumerState<_YtDlpUpdateSheet> createState() => _YtDlpUpdateSheetState();
+}
+
+class _YtDlpUpdateSheetState extends ConsumerState<_YtDlpUpdateSheet> {
+  YtDlpUpdateInfo? _info;
+  YtDlpApplyResult? _applyResult;
+  bool _checking = true;
+  bool _applying = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+  }
+
+  Future<void> _check() async {
+    setState(() {
+      _checking = true;
+      _info = null;
+      _applyResult = null;
+    });
+    final info = await widget.engine.checkUpdate();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _info = info;
+      _checking = false;
+    });
+  }
+
+  Future<void> _apply() async {
+    setState(() => _applying = true);
+    final result = await widget.engine.applyUpdate();
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _applyResult = result;
+      _applying = false;
+      if (result.applied && _info != null) {
+        _info = YtDlpUpdateInfo(
+          currentVersion: result.version,
+          latestVersion: _info!.latestVersion,
+          updateAvailable: false,
+        );
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.system_update_alt_rounded, color: theme.colorScheme.primary),
+                const SizedBox(width: 12),
+                Text(
+                  'yt-dlp engine',
+                  style: theme.textTheme.titleLarge,
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildStatus(),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _checking || _applying ? null : _apply,
+                icon: _applying
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.download_rounded),
+                label: Text(_applying ? 'Updating…' : 'Check & update'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatus() {
+    final theme = Theme.of(context);
+    if (_checking) {
+      return const Row(
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+          SizedBox(width: 12),
+          Text('Checking for updates…'),
+        ],
+      );
+    }
+
+    final info = _info;
+    if (info == null) {
+      return Text('Update check failed', style: theme.textTheme.bodyMedium);
+    }
+
+    final applyResult = _applyResult;
+    final statusColor = applyResult != null
+        ? (applyResult.applied ? Colors.green : theme.colorScheme.error)
+        : theme.colorScheme.primary;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InfoRow(label: 'Installed', value: info.currentVersion),
+        const SizedBox(height: 8),
+        _InfoRow(label: 'Latest', value: info.latestVersion),
+        if (info.hasError) ...[
+          const SizedBox(height: 8),
+          Text(
+            info.error!,
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.error),
+          ),
+        ],
+        if (applyResult != null) ...[
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                applyResult.applied
+                    ? Icons.check_circle_rounded
+                    : Icons.error_rounded,
+                size: 20,
+                color: statusColor,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  applyResult.applied
+                      ? 'Updated to ${applyResult.version}'
+                      : (applyResult.message?.isNotEmpty == true
+                          ? applyResult.message!
+                          : 'Update could not be applied'),
+                  style: theme.textTheme.bodyMedium?.copyWith(color: statusColor),
+                ),
+              ),
+            ],
+          ),
+        ] else if (info.updateAvailable) ...[
+          const SizedBox(height: 12),
+          Text(
+            'An update is available.',
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.primary),
+          ),
+        ] else ...[
+          const SizedBox(height: 12),
+          Text('You are up to date.', style: theme.textTheme.bodyMedium),
+        ],
+      ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 84,
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value.isEmpty ? 'Unknown' : value,
+            style: theme.textTheme.bodyMedium,
+          ),
+        ),
+      ],
+    );
   }
 }

@@ -60,12 +60,14 @@ class ChaquopyDownloadEngine implements DownloadEngine {
     required String url,
     required DownloadMediaType mediaType,
     required String outputDirectory,
+    DownloadQuality quality = DownloadQuality.auto,
   }) async {
     await _methodChannel.invokeMethod<void>('start', {
       'taskId': taskId,
       'url': url,
       'mediaType': mediaType.name,
       'outputDirectory': outputDirectory,
+      'quality': quality.name,
     });
   }
 
@@ -82,6 +84,35 @@ class ChaquopyDownloadEngine implements DownloadEngine {
   @override
   Future<void> resume(String taskId) async {
     await _methodChannel.invokeMethod<void>('resume', {'taskId': taskId});
+  }
+
+  @override
+  Future<YtDlpUpdateInfo> checkUpdate() async {
+    final payload = await _methodChannel.invokeMapMethod<Object?, Object?>(
+          'check_update',
+        ) ??
+        const <Object?, Object?>{};
+
+    return YtDlpUpdateInfo(
+      currentVersion: payload['currentVersion']?.toString() ?? '',
+      latestVersion: payload['latestVersion']?.toString() ?? '',
+      updateAvailable: payload['updateAvailable'] == true,
+      error: payload['error']?.toString(),
+    );
+  }
+
+  @override
+  Future<YtDlpApplyResult> applyUpdate() async {
+    final payload = await _methodChannel.invokeMapMethod<Object?, Object?>(
+          'apply_update',
+        ) ??
+        const <Object?, Object?>{};
+
+    return YtDlpApplyResult(
+      applied: payload['applied'] == true,
+      version: payload['version']?.toString() ?? '',
+      message: payload['message']?.toString(),
+    );
   }
 
   DownloaderEvent _eventFromPayload(Object? raw) {

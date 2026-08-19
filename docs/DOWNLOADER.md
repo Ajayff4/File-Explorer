@@ -1,9 +1,10 @@
 # Universal Downloader
 
 How URL-based media downloads work after the 2026-08-13 implementation (plus the
-2026-08-14 pause/resume and UI polish), why it is bundled with yt-dlp via
-Chaquopy, and how the Dart ↔ Python bridge stays in sync. The docs in this
-folder are the implementation reference; the roadmap table lives in
+2026-08-14 pause/resume and UI polish, the 2026-08-15+ quality presets and
+bundled ffmpeg, and the 2026-08-19 startup-crash fix), why it is bundled with
+yt-dlp via Chaquopy, and how the Dart ↔ Python bridge stays in sync. The docs in
+this folder are the implementation reference; the roadmap table lives in
 `../ROADMAP.md`.
 
 ## Problem
@@ -24,7 +25,7 @@ Flutter platform channels.
 DownloaderScreen  (lib/features/downloader/presentation/downloader_screen.dart)
   └─ downloaderControllerProvider
        └─ DownloaderController (StateNotifier, lib/features/downloader/.../downloader_controller.dart)
-            ├─ DownloadTaskStore   → Drift (DownloadTaskRows, app_database.dart schema v8)
+            ├─ DownloadTaskStore   → Drift (DownloadTaskRows, app_database.dart schema v9)
             ├─ DownloaderSettingsStore → Drift SettingRows (max concurrent, output dir)
             └─ DownloadEngine      → createDownloadEngine()  (io/stub conditional import)
                  ├─ Android:  ChaquopyDownloadEngine  → MethodChannel / EventChannel
@@ -35,7 +36,7 @@ DownloaderScreen  (lib/features/downloader/presentation/downloader_screen.dart)
 
 - `DownloadTask` (domain entity) models one queued/running/paused/completed/
   failed/cancelled download with a `DownloadProgress` (transferred, total,
-  speed).
+  speed) and a `DownloadQuality` (auto/480p/720p/1080p/max).
 - `DownloaderState` derives active/finished counts and stats from the task list.
 - Settings persist the max-concurrent-downloads limit and the output directory.
 
@@ -45,7 +46,7 @@ DownloaderScreen  (lib/features/downloader/presentation/downloader_screen.dart)
 
 | File | Purpose |
 | --- | --- |
-| `domain/entities/download_task.dart` | `DownloadTask`, `DownloadProgress`, `DownloadMediaType` (video/audio), `DownloadTaskStatus` (+ label). |
+| `domain/entities/download_task.dart` | `DownloadTask`, `DownloadProgress`, `DownloadMediaType` (video/audio), `DownloadQuality` (auto/480p/720p/1080p/max), `DownloadTaskStatus` (+ label). |
 | `domain/repositories/download_engine.dart` | `DownloadEngine` interface: `events()`, `resolve()`, `start()`, `pause()`, `resume()`, `cancel()`. `DownloaderEvent`/`MediaInfo` payloads. |
 | `domain/repositories/download_task_store.dart` | `DownloadTaskStore` (load/save/delete). |
 | `domain/repositories/downloader_settings_store.dart` | `DownloaderSettings` + `DownloaderSettingsStore`. |
@@ -64,8 +65,14 @@ DownloaderScreen  (lib/features/downloader/presentation/downloader_screen.dart)
 
 ### Controller behavior
 
-- `enqueue(url, mediaType)` creates a queued task, persists it, then starts it
-  if concurrency allows (`maxConcurrentDownloads`, default 1, clamp 1–16).
+- `enqueue(url, mediaType, {quality})` creates a queued task, persists it, then
+  starts it if concurrency allows (`maxConcurrentDownloads`, default 1, clamp
+  1–16). The chosen `DownloadQuality` is persisted on the row and forwarded to
+  the engine.
+- `initialize()` subscribes to `engine.events()` **first**, before loading
+  settings/tasks, and wraps both store loads in try/catch. A broken or corrupt
+  database must never prevent event delivery or the task lifecycle — this was
+  the fix for downloads appearing permanently stuck at "Downloading".
 - `_startIfReady` marks the task running and calls `engine.start(...)`; errors
   from the engine surface as a failed task.
 - Events from `engine.events()` (`resolved`, `progress`, `completed`, `failed`,
@@ -110,11 +117,29 @@ Pure-python wrapper around `yt-dlp`, imported by name `downloader`:
 
 - `resolve(url, media_type)` — metadata (title/thumbnail/duration/isPlaylist)
   via `extract_info(download=False)`.
-- `start(task_id, url, media_type, output_dir)` — spawns a daemon worker thread
-  running `yt-dlp` with a progress hook. Video uses `best[ext=mp4]/best`;
-  audio uses `bestaudio/best` (single-file formats, so no ffmpeg merge step is
-  required — yt-dlp is installed as a pure-Python wheel and no binary ffmpeg
-  is bundled).
+- `start(task_id, url, media_type, output_dir, quality="auto")` — spawns a
+  daemon worker thread running `yt-dlp` with a progress hook.
+- **Format selection** (`_format_for`): audio uses `bestaudio/best`; a
+  height-cap preset (480p/720p/1080p) prefers a single progressive
+  `best[height<=H][ext=mp4]` file and falls back to merged
+  `bestvideo[height<=H]+bestaudio` (which needs ffmpeg); `max` uses
+  `best[ext=mp4]/bestvideo+bestaudio/best`; `auto` uses `best[ext=mp4]/best`.
+- **ffmpeg** (`_ffmpeg_location`): a static ffmpeg binary is bundled in APK
+  assets and copied into app-private storage by `MainActivity` on first run so
+  merging separate video+audio streams works for capped/max qualities. Priority:
+  `IMAGEIO_FFMPEG_EXE` (test harness) → bundled binary in app files →
+  system `PATH` → `imageio-ffmpeg`'s bundled copy. yt-dlp still works without
+  it for single progressive files.
+- **ffmpeg licensing** — the bundled binary is a **pure-LGPL 2.1** build (FFmpeg
+  7.1 cross-compiled with Zig 0.13.0 for `aarch64-linux-musl`,
+  `--disable-gpl --disable-nonfree`, only LGPL-compatible components; stripped
+  to ~15 MB, fully static so it runs on Android). It does **not** include
+  x264/x265/xvid/vid.stab or any GPL component — it only remuxes/merges streams
+  (`-c copy`), it never re-encodes. The LGPL-2.1 license text and full
+  provenance/build config ship next to the asset
+  (`android/app/src/main/assets/ffmpeg/LGPL-2.1.txt` + `PROVENANCE.md`).
+  Earlier builds used a johnvansickle.com GPLv3 binary (`--enable-gpl
+  --enable-version3`), which imposed GPL obligations; swapped out 2026-08-19.
 - `pause(task_id)` / `resume(task_id)` — per-task `threading.Event` pause flags.
   The progress hook calls `event.wait()` while paused, stalling the worker
   thread **in place** so the yt-dlp connection stays alive; resume sets the
@@ -123,6 +148,15 @@ Pure-python wrapper around `yt-dlp`, imported by name `downloader`:
   event, so a paused download aborts immediately instead of hanging on the hook.
 - Events (`resolved`/`progress`/`completed`/`failed`/`cancelled`) are appended
   to an in-process queue; `drain()` returns and clears it.
+- `_debug(msg)` appends timestamped lines to `files/downloader_debug.log`
+  (diagnostic aid; harmless if absent).
+- `check_update()` / `apply_update()` — query PyPI for the latest `yt-dlp`
+  release and optionally download its wheel into app-private storage
+  (`files/ytdlp_updates/`) to supersede the bundled version for the session.
+  Versions are PEP 440-normalized (`_normalize_version`) so the installed and
+  latest strings render identically when equal (yt-dlp's `__version__` keeps
+  leading zeros like `2026.07.04`, PyPI returns `2026.7.4`); comparison uses
+  integer `_version_tuple`s.
 
 ### Kotlin bridge (`MainActivity.kt`)
 
@@ -132,11 +166,22 @@ Pure-python wrapper around `yt-dlp`, imported by name `downloader`:
 - EventChannel `.../downloader/events`: a `Handler` polls `drain()` every
   150 ms while listening and forwards each event map to Dart, converting
   values through `unbox()` (bool/int/float/string/None → codec types).
+- `extractFfmpeg()` copies the bundled static `assets/ffmpeg/ffmpeg` binary into
+  app-private storage on first launch so Python can merge video+audio streams.
+- Diagnostic `Log.d("DownloaderDebug", ...)` lines mark `start` calls, event
+  subscription/cancel, and drained events.
 
 ## Persistence
 
-- `DownloadTaskRows` table (drift, `app_database.dart`), schema `8`; the
-  migration creates the table when upgrading from any older schema.
+- `DownloadTaskRows` table (drift, `app_database.dart`), schema `9`. The
+  `quality` column (nullable `DownloadQuality` enum) lives on the row itself.
+- The migration guards the `from < 9` `addColumn(quality)` step with a
+  `pragma_table_info` existence check. `createTable`/`createAll` already
+  materialize the current table definition, so a DB reaching that step with the
+  column present (fresh install, or a version-skipping DB) would otherwise fail
+  with `duplicate column name: quality` and break the whole database open —
+  which manifested as downloads stuck at "Downloading" (the controller never
+  got to subscribe to events).
 - Task rows are written on every state change (`_replaceTask`), so restarting
   the app restores the full history.
 - Settings live in the generic `SettingRows` table under `downloader.*` keys.
@@ -161,7 +206,12 @@ Pure-python wrapper around `yt-dlp`, imported by name `downloader`:
 - persistence restore (completed) and interrupted-running/-paused → failed,
 - settings update/persist and load on initialize.
 
-Run with:
+The Python side has an integration matrix (`tool/downloader_integration_test.py`
++ `run_downloader_test.sh`) that runs `resolve`/`start` end-to-end against a
+battery of public sites inside a venv (with `imageio-ffmpeg` providing ffmpeg),
+covering quality presets.
+
+Run the controller tests with:
 
 ```bash
 flutter test test/features/downloader/downloader_controller_test.dart
@@ -169,12 +219,19 @@ flutter test test/features/downloader/downloader_controller_test.dart
 
 ## Verification status
 
-- `flutter analyze` — clean.
+- `flutter analyze` — clean; full `flutter test` suite green.
 - Downloader controller tests — 15/15 pass.
 - `flutter build apk --debug` — succeeds with yt-dlp bundled via Chaquopy.
+- Integration matrix (`tool/run_downloader_test.sh`) — all sites in the battery
+  resolve and download.
 - Live end-to-end verified on a real device (2026-08-14, wireless debug): a
-  YouTube link was pasted in the downloader and progressed to completion
-  through the Chaquopy ↔ Dart bridge.
+  YouTube link pasted in the downloader progressed to completion through the
+  Chaquopy ↔ Dart bridge.
+- 2026-08-19 regression pass on a real device: after a fresh clean rebuild +
+  uninstall/reinstall (wiping a corrupt pre-v9 DB), startup shows no
+  `SqliteException`/`duplicate column name: quality`, and a live YouTube Short
+  download completed end-to-end with the persisted task marked `completed`
+  (previously stuck at "Downloading").
 
 ## Limitations
 
@@ -186,10 +243,12 @@ support is not universal:
   "Unsupported URL" style message is the expected result).
 - **No playlist support** — only a single video/audio item per pasted link;
   playlist/`noplaylist` handling is not implemented yet.
-- **No format conversion / merging** — the audio pick uses a single-file format
-  and video picks `best[ext=mp4]/best`; there is no ffmpeg, so formats that
-  require merging (separate audio+video streams) or conversion (e.g. audio →
-  mp3) are not produced.
+- **Quality caps are height ceilings, not exact resolutions** — a 480p preset
+  selects the best available stream at or under 480p; a source capped lower
+  yields that lower stream, and `max`/auto rely on what the site exposes.
+- **Audio conversion limited** — audio uses `bestaudio/best` (single-file, no
+  ffmpeg remux to a specific container like mp3); arbitrary transcoding is not
+  offered.
 - **DRM / logged-in content** — DRM-protected or age/login-gated content that
   requires cookies or decryption keys will fail.
 - **Rotation changes** — yt-dlp extractors can break when a site changes its
@@ -199,6 +258,10 @@ support is not universal:
 
 ## Follow-ups (see `../ROADMAP.md`)
 
-- Optional ffmpeg bundling for format conversion (e.g. audio → mp3) and
-  video/audio merging beyond `best[ext=mp4]`/`bestaudio`.
 - Playlist/`noplaylist` handling refinement.
+- Optional audio transcoding (e.g. mp3) via the already-bundled ffmpeg.
+- Resolve the `quality.name` vs numeric-key mismatch: Dart sends
+  `DownloadQuality.name` (e.g. `p480`) but Python's `_format_for` height map
+  keys on `480`/`720`/`1080`, so capped presets currently fall through to the
+  `best[ext=mp4]/best` default — the caps only take effect when the value sent
+  matches the map.

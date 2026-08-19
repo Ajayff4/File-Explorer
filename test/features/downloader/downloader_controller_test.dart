@@ -332,6 +332,7 @@ class _HoldingDownloadEngine implements DownloadEngine {
     required String url,
     required DownloadMediaType mediaType,
     required String outputDirectory,
+    DownloadQuality quality = DownloadQuality.auto,
   }) async {
     startedTaskIds.add(taskId);
     _controller.add(
@@ -398,5 +399,23 @@ class _HoldingDownloadEngine implements DownloadEngine {
   @override
   Future<void> resume(String taskId) async {
     resumedTaskIds.add(taskId);
+  }
+
+  @override
+  Future<YtDlpUpdateInfo> checkUpdate() async {
+    return const YtDlpUpdateInfo(
+      currentVersion: '0.0.0-fake',
+      latestVersion: '0.0.0-fake',
+      updateAvailable: false,
+    );
+  }
+
+  @override
+  Future<YtDlpApplyResult> applyUpdate() async {
+    return const YtDlpApplyResult(
+      applied: false,
+      version: '0.0.0-fake',
+      message: 'No update available',
+    );
   }
 }

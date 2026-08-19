@@ -49,6 +49,8 @@ chaquopy {
         version = "3.12"
         pip {
             install "yt-dlp"
+            // Threads has no upstream yt-dlp extractor; use the community plugin.
+            install "https://github.com/tribixbite/yt-dlp-threads/archive/refs/heads/main.zip"
         }
     }
 }

@@ -82,6 +82,7 @@ abstract interface class DownloadEngine {
     required String url,
     required DownloadMediaType mediaType,
     required String outputDirectory,
+    DownloadQuality quality = DownloadQuality.auto,
   });
 
   /// Requests cancellation of an in-flight download.
@@ -92,4 +93,40 @@ abstract interface class DownloadEngine {
 
   /// Resumes a previously paused download.
   Future<void> resume(String taskId);
+
+  /// Checks PyPI for a newer yt-dlp release than the one bundled in the app.
+  Future<YtDlpUpdateInfo> checkUpdate();
+
+  /// Downloads the latest yt-dlp release into app storage and loads it.
+  Future<YtDlpApplyResult> applyUpdate();
+}
+
+/// Result of a yt-dlp update check.
+class YtDlpUpdateInfo {
+  const YtDlpUpdateInfo({
+    required this.currentVersion,
+    required this.latestVersion,
+    required this.updateAvailable,
+    this.error,
+  });
+
+  final String currentVersion;
+  final String latestVersion;
+  final bool updateAvailable;
+  final String? error;
+
+  bool get hasError => error != null && error!.isNotEmpty;
+}
+
+/// Result of applying a yt-dlp update.
+class YtDlpApplyResult {
+  const YtDlpApplyResult({
+    required this.applied,
+    required this.version,
+    this.message,
+  });
+
+  final bool applied;
+  final String version;
+  final String? message;
 }

@@ -75,6 +75,7 @@ class DownloadTaskRows extends Table {
   TextColumn get id => text()();
   TextColumn get url => text()();
   IntColumn get mediaType => intEnum<DownloadMediaType>()();
+  IntColumn get quality => intEnum<DownloadQuality>().nullable()();
   TextColumn get title => text().nullable()();
   IntColumn get status => intEnum<DownloadTaskStatus>()();
   DateTimeColumn get createdAt => dateTime()();
@@ -104,7 +105,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration {
@@ -136,6 +137,20 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 8) {
           await migrator.createTable(downloadTaskRows);
+        }
+        if (from < 9) {
+          // `createTable`/`createAll` already materialize the current table
+          // definition (which includes the quality column), so a fresh install
+          // or a DB that skipped a version can reach this branch with the
+          // column already present. Only add it when it is actually missing.
+          final columns = await customSelect(
+            "SELECT name FROM pragma_table_info('download_task_rows')",
+          ).get();
+          final hasQuality =
+              columns.any((row) => row.read<String>('name') == 'quality');
+          if (!hasQuality) {
+            await migrator.addColumn(downloadTaskRows, downloadTaskRows.quality);
+          }
         }
       },
     );

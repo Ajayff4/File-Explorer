@@ -2,6 +2,79 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-19
+
+### Completed
+
+- Fixed the ffmpeg licensing issue — the bundled static ffmpeg binary was **GPLv3**
+  (johnvansickle.com build with `--enable-gpl --enable-version3` + x264/x265/xvid),
+  which imposes GPL obligations on a binary distributed inside a proprietary app.
+  Replaced it with a **pure-LGPL 2.1** static build:
+  - Cross-compiled FFmpeg 7.1 from the official release with Zig 0.13.0
+    (`zig cc -target aarch64-linux-musl`) using `--disable-gpl --disable-nonfree`,
+    only LGPL-compatible components enabled (h264/hevc/vp9/av1/mpeg4 decoders,
+    common audio, mp4/matroska/webm muxers) — exactly what the downloader's
+    merge/remux step needs (no re-encoding, no GPL codecs).
+  - Binary is 14.9 MB stripped (was 51 MB) and fully static, so it still runs on
+    Android (bionic) as a subprocess. Verified on-device: `ffmpeg -version` works
+    and a real video+audio merge (`-c copy`) produced a valid MP4.
+  - Shipped `LGPL-2.1.txt` + a `PROVENANCE` note next to the asset documenting
+    source URL, build config, and the exact configure line; recorded in
+    `docs/DOWNLOADER.md`.
+  - APK size dropped from ~217 MB to ~196 MB.
+- Added download quality presets (Auto / 480p / 720p / 1080p / Max):
+  - New `DownloadQuality` enum (nullable) on `DownloadTaskRows` — drift schema
+    bumped to **v9** with a `from < 9` migration adding the `quality` column.
+  - Quality is chosen from chips on the downloader screen, persisted on the
+    task row, forwarded through the MethodChannel to Python, and honored by
+    `_format_for` (height-capped progressive format with a merged video+audio
+    fallback).
+- Bundled a static ffmpeg binary so merged video+audio streams work:
+  - `assets/ffmpeg/ffmpeg` is copied into app-private storage on first launch
+    (`extractFfmpeg` in `MainActivity.kt`) and located by `_ffmpeg_location`
+    (test-harness env var → bundled binary → system PATH → imageio-ffmpeg).
+  - Capped/max qualities can now fall back to `bestvideo[height<=H]+bestaudio`
+    merging instead of single-progressive-only.
+- Added a Python integration test matrix (`tool/downloader_integration_test.py`
+  + `run_downloader_test.sh`): resolves and downloads a battery of public sites
+  in a venv (with imageio-ffmpeg), covering the quality presets.
+- Fixed downloads appearing permanently stuck at "Downloading":
+  - **Root cause** — a corrupt pre-v9 drift database. `createTable`/`createAll`
+    materialize the current table definition (which includes the `quality`
+    column), so any DB reaching the `from < 9` migration step with that column
+    already present (fresh installs, or a version-skipping DB) threw
+    `SqliteException: duplicate column name: quality` during `beforeOpen`.
+    The DB open failure then crashed `DownloaderController.initialize()` before
+    it subscribed to the engine event stream, so Python actually completed the
+    download but no event ever reached Dart — the task stayed frozen at
+    "Downloading" with no progress/completion/failure.
+  - **Migration fix** — the `from < 9` `addColumn(downloadTaskRows.quality)`
+    step is now guarded by a `pragma_table_info` existence check
+    (`app_database.dart`); it only adds the column when it is actually missing,
+    so any pre-v9 DB upgrades cleanly.
+  - **Controller hardening** — `DownloaderController.initialize()` now
+    subscribes to `engine.events()` *first* and wraps both store loads in
+    try/catch (`downloader_controller.dart`). A broken store can no longer
+    prevent event delivery or the task lifecycle.
+  - **Debug instrumentation** — `downloader.py` gained a `_debug()` helper that
+    appends timestamped lines to `files/downloader_debug.log`; `MainActivity.kt`
+    gained `Log.d("DownloaderDebug", ...)` lines for `start` calls, event
+    subscription/cancel, and drained events. Both proved Python was completing
+    downloads while the UI was not updating.
+  - **Verification** — `flutter clean` + rebuild + full uninstall/reinstall on
+    the real device (wiping the corrupt DB): no `SqliteException` in logcat,
+    DB opens at `user_version=9`, and a live YouTube Short download completed
+    end-to-end with the persisted task marked `completed` (status enum index 2).
+
+### Verified
+
+- `flutter analyze` — clean (both edited Dart files).
+- Live end-to-end download on a real device (wireless debug) after the fix.
+- Pulled device DB: `user_version=9`, `download_task_rows.quality` present,
+  persisted task status = `completed`.
+- `tool/run_downloader_test.sh` integration matrix — all sites in the battery
+  resolve and download.
+
 ## 2026-08-14
 
 ### Completed

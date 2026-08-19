@@ -7,6 +7,18 @@ enum DownloadMediaType {
   final String label;
 }
 
+enum DownloadQuality {
+  auto('Auto'),
+  p480('480p'),
+  p720('720p'),
+  p1080('1080p'),
+  max('Max');
+
+  const DownloadQuality(this.label);
+
+  final String label;
+}
+
 enum DownloadTaskStatus {
   queued,
   running,
@@ -69,6 +81,7 @@ class DownloadTask {
     required this.createdAt,
     required this.updatedAt,
     required this.outputDirectory,
+    this.quality = DownloadQuality.auto,
     this.title,
     this.progress = const DownloadProgress(),
     this.fileName,
@@ -82,6 +95,7 @@ class DownloadTask {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String outputDirectory;
+  final DownloadQuality quality;
   final String? title;
   final DownloadProgress progress;
   final String? fileName;
@@ -149,6 +163,7 @@ class DownloadTask {
       id: id,
       url: url,
       mediaType: mediaType,
+      quality: quality,
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

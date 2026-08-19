@@ -14,9 +14,31 @@ Dart EventChannel, so no Java interop is required from Python threads.
 
 import json
 import os
+import shutil
+import sys
 import threading
+import time
 import urllib.error
+import urllib.request
 import uuid
+import zipfile
+
+
+def _app_files_dir():
+    """App-private files dir (Chaquopy sets HOME to it)."""
+    home = os.environ.get("HOME", "")
+    if home:
+        return home
+    return "/data/data/com.ajayff4.fileexplorer/files"
+
+
+_UPDATE_BASE = os.path.join(_app_files_dir(), "ytdlp_updates")
+
+# If a runtime-updated yt-dlp exists in app-private storage, load it ahead of
+# the copy bundled into the APK.
+_update_pkg = os.path.join(_UPDATE_BASE, "yt_dlp")
+if os.path.isdir(_update_pkg) and _UPDATE_BASE not in sys.path:
+    sys.path.insert(0, _UPDATE_BASE)
 
 import yt_dlp
 
@@ -32,8 +54,17 @@ _pause_lock = threading.Lock()
 _active = {}
 
 
+def _debug(message):
+    try:
+        with open(os.path.join(_app_files_dir(), "downloader_debug.log"), "a") as _f:
+            _f.write("%s: %s\n" % (time.time(), message))
+    except Exception:
+        pass
+
+
 def _post(payload):
     """Push a dict onto the event queue (safe from any thread)."""
+    _debug("post kind=%s" % payload.get("kind"))
     with _events_lock:
         _events.append(payload)
 
@@ -50,29 +81,74 @@ class CancelledError(Exception):
     pass
 
 
-def _format_for(media_type):
-    # Prefer a single progressive file so no ffmpeg merge step is required.
+def _format_for(media_type, quality):
+    # Prefer a single progressive file so no ffmpeg merge step is required;
+    # fall back to merged video+audio (needs ffmpeg) when the cap is only
+    # available as separate streams.
     if media_type == "audio":
         return "bestaudio/best"
+    height = {"480": 480, "720": 720, "1080": 1080}.get(quality)
+    if height:
+        return (
+            "best[height<=%d][ext=mp4]/"
+            "bestvideo[height<=%d]+bestaudio/"
+            "best[height<=%d]/best" % (height, height, height)
+        )
+    if quality == "max":
+        return "best[ext=mp4]/bestvideo+bestaudio/best"
     return "best[ext=mp4]/best"
 
 
-def _base_opts(task_id, url, media_type, output_dir):
-    return {
+def _ffmpeg_location():
+    """Locate a usable ffmpeg binary for merging separate video+audio streams.
+
+    Priority: IMAGEIO_FFMPEG_EXE (test harness), the binary bundled into app
+    storage (copied from assets by MainActivity), the system PATH, then
+    imageio-ffmpeg's bundled copy if present.
+    """
+    candidates = [os.environ.get("IMAGEIO_FFMPEG_EXE", "")]
+    home = _app_files_dir()
+    candidates.append(os.path.join(home, "ffmpeg"))
+    candidates.append("/data/data/com.ajayff4.fileexplorer/files/ffmpeg")
+    for candidate in candidates:
+        if candidate and os.path.isfile(candidate):
+            return candidate
+    try:
+        import shutil
+        found = shutil.which("ffmpeg")
+        if found:
+            return found
+    except Exception:
+        pass
+    try:
+        import imageio_ffmpeg
+        return imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        return None
+
+
+def _base_opts(task_id, url, media_type, output_dir, quality="auto"):
+    opts = {
         "quiet": True,
         "no_warnings": True,
         "noplaylist": True,
-        "format": _format_for(media_type),
+        "format": _format_for(media_type, quality),
+        "extractor_args": {"youtube": {"player_client": ["android"]}},
         "outtmpl": os.path.join(output_dir, "%(title).200B [%(id)s].%(ext)s"),
         "retries": 3,
         "fragment_retries": 3,
         "socket_timeout": 30,
         "progress_hooks": [_progress_hook(task_id)],
     }
+    ffmpeg = _ffmpeg_location()
+    if ffmpeg:
+        opts["ffmpeg_location"] = ffmpeg
+    return opts
 
 
 def _progress_hook(task_id):
     def hook(data):
+        _debug("hook task=%s status=%s" % (task_id, data.get("status")))
         with _cancel_lock:
             cancelled = task_id in _cancel_tokens
         if cancelled:
@@ -141,17 +217,23 @@ def _default_output_dir():
     return candidates[-1]
 
 
-def _run_download(task_id, url, media_type, output_dir):
+def _run_download(task_id, url, media_type, output_dir, quality="auto"):
+    _debug("run_download task=%s url=%s type=%s quality=%s" % (task_id, url, media_type, quality))
     try:
         if not output_dir or not os.path.isdir(output_dir):
             output_dir = _default_output_dir()
         os.makedirs(output_dir, exist_ok=True)
+        _debug("output_dir=%s" % output_dir)
 
-        opts = _base_opts(task_id, url, media_type, output_dir)
+        opts = _base_opts(task_id, url, media_type, output_dir, quality)
+        _debug("format=%s ffmpeg=%s" % (opts.get("format"), opts.get("ffmpeg_location")))
         with yt_dlp.YoutubeDL(opts) as ydl:
+            _debug("YoutubeDL created, extract_info starting")
             info = ydl.extract_info(url, download=True) or {}
+            _debug("extract_info done, type=%s" % info.get("_type"))
             if info.get("_type") == "playlist":
                 info = (info.get("entries") or [{}])[0] or {}
+                _debug("playlist unwrapped")
 
         _post({
             "taskId": task_id,
@@ -161,8 +243,10 @@ def _run_download(task_id, url, media_type, output_dir):
             "totalBytes": info.get("filesize"),
         })
     except CancelledError:
+        _debug("cancelled")
         _post({"taskId": task_id, "kind": "cancelled"})
     except Exception as error:
+        _debug("failed: %r" % (error,))
         _post({
             "taskId": task_id,
             "kind": "failed",
@@ -176,12 +260,14 @@ def _run_download(task_id, url, media_type, output_dir):
         _active.pop(task_id, None)
 
 
-def start(task_id, url, media_type, output_dir):
+def start(task_id, url, media_type, output_dir, quality="auto"):
+    _debug("start task=%s url=%s type=%s quality=%s" % (task_id, url, media_type, quality))
     if task_id in _active:
+        _debug("start: already active")
         return
     worker = threading.Thread(
         target=_run_download,
-        args=(task_id, url, media_type, output_dir),
+        args=(task_id, url, media_type, output_dir, quality),
         daemon=True,
         name="ytdlp-%s" % (task_id[-8:] or task_id),
     )
@@ -190,6 +276,7 @@ def start(task_id, url, media_type, output_dir):
         _pause_events[task_id] = threading.Event()
         _pause_events[task_id].set()
     worker.start()
+    _debug("start: worker spawned %s" % worker.name)
 
 
 def pause(task_id):
@@ -225,6 +312,7 @@ def resolve(url, media_type):
             "no_warnings": True,
             "noplaylist": True,
             "skip_download": True,
+"extractor_args": {"youtube": {"player_client": ["android"]}},
         }
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False) or {}
@@ -280,3 +368,130 @@ def _host(url):
         return urlparse(url).netloc or url
     except Exception:
         return url
+
+
+def _version_tuple(version):
+    parts = []
+    for part in str(version).split("."):
+        digits = ""
+        for ch in part:
+            if ch.isdigit():
+                digits += ch
+            else:
+                break
+        parts.append(int(digits) if digits else 0)
+    return tuple(parts)
+
+
+def _normalize_version(version):
+    """Normalize a version for display (PEP 440 style).
+
+    yt-dlp's own __version__ keeps leading zeros (e.g. 2026.07.04) while PyPI's
+    JSON API returns the normalized form (2026.7.4). Normalizing both sides
+    makes "Installed" and "Latest" render identically when they are equal.
+    """
+    parts = []
+    for part in str(version).split("."):
+        parts.append(str(int(part)) if part.isdigit() else part)
+    return ".".join(parts)
+
+
+def _current_version():
+    try:
+        return getattr(yt_dlp.version, "__version__", "") or ""
+    except Exception:
+        return ""
+
+
+def check_update():
+    """Check PyPI for a newer yt-dlp release. Returns a map for the Dart bridge."""
+    try:
+        with urllib.request.urlopen(
+            "https://pypi.org/pypi/yt-dlp/json", timeout=20
+        ) as resp:
+            data = json.load(resp)
+        latest = _normalize_version((data.get("info") or {}).get("version", ""))
+        current = _normalize_version(_current_version())
+        return {
+            "currentVersion": current,
+            "latestVersion": latest,
+            "updateAvailable": bool(
+                latest and _version_tuple(latest) > _version_tuple(current)
+            ),
+            "error": "",
+        }
+    except Exception as error:
+        return {
+            "currentVersion": _normalize_version(_current_version()),
+            "latestVersion": "",
+            "updateAvailable": False,
+            "error": _friendly_error(error, "https://pypi.org/pypi/yt-dlp/json"),
+        }
+
+
+def _wheel_url_for(data):
+    for item in data.get("urls") or []:
+        filename = item.get("filename", "")
+        if filename.endswith(".whl") and item.get("packagetype") == "bdist_wheel":
+            return item.get("url"), filename
+    return None, None
+
+
+def apply_update():
+    """Download the latest yt-dlp wheel into app storage and load it.
+
+    Returns {"applied": bool, "version": str, "message": str}.
+    """
+    try:
+        with urllib.request.urlopen(
+            "https://pypi.org/pypi/yt-dlp/json", timeout=20
+        ) as resp:
+            data = json.load(resp)
+        latest = (data.get("info") or {}).get("version", "")
+        url, filename = _wheel_url_for(data)
+        if not url:
+            return {
+                "applied": False,
+                "version": _normalize_version(_current_version()),
+                "message": "No wheel found for yt-dlp %s" % latest,
+            }
+
+        os.makedirs(_UPDATE_BASE, exist_ok=True)
+        tmp_dir = os.path.join(_UPDATE_BASE, "tmp-download")
+        if os.path.exists(tmp_dir):
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+        os.makedirs(tmp_dir)
+        wheel_path = os.path.join(tmp_dir, filename or "yt-dlp.whl")
+        urllib.request.urlretrieve(url, wheel_path)
+
+        target = os.path.join(_UPDATE_BASE, "yt_dlp")
+        if os.path.exists(target):
+            shutil.rmtree(target, ignore_errors=True)
+        with zipfile.ZipFile(wheel_path) as archive:
+            archive.extractall(_UPDATE_BASE)
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        if not os.path.isdir(target):
+            return {
+                "applied": False,
+                "version": _normalize_version(_current_version()),
+                "message": "Extracted wheel is missing the yt_dlp package",
+            }
+
+        global yt_dlp
+        if _UPDATE_BASE not in sys.path:
+            sys.path.insert(0, _UPDATE_BASE)
+        for name in [
+            n for n in list(sys.modules)
+            if n == "yt_dlp" or n.startswith("yt_dlp.")
+        ]:
+            del sys.modules[name]
+        import yt_dlp
+
+        return {"applied": True, "version": _normalize_version(_current_version()), "message": ""}
+    except Exception as error:
+        return {
+            "applied": False,
+            "version": _normalize_version(_current_version()),
+            "message": "Update failed: %s" % error,
+        }

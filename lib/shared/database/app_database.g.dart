@@ -2092,6 +2092,12 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
               type: DriftSqlType.int, requiredDuringInsert: true)
           .withConverter<DownloadMediaType>(
               $DownloadTaskRowsTable.$convertermediaType);
+  @override
+  late final GeneratedColumnWithTypeConverter<DownloadQuality?, int> quality =
+      GeneratedColumn<int>('quality', aliasedName, true,
+              type: DriftSqlType.int, requiredDuringInsert: false)
+          .withConverter<DownloadQuality?>(
+              $DownloadTaskRowsTable.$converterqualityn);
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -2160,6 +2166,7 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
         id,
         url,
         mediaType,
+        quality,
         title,
         status,
         createdAt,
@@ -2260,6 +2267,9 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
       mediaType: $DownloadTaskRowsTable.$convertermediaType.fromSql(
           attachedDatabase.typeMapping
               .read(DriftSqlType.int, data['${effectivePrefix}media_type'])!),
+      quality: $DownloadTaskRowsTable.$converterqualityn.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}quality'])),
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title']),
       status: $DownloadTaskRowsTable.$converterstatus.fromSql(attachedDatabase
@@ -2292,6 +2302,10 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
 
   static JsonTypeConverter2<DownloadMediaType, int, int> $convertermediaType =
       const EnumIndexConverter<DownloadMediaType>(DownloadMediaType.values);
+  static JsonTypeConverter2<DownloadQuality, int, int> $converterquality =
+      const EnumIndexConverter<DownloadQuality>(DownloadQuality.values);
+  static JsonTypeConverter2<DownloadQuality?, int?, int?> $converterqualityn =
+      JsonTypeConverter2.asNullable($converterquality);
   static JsonTypeConverter2<DownloadTaskStatus, int, int> $converterstatus =
       const EnumIndexConverter<DownloadTaskStatus>(DownloadTaskStatus.values);
 }
@@ -2300,6 +2314,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
   final String id;
   final String url;
   final DownloadMediaType mediaType;
+  final DownloadQuality? quality;
   final String? title;
   final DownloadTaskStatus status;
   final DateTime createdAt;
@@ -2314,6 +2329,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       {required this.id,
       required this.url,
       required this.mediaType,
+      this.quality,
       this.title,
       required this.status,
       required this.createdAt,
@@ -2332,6 +2348,10 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
     {
       map['media_type'] = Variable<int>(
           $DownloadTaskRowsTable.$convertermediaType.toSql(mediaType));
+    }
+    if (!nullToAbsent || quality != null) {
+      map['quality'] = Variable<int>(
+          $DownloadTaskRowsTable.$converterqualityn.toSql(quality));
     }
     if (!nullToAbsent || title != null) {
       map['title'] = Variable<String>(title);
@@ -2362,6 +2382,9 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       id: Value(id),
       url: Value(url),
       mediaType: Value(mediaType),
+      quality: quality == null && nullToAbsent
+          ? const Value.absent()
+          : Value(quality),
       title:
           title == null && nullToAbsent ? const Value.absent() : Value(title),
       status: Value(status),
@@ -2390,6 +2413,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       url: serializer.fromJson<String>(json['url']),
       mediaType: $DownloadTaskRowsTable.$convertermediaType
           .fromJson(serializer.fromJson<int>(json['mediaType'])),
+      quality: $DownloadTaskRowsTable.$converterqualityn
+          .fromJson(serializer.fromJson<int?>(json['quality'])),
       title: serializer.fromJson<String?>(json['title']),
       status: $DownloadTaskRowsTable.$converterstatus
           .fromJson(serializer.fromJson<int>(json['status'])),
@@ -2412,6 +2437,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       'url': serializer.toJson<String>(url),
       'mediaType': serializer.toJson<int>(
           $DownloadTaskRowsTable.$convertermediaType.toJson(mediaType)),
+      'quality': serializer.toJson<int?>(
+          $DownloadTaskRowsTable.$converterqualityn.toJson(quality)),
       'title': serializer.toJson<String?>(title),
       'status': serializer
           .toJson<int>($DownloadTaskRowsTable.$converterstatus.toJson(status)),
@@ -2430,6 +2457,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           {String? id,
           String? url,
           DownloadMediaType? mediaType,
+          Value<DownloadQuality?> quality = const Value.absent(),
           Value<String?> title = const Value.absent(),
           DownloadTaskStatus? status,
           DateTime? createdAt,
@@ -2444,6 +2472,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
         id: id ?? this.id,
         url: url ?? this.url,
         mediaType: mediaType ?? this.mediaType,
+        quality: quality.present ? quality.value : this.quality,
         title: title.present ? title.value : this.title,
         status: status ?? this.status,
         createdAt: createdAt ?? this.createdAt,
@@ -2461,6 +2490,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       id: data.id.present ? data.id.value : this.id,
       url: data.url.present ? data.url.value : this.url,
       mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,
+      quality: data.quality.present ? data.quality.value : this.quality,
       title: data.title.present ? data.title.value : this.title,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2489,6 +2519,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           ..write('id: $id, ')
           ..write('url: $url, ')
           ..write('mediaType: $mediaType, ')
+          ..write('quality: $quality, ')
           ..write('title: $title, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -2508,6 +2539,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       id,
       url,
       mediaType,
+      quality,
       title,
       status,
       createdAt,
@@ -2525,6 +2557,7 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           other.id == this.id &&
           other.url == this.url &&
           other.mediaType == this.mediaType &&
+          other.quality == this.quality &&
           other.title == this.title &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
@@ -2541,6 +2574,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
   final Value<String> id;
   final Value<String> url;
   final Value<DownloadMediaType> mediaType;
+  final Value<DownloadQuality?> quality;
   final Value<String?> title;
   final Value<DownloadTaskStatus> status;
   final Value<DateTime> createdAt;
@@ -2556,6 +2590,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     this.id = const Value.absent(),
     this.url = const Value.absent(),
     this.mediaType = const Value.absent(),
+    this.quality = const Value.absent(),
     this.title = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2572,6 +2607,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     required String id,
     required String url,
     required DownloadMediaType mediaType,
+    this.quality = const Value.absent(),
     this.title = const Value.absent(),
     required DownloadTaskStatus status,
     required DateTime createdAt,
@@ -2594,6 +2630,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     Expression<String>? id,
     Expression<String>? url,
     Expression<int>? mediaType,
+    Expression<int>? quality,
     Expression<String>? title,
     Expression<int>? status,
     Expression<DateTime>? createdAt,
@@ -2610,6 +2647,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       if (id != null) 'id': id,
       if (url != null) 'url': url,
       if (mediaType != null) 'media_type': mediaType,
+      if (quality != null) 'quality': quality,
       if (title != null) 'title': title,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
@@ -2629,6 +2667,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       {Value<String>? id,
       Value<String>? url,
       Value<DownloadMediaType>? mediaType,
+      Value<DownloadQuality?>? quality,
       Value<String?>? title,
       Value<DownloadTaskStatus>? status,
       Value<DateTime>? createdAt,
@@ -2644,6 +2683,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       id: id ?? this.id,
       url: url ?? this.url,
       mediaType: mediaType ?? this.mediaType,
+      quality: quality ?? this.quality,
       title: title ?? this.title,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -2670,6 +2710,10 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     if (mediaType.present) {
       map['media_type'] = Variable<int>(
           $DownloadTaskRowsTable.$convertermediaType.toSql(mediaType.value));
+    }
+    if (quality.present) {
+      map['quality'] = Variable<int>(
+          $DownloadTaskRowsTable.$converterqualityn.toSql(quality.value));
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -2715,6 +2759,7 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
           ..write('id: $id, ')
           ..write('url: $url, ')
           ..write('mediaType: $mediaType, ')
+          ..write('quality: $quality, ')
           ..write('title: $title, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -3827,6 +3872,7 @@ typedef $$DownloadTaskRowsTableCreateCompanionBuilder
   required String id,
   required String url,
   required DownloadMediaType mediaType,
+  Value<DownloadQuality?> quality,
   Value<String?> title,
   required DownloadTaskStatus status,
   required DateTime createdAt,
@@ -3844,6 +3890,7 @@ typedef $$DownloadTaskRowsTableUpdateCompanionBuilder
   Value<String> id,
   Value<String> url,
   Value<DownloadMediaType> mediaType,
+  Value<DownloadQuality?> quality,
   Value<String?> title,
   Value<DownloadTaskStatus> status,
   Value<DateTime> createdAt,
@@ -3875,6 +3922,11 @@ class $$DownloadTaskRowsTableFilterComposer
   ColumnWithTypeConverterFilters<DownloadMediaType, DownloadMediaType, int>
       get mediaType => $composableBuilder(
           column: $table.mediaType,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<DownloadQuality?, DownloadQuality, int>
+      get quality => $composableBuilder(
+          column: $table.quality,
           builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<String> get title => $composableBuilder(
@@ -3932,6 +3984,9 @@ class $$DownloadTaskRowsTableOrderingComposer
   ColumnOrderings<int> get mediaType => $composableBuilder(
       column: $table.mediaType, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get quality => $composableBuilder(
+      column: $table.quality, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
@@ -3984,6 +4039,9 @@ class $$DownloadTaskRowsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<DownloadMediaType, int> get mediaType =>
       $composableBuilder(column: $table.mediaType, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DownloadQuality?, int> get quality =>
+      $composableBuilder(column: $table.quality, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -4046,6 +4104,7 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<String> url = const Value.absent(),
             Value<DownloadMediaType> mediaType = const Value.absent(),
+            Value<DownloadQuality?> quality = const Value.absent(),
             Value<String?> title = const Value.absent(),
             Value<DownloadTaskStatus> status = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -4062,6 +4121,7 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             id: id,
             url: url,
             mediaType: mediaType,
+            quality: quality,
             title: title,
             status: status,
             createdAt: createdAt,
@@ -4078,6 +4138,7 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             required String id,
             required String url,
             required DownloadMediaType mediaType,
+            Value<DownloadQuality?> quality = const Value.absent(),
             Value<String?> title = const Value.absent(),
             required DownloadTaskStatus status,
             required DateTime createdAt,
@@ -4094,6 +4155,7 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             id: id,
             url: url,
             mediaType: mediaType,
+            quality: quality,
             title: title,
             status: status,
             createdAt: createdAt,

@@ -112,7 +112,9 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Downloader | Completed tasks: copy-error action, completion datetime, and a polished kebab menu (Move to / Open folder / Browse). |
 | ✅ | Downloader | Browse/open-folder open a dedicated pushed view (`/downloader/browse`) so back returns to the downloader, not Explorer. |
 | ✅ | Downloader | Browse view and change-folder picker render as grids (thumbnails/icons, 4–8 responsive columns) via shared `DownloadEntryGrid`. |
-| ⚠️ | Downloader | Site support limited to what `yt-dlp` can resolve (Threads and sites without a working extractor fail); no playlists, no ffmpeg conversion/merging, no DRM/login-gated content. See `docs/DOWNLOADER.md` → Limitations. |
+| ✅ | Downloader | Quality presets (Auto / 480p / 720p / 1080p / Max) persisted on the task row (drift schema v9) and honored in Python's format selection. |
+| ✅ | Downloader | Static **pure-LGPL** ffmpeg bundled in assets (cross-compiled FFmpeg 7.1 with Zig, `--disable-gpl`), copied into app storage on first launch, used for video+audio merging (`-c copy`). LGPL-2.1 text + provenance ship next to the asset (2026-08-19, replaces a GPLv3 johnvansickle binary). |
+| ⚠️ | Downloader | Site support limited to what `yt-dlp` can resolve (Threads and sites without a working extractor fail); no playlists, no DRM/login-gated content, no audio transcoding to a specific container (e.g. mp3). See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
 
 ## Last Verified
@@ -148,6 +150,8 @@ Last full check on 2026-08-13 after the Universal Downloader (Chaquopy + yt-dlp)
 
 Update 2026-08-14: `flutter analyze` clean, downloader controller tests 15/15 passing, and a live YouTube download was confirmed end-to-end on a real device (wireless debug). Pause/resume, copy-error, kebab-menu, browse-view, and datetime polish landed.
 
+Update 2026-08-19: `flutter clean` + rebuild + uninstall/reinstall on the real device after fixing a drift migration crash (`duplicate column name: quality`) that left downloads stuck at "Downloading". Startup shows no `SqliteException`, DB opens at `user_version=9`, and a live YouTube Short download completed end-to-end with the task persisted as `completed`. `flutter analyze` clean on the edited Dart files.
+
 ## Resume Checklist
 
 When coming back:
@@ -170,9 +174,11 @@ Recommended next slices, in order:
 | ✅ | 6 | Downloader | Universal Downloader: yt-dlp bundled via Chaquopy, queue + progress + retry + concurrency limit (2026-08-13, `docs/DOWNLOADER.md`). |
 | ✅ | 7 | Downloader | Pause/resume, copy-error, kebab-menu completed actions, separate browse view, full picker path, completion datetime (2026-08-14). |
 | ✅ | 8 | Downloader | Verify a live download end-to-end on a real Android device (Dart ↔ Chaquopy event flow) — confirmed 2026-08-14. |
-| [ ] | 9 | Downloader | Optional ffmpeg bundling for format conversion (audio → mp3) and video/audio merging. |
-| [ ] | 10 | Media | Add thumbnail cache for media libraries and Explorer. |
-| [ ] | 11 | UI | Polish media folder view on real device and tune grid density. |
+| ✅ | 9 | Downloader | Bundle ffmpeg for merged video+audio streams (capped/max qualities) — done, assets→app storage on first launch. |
+| ✅ | 10 | Downloader | Quality presets (Auto/480p/720p/1080p/Max) end-to-end — schema v9 `quality` column, UI chips, Python format caps. |
+| ✅ | 11 | Downloader | Fix downloads stuck at "Downloading": guarded `addColumn(quality)` migration (duplicate-column crash) + controller subscribes to events before store loads (2026-08-19). |
+| [ ] | 12 | Media | Add thumbnail cache for media libraries and Explorer. |
+| [ ] | 13 | UI | Polish media folder view on real device and tune grid density. |
 
 ## Must-Have Feature Plan
 
@@ -248,7 +254,7 @@ Removed from the roadmap.
 | ✅ | Python module: `resolve`/`start`/`cancel` with progress hooks and a drain queue. |
 | ✅ | Kotlin bridge: MethodChannel handlers + EventChannel polling with `unbox()`. |
 | ✅ | `DownloaderController`: enqueue, concurrency gating, progress/status events, cancel, retry, clear-finished. |
-| ✅ | Persistence: `DownloadTaskRows` (schema v8) + drift settings (`downloader.*`). |
+| ✅ | Persistence: `DownloadTaskRows` (schema v9, incl. nullable `quality`) + drift settings (`downloader.*`). |
 | ✅ | `DownloaderScreen` UI: URL entry, video/audio chips, queue, settings, folder picker, move-to/open actions. |
 | ✅ | Navigation: `/downloader` route + Home tile + More sheet + Core Features card. |
 | ✅ | Tests: 15 controller tests (queue, fail, retry, cancel, pause/resume, concurrency, restore, settings). |
@@ -256,8 +262,11 @@ Removed from the roadmap.
 | ✅ | Completed-task polish: copy-error action, completion datetime, polished kebab menu (Move to / Open folder / Browse). |
 | ✅ | Browse/open-folder in a dedicated pushed view (`/downloader/browse`) so back returns to the downloader. |
 | ✅ | Browse view and change-folder picker render as grids via shared `DownloadEntryGrid` (2026-08-14). |
-| ✅ | Verify a live download end-to-end on a real device — confirmed 2026-08-14 (wireless debug). |
-| [ ] | Bundle ffmpeg for format conversion (audio → mp3) and video/audio merging. |
+| ✅ | Quality presets end-to-end: `DownloadQuality` enum persisted on the task (schema v9), UI chips, Python `_format_for` height caps with merged-stream fallback. |
+| ✅ | Bundle static **pure-LGPL** ffmpeg in assets (FFmpeg 7.1 cross-compiled with Zig, `--disable-gpl --disable-nonfree`), copy into app storage on first launch, and use it for video+audio merging (`_ffmpeg_location`, `extractFfmpeg`). Replaces the GPLv3 johnvansickle binary; LGPL-2.1 text + provenance ship with the asset (2026-08-19). |
+| ✅ | Verify a live download end-to-end on a real device — confirmed 2026-08-14 (wireless debug); regression pass 2026-08-19 after the stuck-download fix. |
+| ✅ | Fix downloads stuck at "Downloading": drift migration `duplicate column name: quality` crash (pre-v9 DB with the column already materialized) broke DB open and crashed `initialize()` before event subscription. Guarded the `from < 9` `addColumn` with a `pragma_table_info` check; controller now subscribes to events first and tolerates store failures (2026-08-19). |
+| [ ] | Audio transcoding to a specific container (e.g. mp3) via the already-bundled ffmpeg. |
 | [ ] | Playlist/`noplaylist` handling refinement. |
 
 ### Viewers And Players

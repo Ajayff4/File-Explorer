@@ -104,7 +104,16 @@ class DownloaderController extends StateNotifier<DownloaderState> {
   int _nextSequence = 0;
 
   Future<void> initialize() async {
-    var settings = await _settingsStore?.load() ?? const DownloaderSettings();
+    _eventSubscription = _engine.events().listen(_onEvent);
+
+    var settings = const DownloaderSettings();
+    try {
+      settings = await _settingsStore?.load() ?? const DownloaderSettings();
+    } catch (_) {
+      // A broken/corrupt store must not prevent event delivery or task
+      // lifecycle; fall back to defaults and let _saveTask failures surface
+      // separately.
+    }
     if (settings.outputDirectory.isEmpty) {
       settings = settings.copyWith(
         outputDirectory: await _resolveDefaultOutputDirectory(),
@@ -116,9 +125,12 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     }
     state = state.copyWith(settings: settings, isLoading: false);
 
-    _eventSubscription = _engine.events().listen(_onEvent);
-
-    final persistedTasks = await _taskStore?.loadTasks() ?? const [];
+    var persistedTasks = const <DownloadTask>[];
+    try {
+      persistedTasks = await _taskStore?.loadTasks() ?? const [];
+    } catch (_) {
+      persistedTasks = const [];
+    }
     if (!mounted) {
       return;
     }
@@ -180,6 +192,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
   DownloadTask enqueue({
     required String url,
     DownloadMediaType mediaType = DownloadMediaType.video,
+    DownloadQuality quality = DownloadQuality.auto,
   }) {
     final trimmedUrl = url.trim();
     final now = DateTime.now();
@@ -188,6 +201,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
       id: 'download-${now.microsecondsSinceEpoch}-${_nextSequence++}',
       url: trimmedUrl,
       mediaType: mediaType,
+      quality: quality,
       status: DownloadTaskStatus.queued,
       createdAt: now,
       updatedAt: now,
@@ -311,6 +325,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
             taskId: taskId,
             url: task.url,
             mediaType: task.mediaType,
+            quality: task.quality,
             outputDirectory: task.outputDirectory,
           )
           .catchError((Object error) {
