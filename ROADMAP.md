@@ -188,7 +188,7 @@ Recommended next slices, in order:
 | ✅ | 11 | Downloader | Fix downloads stuck at "Downloading": guarded `addColumn(quality)` migration (duplicate-column crash) + controller subscribes to events before store loads (2026-08-19). |
 | [ ] | 12 | Media | Add thumbnail cache for media libraries and Explorer. |
 | [ ] | 13 | UI | Polish media folder view on real device and tune grid density. |
-| [ ] | 14 | UI | Commit the staged CRED-style neumorphic UI polish (2026-08-20). |
+| ✅ | 14 | UI | Commit the staged CRED-style neumorphic UI polish — `55ed617` (2026-08-20). |
 
 ## Must-Have Feature Plan
 
