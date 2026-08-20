@@ -15,7 +15,14 @@ class FakeDownloadEngine implements DownloadEngine {
   final List<String> cancelledTaskIds = [];
   final List<String> pausedTaskIds = [];
   final List<String> resumedTaskIds = [];
-  final List<({String url, DownloadMediaType mediaType})> resolveRequests = [];
+  final List<({String url, DownloadMediaType mediaType})> resolveRequests =
+      [];
+  final List<
+      ({
+        String taskId,
+        DownloadAudioFormat audioFormat,
+        bool playlist,
+      })> startRequests = [];
 
   @override
   Stream<DownloaderEvent> events() => _controller.stream;
@@ -36,8 +43,17 @@ class FakeDownloadEngine implements DownloadEngine {
     required DownloadMediaType mediaType,
     required String outputDirectory,
     DownloadQuality quality = DownloadQuality.auto,
+    DownloadAudioFormat audioFormat = DownloadAudioFormat.original,
+    bool playlist = false,
   }) async {
     startedTaskIds.add(taskId);
+    startRequests.add(
+      (
+        taskId: taskId,
+        audioFormat: audioFormat,
+        playlist: playlist,
+      ),
+    );
     _controller.add(
       DownloaderEvent(
         taskId: taskId,

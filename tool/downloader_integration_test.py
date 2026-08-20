@@ -68,7 +68,7 @@ SITES = {
     "threads-post": {
         "url": "https://www.threads.net/@gislainepasolini/post/DX7_p8iE1Eh",
         "media_type": "video",
-        "note": "Threads video; needs the yt-dlp-threads plugin in the venv (not bundled in the app yet)",
+        "note": "Threads video; requires the yt-dlp-threads plugin in the venv (same one vendored in the app under android/app/src/main/python/yt_dlp_plugins)",
     },
     "facebook-video": {
         "url": "https://www.facebook.com/watch/?v=3968344073475439",

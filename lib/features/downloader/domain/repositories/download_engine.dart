@@ -1,6 +1,13 @@
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 
-enum DownloaderEventKind { resolved, progress, completed, failed, cancelled, paused }
+enum DownloaderEventKind {
+  resolved,
+  progress,
+  completed,
+  failed,
+  cancelled,
+  paused
+}
 
 class DownloaderEvent {
   const DownloaderEvent({
@@ -42,8 +49,7 @@ class DownloaderEvent {
       title: clearTitle ? null : title ?? this.title,
       transferredBytes: transferredBytes ?? this.transferredBytes,
       totalBytes: totalBytes ?? this.totalBytes,
-      speedBytesPerSecond:
-          speedBytesPerSecond ?? this.speedBytesPerSecond,
+      speedBytesPerSecond: speedBytesPerSecond ?? this.speedBytesPerSecond,
       fileName: clearFileName ? null : fileName ?? this.fileName,
       message: clearMessage ? null : message ?? this.message,
     );
@@ -83,6 +89,8 @@ abstract interface class DownloadEngine {
     required DownloadMediaType mediaType,
     required String outputDirectory,
     DownloadQuality quality = DownloadQuality.auto,
+    DownloadAudioFormat audioFormat = DownloadAudioFormat.original,
+    bool playlist = false,
   });
 
   /// Requests cancellation of an in-flight download.

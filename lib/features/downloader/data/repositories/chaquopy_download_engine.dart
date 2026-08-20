@@ -27,9 +27,8 @@ class ChaquopyDownloadEngine implements DownloadEngine {
 
   @override
   Stream<DownloaderEvent> events() {
-    return _events ??= _eventChannel
-        .receiveBroadcastStream()
-        .map(_eventFromPayload);
+    return _events ??=
+        _eventChannel.receiveBroadcastStream().map(_eventFromPayload);
   }
 
   @override
@@ -38,18 +37,18 @@ class ChaquopyDownloadEngine implements DownloadEngine {
     required DownloadMediaType mediaType,
   }) async {
     final payload = await _methodChannel.invokeMapMethod<Object?, Object?>(
-      'resolve',
-      {
-        'url': url,
-        'mediaType': mediaType.name,
-      },
-    ) ?? const <Object?, Object?>{};
+          'resolve',
+          {
+            'url': url,
+            'mediaType': mediaType.name,
+          },
+        ) ??
+        const <Object?, Object?>{};
 
     return MediaInfo(
       title: payload['title']?.toString() ?? _fallbackTitle(url),
       thumbnailUrl: payload['thumbnail']?.toString(),
-      durationSeconds:
-          _intFrom(payload['durationSeconds']),
+      durationSeconds: _intFrom(payload['durationSeconds']),
       isPlaylist: payload['isPlaylist'] == true,
     );
   }
@@ -61,6 +60,8 @@ class ChaquopyDownloadEngine implements DownloadEngine {
     required DownloadMediaType mediaType,
     required String outputDirectory,
     DownloadQuality quality = DownloadQuality.auto,
+    DownloadAudioFormat audioFormat = DownloadAudioFormat.original,
+    bool playlist = false,
   }) async {
     await _methodChannel.invokeMethod<void>('start', {
       'taskId': taskId,
@@ -68,6 +69,8 @@ class ChaquopyDownloadEngine implements DownloadEngine {
       'mediaType': mediaType.name,
       'outputDirectory': outputDirectory,
       'quality': quality.name,
+      'audioFormat': audioFormat.name,
+      'playlist': playlist,
     });
   }
 
@@ -116,7 +119,8 @@ class ChaquopyDownloadEngine implements DownloadEngine {
   }
 
   DownloaderEvent _eventFromPayload(Object? raw) {
-    final payload = raw is Map<Object?, Object?> ? raw : const <Object?, Object?>{};
+    final payload =
+        raw is Map<Object?, Object?> ? raw : const <Object?, Object?>{};
     final taskId = payload['taskId']?.toString() ?? '';
     final kind = switch (payload['kind']?.toString()) {
       'resolved' => DownloaderEventKind.resolved,
@@ -136,8 +140,7 @@ class ChaquopyDownloadEngine implements DownloadEngine {
       totalBytes: _intFrom(payload['totalBytes']) == 0
           ? null
           : _intFrom(payload['totalBytes']),
-      speedBytesPerSecond:
-          _doubleFrom(payload['speedBytesPerSecond']),
+      speedBytesPerSecond: _doubleFrom(payload['speedBytesPerSecond']),
       fileName: payload['fileName']?.toString(),
       message: payload['message']?.toString(),
     );

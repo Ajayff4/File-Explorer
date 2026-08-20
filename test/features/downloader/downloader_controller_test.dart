@@ -22,7 +22,8 @@ void main() {
     );
 
     expect(controller.state.tasks.single.status, DownloadTaskStatus.running);
-    expect(controller.state.tasks.single.displayName, 'https://example.com/video');
+    expect(
+        controller.state.tasks.single.displayName, 'https://example.com/video');
     expect(engine.startedTaskIds, [task.id]);
 
     engine.complete(task.id);
@@ -124,6 +125,27 @@ void main() {
     expect(engine.startedTaskIds, [first.id, second.id]);
     expect(controller.state.runningCount, 1);
     expect(controller.state.queuedCount, 0);
+  });
+
+  test('carries audio format and playlist flag through to the engine',
+      () async {
+    final engine = FakeDownloadEngine();
+    final controller = DownloaderController(engine);
+    await controller.initialize();
+
+    controller.enqueue(
+      url: 'https://example.com/mp3',
+      mediaType: DownloadMediaType.audio,
+      audioFormat: DownloadAudioFormat.mp3,
+      playlist: true,
+    );
+    await _pumpEventQueue();
+
+    final task = controller.state.tasks.single;
+    expect(task.audioFormat, DownloadAudioFormat.mp3);
+    expect(task.playlist, isTrue);
+    expect(engine.startRequests.single.audioFormat, DownloadAudioFormat.mp3);
+    expect(engine.startRequests.single.playlist, isTrue);
   });
 
   test('persists tasks and restores them on load', () async {
@@ -333,6 +355,8 @@ class _HoldingDownloadEngine implements DownloadEngine {
     required DownloadMediaType mediaType,
     required String outputDirectory,
     DownloadQuality quality = DownloadQuality.auto,
+    DownloadAudioFormat audioFormat = DownloadAudioFormat.original,
+    bool playlist = false,
   }) async {
     startedTaskIds.add(taskId);
     _controller.add(

@@ -58,8 +58,8 @@ class LocalArchiveRepository implements ArchiveRepository {
 
   List<ArchiveEntry> _entriesForGzip(String archivePath) {
     final name = archiveBaseName(archivePath);
-    final decompressed = const GZipDecoder()
-        .decodeBytes(File(archivePath).readAsBytesSync());
+    final decompressed =
+        const GZipDecoder().decodeBytes(File(archivePath).readAsBytesSync());
     return [
       ArchiveEntry(
         name: name,
@@ -77,7 +77,8 @@ class LocalArchiveRepository implements ArchiveRepository {
       throw FileSystemException('Unsupported archive format', archivePath);
     }
     return switch (format) {
-      ArchiveFormat.zip => ZipDecoder().decodeStream(InputFileStream(archivePath)),
+      ArchiveFormat.zip =>
+        ZipDecoder().decodeStream(InputFileStream(archivePath)),
       ArchiveFormat.tar ||
       ArchiveFormat.tarGzip ||
       ArchiveFormat.tarBzip2 ||
@@ -93,7 +94,8 @@ class LocalArchiveRepository implements ArchiveRepository {
   Uint8List _decompressedTarBytes(String archivePath, ArchiveFormat format) {
     switch (format) {
       case ArchiveFormat.tarGzip:
-        return const GZipDecoder().decodeBytes(File(archivePath).readAsBytesSync());
+        return const GZipDecoder()
+            .decodeBytes(File(archivePath).readAsBytesSync());
       case ArchiveFormat.tarBzip2:
         return BZip2Decoder().decodeBytes(File(archivePath).readAsBytesSync());
       case ArchiveFormat.tarXz:

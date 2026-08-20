@@ -29,6 +29,8 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
   final _urlFocusNode = FocusNode();
   DownloadMediaType _mediaType = DownloadMediaType.video;
   DownloadQuality _quality = DownloadQuality.auto;
+  DownloadAudioFormat _audioFormat = DownloadAudioFormat.original;
+  bool _playlist = false;
 
   @override
   void dispose() {
@@ -46,6 +48,8 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
           url: url,
           mediaType: _mediaType,
           quality: _quality,
+          audioFormat: _audioFormat,
+          playlist: _playlist,
         );
     _urlController.clear();
     _urlFocusNode.requestFocus();
@@ -102,9 +106,14 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
             focusNode: _urlFocusNode,
             mediaType: _mediaType,
             quality: _quality,
+            audioFormat: _audioFormat,
+            playlist: _playlist,
             onUrlChanged: (_) => setState(() {}),
             onMediaTypeChanged: (value) => setState(() => _mediaType = value),
             onQualityChanged: (value) => setState(() => _quality = value),
+            onAudioFormatChanged: (value) =>
+                setState(() => _audioFormat = value),
+            onPlaylistChanged: (value) => setState(() => _playlist = value),
             onAdd: canEnqueue ? _addDownload : null,
             onPaste: _pasteUrl,
           ),
@@ -122,7 +131,8 @@ class _DownloaderScreenState extends ConsumerState<DownloaderScreen> {
                 count: state.activeTasks.length,
               ),
               const SizedBox(height: 8),
-              for (final task in state.activeTasks) _DownloadTaskCard(task: task),
+              for (final task in state.activeTasks)
+                _DownloadTaskCard(task: task),
             ],
             if (state.finishedTasks.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -147,9 +157,13 @@ class _UrlEntryCard extends StatelessWidget {
     required this.focusNode,
     required this.mediaType,
     required this.quality,
+    required this.audioFormat,
+    required this.playlist,
     required this.onUrlChanged,
     required this.onMediaTypeChanged,
     required this.onQualityChanged,
+    required this.onAudioFormatChanged,
+    required this.onPlaylistChanged,
     required this.onAdd,
     required this.onPaste,
   });
@@ -158,9 +172,13 @@ class _UrlEntryCard extends StatelessWidget {
   final FocusNode focusNode;
   final DownloadMediaType mediaType;
   final DownloadQuality quality;
+  final DownloadAudioFormat audioFormat;
+  final bool playlist;
   final ValueChanged<String> onUrlChanged;
   final ValueChanged<DownloadMediaType> onMediaTypeChanged;
   final ValueChanged<DownloadQuality> onQualityChanged;
+  final ValueChanged<DownloadAudioFormat> onAudioFormatChanged;
+  final ValueChanged<bool> onPlaylistChanged;
   final VoidCallback? onAdd;
   final VoidCallback onPaste;
 
@@ -215,8 +233,34 @@ class _UrlEntryCard extends StatelessWidget {
                     selected: mediaType == type,
                     onSelected: (_) => onMediaTypeChanged(type),
                   ),
+                FilterChip(
+                  avatar: const Icon(Icons.playlist_play_rounded, size: 18),
+                  label: const Text('Playlist'),
+                  selected: playlist,
+                  onSelected: onPlaylistChanged,
+                ),
               ],
             ),
+            if (mediaType == DownloadMediaType.audio) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Audio format',
+                style: Theme.of(context).textTheme.labelMedium,
+              ),
+              const SizedBox(height: 4),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final f in DownloadAudioFormat.values)
+                    ChoiceChip(
+                      label: Text(f.label),
+                      selected: audioFormat == f,
+                      onSelected: (_) => onAudioFormatChanged(f),
+                    ),
+                ],
+              ),
+            ],
             if (mediaType == DownloadMediaType.video) ...[
               const SizedBox(height: 8),
               Text(
@@ -391,8 +435,7 @@ class _DownloaderSummaryCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (activeTask != null &&
-                activeTask.progress.fraction != null) ...[
+            if (activeTask != null && activeTask.progress.fraction != null) ...[
               const SizedBox(height: 14),
               ClipRRect(
                 borderRadius: BorderRadius.circular(3),
@@ -596,7 +639,9 @@ class _DownloadTaskCard extends ConsumerWidget {
             ),
             if (showProgress) ...[
               const SizedBox(height: 12),
-              _TaskProgressbar(task: task, isActive: task.status == DownloadTaskStatus.running),
+              _TaskProgressbar(
+                  task: task,
+                  isActive: task.status == DownloadTaskStatus.running),
             ],
             if (task.failureMessage != null) ...[
               const SizedBox(height: 12),
@@ -630,8 +675,8 @@ class _DownloadTaskCard extends ConsumerWidget {
                         ),
                       );
                     },
-                    icon: const Icon(Icons.copy_rounded,
-                        color: Colors.redAccent),
+                    icon:
+                        const Icon(Icons.copy_rounded, color: Colors.redAccent),
                   ),
                 ],
               ),
@@ -659,6 +704,10 @@ class _DownloadTaskCard extends ConsumerWidget {
     final details = <String>[
       task.mediaType.label,
       if (task.mediaType == DownloadMediaType.video) task.quality.label,
+      if (task.playlist) 'Playlist',
+      if (task.mediaType == DownloadMediaType.audio &&
+          task.audioFormat == DownloadAudioFormat.mp3)
+        'MP3',
       task.status.label,
     ];
     if (speed > 0) {
@@ -752,14 +801,73 @@ class _DownloadTaskActions extends ConsumerWidget {
           icon: const Icon(Icons.close_rounded),
         ),
     ];
-    if (actions.isEmpty) {
-      return const SizedBox.square(dimension: 40);
-    }
     return Row(
       mainAxisSize: MainAxisSize.min,
-      children: actions,
+      children: [
+        ...actions,
+        _CopyUrlMenu(task: task),
+      ],
     );
   }
+}
+
+class _CopyUrlMenu extends StatelessWidget {
+  const _CopyUrlMenu({required this.task});
+
+  final DownloadTask task;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<VoidCallback>(
+      tooltip: 'More actions',
+      icon: const Icon(Icons.more_vert_rounded),
+      padding: EdgeInsets.zero,
+      iconSize: 22,
+      position: PopupMenuPosition.under,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      elevation: 4,
+      color: Theme.of(context).colorScheme.surfaceContainer,
+      onSelected: (callback) => callback(),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: () => _copyTaskUrl(context, task),
+          height: 46,
+          child: Row(
+            children: [
+              Container(
+                width: 34,
+                height: 34,
+                decoration: BoxDecoration(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .secondaryContainer
+                      .withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.link_rounded,
+                  size: 19,
+                  color: Theme.of(context).colorScheme.onSecondaryContainer,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Copy URL', style: Theme.of(context).textTheme.bodyLarge),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void _copyTaskUrl(BuildContext context, DownloadTask task) {
+  Clipboard.setData(ClipboardData(text: task.url));
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(
+      content: Text('URL copied to clipboard'),
+      duration: Duration(seconds: 2),
+    ),
+  );
 }
 
 class _CompletedTaskMenu extends ConsumerWidget {
@@ -783,9 +891,7 @@ class _CompletedTaskMenu extends ConsumerWidget {
           case _CompletedAction.move:
             final path = task.savedPath;
             if (path.isNotEmpty) {
-              ref
-                  .read(transferControllerProvider.notifier)
-                  .queueOperation(
+              ref.read(transferControllerProvider.notifier).queueOperation(
                     operation: TransferOperation.move,
                     sourcePaths: [path],
                     displayName: task.displayName,
@@ -797,6 +903,8 @@ class _CompletedTaskMenu extends ConsumerWidget {
           case _CompletedAction.browse:
             context.push(AppRoutes.downloaderBrowse,
                 extra: task.outputDirectory);
+          case _CompletedAction.copyUrl:
+            _copyTaskUrl(context, task);
         }
       },
       itemBuilder: (context) => [
@@ -818,6 +926,12 @@ class _CompletedTaskMenu extends ConsumerWidget {
           value: _CompletedAction.browse,
           icon: Icons.manage_search_rounded,
           label: 'Browse',
+        ),
+        _menuItem(
+          context,
+          value: _CompletedAction.copyUrl,
+          icon: Icons.link_rounded,
+          label: 'Copy URL',
         ),
       ],
     );
@@ -852,7 +966,7 @@ class _CompletedTaskMenu extends ConsumerWidget {
   }
 }
 
-enum _CompletedAction { move, openFolder, browse }
+enum _CompletedAction { move, openFolder, browse, copyUrl }
 
 class _EmptyDownloaderQueue extends StatelessWidget {
   const _EmptyDownloaderQueue();
@@ -896,10 +1010,10 @@ class _EmptyDownloaderQueue extends StatelessWidget {
   }
 }
 
-Future<void> _pickOutputDirectory(
-    BuildContext context, WidgetRef ref) async {
+Future<void> _pickOutputDirectory(BuildContext context, WidgetRef ref) async {
   final repository = ref.read(storageRepositoryProvider);
-  var currentPath = ref.read(downloaderControllerProvider).settings.outputDirectory;
+  var currentPath =
+      ref.read(downloaderControllerProvider).settings.outputDirectory;
   if (currentPath.isEmpty) {
     final volumes = await repository.getStorageVolumes();
     currentPath = volumes.isEmpty ? '/' : volumes.first.path;
@@ -970,7 +1084,8 @@ class _FolderPickerSheetState extends State<_FolderPickerSheet> {
       }
       setState(() {
         _folders = listing.entries.where((entry) => entry.isFolder).toList()
-          ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+          ..sort(
+              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
         _loading = false;
       });
     } catch (_) {
@@ -1005,8 +1120,7 @@ class _FolderPickerSheetState extends State<_FolderPickerSheet> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () =>
-                  Navigator.of(dialogContext).pop(input.trim()),
+              onPressed: () => Navigator.of(dialogContext).pop(input.trim()),
               child: const Text('Create'),
             ),
           ],
@@ -1178,7 +1292,8 @@ class _YtDlpUpdateSheetState extends ConsumerState<_YtDlpUpdateSheet> {
           children: [
             Row(
               children: [
-                Icon(Icons.system_update_alt_rounded, color: theme.colorScheme.primary),
+                Icon(Icons.system_update_alt_rounded,
+                    color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 Text(
                   'yt-dlp engine',
@@ -1268,7 +1383,8 @@ class _YtDlpUpdateSheetState extends ConsumerState<_YtDlpUpdateSheet> {
                       : (applyResult.message?.isNotEmpty == true
                           ? applyResult.message!
                           : 'Update could not be applied'),
-                  style: theme.textTheme.bodyMedium?.copyWith(color: statusColor),
+                  style:
+                      theme.textTheme.bodyMedium?.copyWith(color: statusColor),
                 ),
               ),
             ],

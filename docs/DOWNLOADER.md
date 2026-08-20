@@ -238,9 +238,10 @@ flutter test test/features/downloader/downloader_controller_test.dart
 The downloader depends entirely on what `yt-dlp` can resolve and download, so
 support is not universal:
 
-- **Site support varies** — sites such as Threads, and anything else without a
-  working `yt-dlp` extractor, will not download (a failed task with a
-  "Unsupported URL" style message is the expected result).
+- **Site support varies** — the downloader resolves what `yt-dlp` (plus the
+  vendored Threads plugin) can handle. Threads (`threads.com` / `threads.net`)
+  is supported via a bundled community extractor plugin; any other site without
+  a working extractor will fail with an "Unsupported URL" style message.
 - **No playlist support** — only a single video/audio item per pasted link;
   playlist/`noplaylist` handling is not implemented yet.
 - **Quality caps are height ceilings, not exact resolutions** — a 480p preset

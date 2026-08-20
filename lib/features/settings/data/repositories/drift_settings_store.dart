@@ -42,7 +42,8 @@ class DriftSettingsStore implements SettingsStore {
           values[SettingKey.confirmDestructiveActions.storageKey] == 'true',
       showFoldersOnlyInHistory:
           values[SettingKey.showFoldersOnlyInHistory.storageKey] == 'true',
-      useIndexedSearch: values[SettingKey.useIndexedSearch.storageKey] == 'true',
+      useIndexedSearch:
+          values[SettingKey.useIndexedSearch.storageKey] == 'true',
       showTransferStation:
           values[SettingKey.showTransferStation.storageKey] == 'true',
       themeMode: readThemeMode(),

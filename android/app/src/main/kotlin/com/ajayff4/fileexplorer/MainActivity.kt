@@ -297,6 +297,8 @@ class MainActivity: FlutterActivity() {
                         val mediaType = call.argument<String>("mediaType") ?: "video"
                         val outputDirectory = call.argument<String>("outputDirectory")
                         val quality = call.argument<String>("quality") ?: "auto"
+                        val audioFormat = call.argument<String>("audioFormat") ?: "original"
+                        val playlist = call.argument<Boolean>("playlist") ?: false
                         if (taskId == null || url == null || outputDirectory == null) {
                             result.error("missing_argument", "taskId, url, outputDirectory are required", null)
                         } else {
@@ -309,6 +311,8 @@ class MainActivity: FlutterActivity() {
                                     mediaType,
                                     outputDirectory,
                                     quality,
+                                    audioFormat,
+                                    playlist,
                                 )
                                 android.util.Log.d("DownloaderDebug", "python start returned")
                                 result.success(null)

@@ -195,7 +195,9 @@ class _ActiveProgressbar extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          isIndeterminate ? _bytesLabel(task) : '${_percent(fraction)}  ·  ${_bytesLabel(task)}',
+          isIndeterminate
+              ? _bytesLabel(task)
+              : '${_percent(fraction)}  ·  ${_bytesLabel(task)}',
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: scheme.onSurfaceVariant,
               ),
@@ -465,7 +467,8 @@ class _TransferStatusBadge extends StatelessWidget {
         ),
       TransferTaskStatus.awaitingDestination => (
           Icons.move_to_inbox_rounded,
-          colorForTransferStatus(context, TransferTaskStatus.awaitingDestination),
+          colorForTransferStatus(
+              context, TransferTaskStatus.awaitingDestination),
           'Needs destination'
         ),
       TransferTaskStatus.completed => (

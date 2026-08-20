@@ -14,8 +14,7 @@ void main() {
     expect(state.isRoot, isTrue);
 
     await waitForListing(container);
-    final loaded =
-        container.read(archiveViewerControllerProvider(archivePath));
+    final loaded = container.read(archiveViewerControllerProvider(archivePath));
     expect(loaded.listing.hasValue, isTrue);
 
     final entries = loaded.listing.value!.entries;
@@ -64,7 +63,8 @@ void main() {
 ProviderContainer makeContainer() {
   final container = ProviderContainer(
     overrides: [
-      archiveRepositoryProvider.overrideWithValue(const FakeArchiveRepository()),
+      archiveRepositoryProvider
+          .overrideWithValue(const FakeArchiveRepository()),
     ],
   );
   addTearDown(container.dispose);

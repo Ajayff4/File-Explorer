@@ -36,9 +36,8 @@ class _DownloadBrowseScreenState extends ConsumerState<DownloadBrowseScreen> {
       _entries = [];
     });
     try {
-      final listing = await ref
-          .read(storageRepositoryProvider)
-          .listDirectory(_currentPath);
+      final listing =
+          await ref.read(storageRepositoryProvider).listDirectory(_currentPath);
       if (!mounted) {
         return;
       }
@@ -108,9 +107,8 @@ class _DownloadBrowseScreenState extends ConsumerState<DownloadBrowseScreen> {
         actions: [
           IconButton(
             tooltip: 'Up',
-            onPressed: _currentPath == _parent(_currentPath)
-                ? null
-                : _navigateUp,
+            onPressed:
+                _currentPath == _parent(_currentPath) ? null : _navigateUp,
             icon: const Icon(Icons.arrow_upward_rounded),
           ),
         ],

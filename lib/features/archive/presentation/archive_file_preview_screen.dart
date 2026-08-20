@@ -39,7 +39,8 @@ class ArchiveFilePreviewScreen extends ConsumerStatefulWidget {
       _ArchiveFilePreviewScreenState();
 }
 
-class _ArchiveFilePreviewScreenState extends ConsumerState<ArchiveFilePreviewScreen> {
+class _ArchiveFilePreviewScreenState
+    extends ConsumerState<ArchiveFilePreviewScreen> {
   late final ArchivePreviewKind _kind;
   Uint8List? _bytes;
   Object? _error;
@@ -370,8 +371,16 @@ ArchivePreviewKind kindForArchivePreview(String name) {
     'bmp' =>
       ArchivePreviewKind.image,
     'mp4' || 'mkv' || 'mov' || 'webm' || 'avi' => ArchivePreviewKind.video,
-    'mp3' || 'flac' || 'wav' || 'm4a' || 'ogg' || 'aac' => ArchivePreviewKind.audio,
-    _ => isTextFile(name) ? ArchivePreviewKind.text : ArchivePreviewKind.unsupported,
+    'mp3' ||
+    'flac' ||
+    'wav' ||
+    'm4a' ||
+    'ogg' ||
+    'aac' =>
+      ArchivePreviewKind.audio,
+    _ => isTextFile(name)
+        ? ArchivePreviewKind.text
+        : ArchivePreviewKind.unsupported,
   };
 }
 

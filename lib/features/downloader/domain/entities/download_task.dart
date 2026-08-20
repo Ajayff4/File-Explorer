@@ -19,6 +19,15 @@ enum DownloadQuality {
   final String label;
 }
 
+enum DownloadAudioFormat {
+  original('Original'),
+  mp3('MP3');
+
+  const DownloadAudioFormat(this.label);
+
+  final String label;
+}
+
 enum DownloadTaskStatus {
   queued,
   running,
@@ -66,8 +75,7 @@ class DownloadProgress {
     return DownloadProgress(
       transferredBytes: transferredBytes ?? this.transferredBytes,
       totalBytes: totalBytes ?? this.totalBytes,
-      speedBytesPerSecond:
-          speedBytesPerSecond ?? this.speedBytesPerSecond,
+      speedBytesPerSecond: speedBytesPerSecond ?? this.speedBytesPerSecond,
     );
   }
 }
@@ -82,6 +90,8 @@ class DownloadTask {
     required this.updatedAt,
     required this.outputDirectory,
     this.quality = DownloadQuality.auto,
+    this.audioFormat = DownloadAudioFormat.original,
+    this.playlist = false,
     this.title,
     this.progress = const DownloadProgress(),
     this.fileName,
@@ -96,6 +106,8 @@ class DownloadTask {
   final DateTime updatedAt;
   final String outputDirectory;
   final DownloadQuality quality;
+  final DownloadAudioFormat audioFormat;
+  final bool playlist;
   final String? title;
   final DownloadProgress progress;
   final String? fileName;
@@ -164,6 +176,8 @@ class DownloadTask {
       url: url,
       mediaType: mediaType,
       quality: quality,
+      audioFormat: audioFormat,
+      playlist: playlist,
       status: status ?? this.status,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,

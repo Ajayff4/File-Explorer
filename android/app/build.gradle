@@ -47,10 +47,16 @@ android {
 chaquopy {
     defaultConfig {
         version = "3.12"
+        // yt-dlp discovers plugins by scanning sys.path for a physical
+        // `yt_dlp_plugins/extractor` directory, so the vendored Threads plugin
+        // must exist as real files rather than Chaquopy's in-APK virtual FS.
+        extractPackages("yt_dlp_plugins")
         pip {
             install "yt-dlp"
-            // Threads has no upstream yt-dlp extractor; use the community plugin.
-            install "https://github.com/tribixbite/yt-dlp-threads/archive/refs/heads/main.zip"
+            // Threads has no upstream yt-dlp extractor; the community plugin
+            // is vendored in src/main/python/yt_dlp_plugins (with __init__.py
+            // files) because Chaquopy cannot import the upstream package, which
+            // is a PEP 420 namespace package with no __init__.py.
         }
     }
 }

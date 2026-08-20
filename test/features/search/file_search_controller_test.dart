@@ -236,7 +236,8 @@ void main() {
     expect(controller.state.results, isEmpty);
   });
 
-  test('includes dotfiles and dotfolder contents when hidden files shown', () async {
+  test('includes dotfiles and dotfolder contents when hidden files shown',
+      () async {
     final repository = _TreeStorageRepository({
       '/root': [
         _folder('.cache', '/root/.cache'),

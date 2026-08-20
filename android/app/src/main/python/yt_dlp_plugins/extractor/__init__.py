@@ -1,0 +1,1 @@
+"""Extractor plugins for yt-dlp."""

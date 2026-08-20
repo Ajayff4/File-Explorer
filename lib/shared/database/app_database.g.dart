@@ -2098,6 +2098,24 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
               type: DriftSqlType.int, requiredDuringInsert: false)
           .withConverter<DownloadQuality?>(
               $DownloadTaskRowsTable.$converterqualityn);
+  @override
+  late final GeneratedColumnWithTypeConverter<DownloadAudioFormat, int>
+      audioFormat = GeneratedColumn<int>('audio_format', aliasedName, false,
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(0))
+          .withConverter<DownloadAudioFormat>(
+              $DownloadTaskRowsTable.$converteraudioFormat);
+  static const VerificationMeta _playlistMeta =
+      const VerificationMeta('playlist');
+  @override
+  late final GeneratedColumn<bool> playlist = GeneratedColumn<bool>(
+      'playlist', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("playlist" IN (0, 1))'),
+      defaultValue: const Constant(false));
   static const VerificationMeta _titleMeta = const VerificationMeta('title');
   @override
   late final GeneratedColumn<String> title = GeneratedColumn<String>(
@@ -2167,6 +2185,8 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
         url,
         mediaType,
         quality,
+        audioFormat,
+        playlist,
         title,
         status,
         createdAt,
@@ -2198,6 +2218,10 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
           _urlMeta, url.isAcceptableOrUnknown(data['url']!, _urlMeta));
     } else if (isInserting) {
       context.missing(_urlMeta);
+    }
+    if (data.containsKey('playlist')) {
+      context.handle(_playlistMeta,
+          playlist.isAcceptableOrUnknown(data['playlist']!, _playlistMeta));
     }
     if (data.containsKey('title')) {
       context.handle(
@@ -2270,6 +2294,11 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
       quality: $DownloadTaskRowsTable.$converterqualityn.fromSql(
           attachedDatabase.typeMapping
               .read(DriftSqlType.int, data['${effectivePrefix}quality'])),
+      audioFormat: $DownloadTaskRowsTable.$converteraudioFormat.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}audio_format'])!),
+      playlist: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}playlist'])!,
       title: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}title']),
       status: $DownloadTaskRowsTable.$converterstatus.fromSql(attachedDatabase
@@ -2306,6 +2335,9 @@ class $DownloadTaskRowsTable extends DownloadTaskRows
       const EnumIndexConverter<DownloadQuality>(DownloadQuality.values);
   static JsonTypeConverter2<DownloadQuality?, int?, int?> $converterqualityn =
       JsonTypeConverter2.asNullable($converterquality);
+  static JsonTypeConverter2<DownloadAudioFormat, int, int>
+      $converteraudioFormat =
+      const EnumIndexConverter<DownloadAudioFormat>(DownloadAudioFormat.values);
   static JsonTypeConverter2<DownloadTaskStatus, int, int> $converterstatus =
       const EnumIndexConverter<DownloadTaskStatus>(DownloadTaskStatus.values);
 }
@@ -2315,6 +2347,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
   final String url;
   final DownloadMediaType mediaType;
   final DownloadQuality? quality;
+  final DownloadAudioFormat audioFormat;
+  final bool playlist;
   final String? title;
   final DownloadTaskStatus status;
   final DateTime createdAt;
@@ -2330,6 +2364,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       required this.url,
       required this.mediaType,
       this.quality,
+      required this.audioFormat,
+      required this.playlist,
       this.title,
       required this.status,
       required this.createdAt,
@@ -2353,6 +2389,11 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       map['quality'] = Variable<int>(
           $DownloadTaskRowsTable.$converterqualityn.toSql(quality));
     }
+    {
+      map['audio_format'] = Variable<int>(
+          $DownloadTaskRowsTable.$converteraudioFormat.toSql(audioFormat));
+    }
+    map['playlist'] = Variable<bool>(playlist);
     if (!nullToAbsent || title != null) {
       map['title'] = Variable<String>(title);
     }
@@ -2385,6 +2426,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       quality: quality == null && nullToAbsent
           ? const Value.absent()
           : Value(quality),
+      audioFormat: Value(audioFormat),
+      playlist: Value(playlist),
       title:
           title == null && nullToAbsent ? const Value.absent() : Value(title),
       status: Value(status),
@@ -2415,6 +2458,9 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           .fromJson(serializer.fromJson<int>(json['mediaType'])),
       quality: $DownloadTaskRowsTable.$converterqualityn
           .fromJson(serializer.fromJson<int?>(json['quality'])),
+      audioFormat: $DownloadTaskRowsTable.$converteraudioFormat
+          .fromJson(serializer.fromJson<int>(json['audioFormat'])),
+      playlist: serializer.fromJson<bool>(json['playlist']),
       title: serializer.fromJson<String?>(json['title']),
       status: $DownloadTaskRowsTable.$converterstatus
           .fromJson(serializer.fromJson<int>(json['status'])),
@@ -2439,6 +2485,9 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           $DownloadTaskRowsTable.$convertermediaType.toJson(mediaType)),
       'quality': serializer.toJson<int?>(
           $DownloadTaskRowsTable.$converterqualityn.toJson(quality)),
+      'audioFormat': serializer.toJson<int>(
+          $DownloadTaskRowsTable.$converteraudioFormat.toJson(audioFormat)),
+      'playlist': serializer.toJson<bool>(playlist),
       'title': serializer.toJson<String?>(title),
       'status': serializer
           .toJson<int>($DownloadTaskRowsTable.$converterstatus.toJson(status)),
@@ -2458,6 +2507,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           String? url,
           DownloadMediaType? mediaType,
           Value<DownloadQuality?> quality = const Value.absent(),
+          DownloadAudioFormat? audioFormat,
+          bool? playlist,
           Value<String?> title = const Value.absent(),
           DownloadTaskStatus? status,
           DateTime? createdAt,
@@ -2473,6 +2524,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
         url: url ?? this.url,
         mediaType: mediaType ?? this.mediaType,
         quality: quality.present ? quality.value : this.quality,
+        audioFormat: audioFormat ?? this.audioFormat,
+        playlist: playlist ?? this.playlist,
         title: title.present ? title.value : this.title,
         status: status ?? this.status,
         createdAt: createdAt ?? this.createdAt,
@@ -2491,6 +2544,9 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       url: data.url.present ? data.url.value : this.url,
       mediaType: data.mediaType.present ? data.mediaType.value : this.mediaType,
       quality: data.quality.present ? data.quality.value : this.quality,
+      audioFormat:
+          data.audioFormat.present ? data.audioFormat.value : this.audioFormat,
+      playlist: data.playlist.present ? data.playlist.value : this.playlist,
       title: data.title.present ? data.title.value : this.title,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -2520,6 +2576,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           ..write('url: $url, ')
           ..write('mediaType: $mediaType, ')
           ..write('quality: $quality, ')
+          ..write('audioFormat: $audioFormat, ')
+          ..write('playlist: $playlist, ')
           ..write('title: $title, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -2540,6 +2598,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
       url,
       mediaType,
       quality,
+      audioFormat,
+      playlist,
       title,
       status,
       createdAt,
@@ -2558,6 +2618,8 @@ class DownloadTaskRow extends DataClass implements Insertable<DownloadTaskRow> {
           other.url == this.url &&
           other.mediaType == this.mediaType &&
           other.quality == this.quality &&
+          other.audioFormat == this.audioFormat &&
+          other.playlist == this.playlist &&
           other.title == this.title &&
           other.status == this.status &&
           other.createdAt == this.createdAt &&
@@ -2575,6 +2637,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
   final Value<String> url;
   final Value<DownloadMediaType> mediaType;
   final Value<DownloadQuality?> quality;
+  final Value<DownloadAudioFormat> audioFormat;
+  final Value<bool> playlist;
   final Value<String?> title;
   final Value<DownloadTaskStatus> status;
   final Value<DateTime> createdAt;
@@ -2591,6 +2655,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     this.url = const Value.absent(),
     this.mediaType = const Value.absent(),
     this.quality = const Value.absent(),
+    this.audioFormat = const Value.absent(),
+    this.playlist = const Value.absent(),
     this.title = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -2608,6 +2674,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     required String url,
     required DownloadMediaType mediaType,
     this.quality = const Value.absent(),
+    this.audioFormat = const Value.absent(),
+    this.playlist = const Value.absent(),
     this.title = const Value.absent(),
     required DownloadTaskStatus status,
     required DateTime createdAt,
@@ -2631,6 +2699,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     Expression<String>? url,
     Expression<int>? mediaType,
     Expression<int>? quality,
+    Expression<int>? audioFormat,
+    Expression<bool>? playlist,
     Expression<String>? title,
     Expression<int>? status,
     Expression<DateTime>? createdAt,
@@ -2648,6 +2718,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       if (url != null) 'url': url,
       if (mediaType != null) 'media_type': mediaType,
       if (quality != null) 'quality': quality,
+      if (audioFormat != null) 'audio_format': audioFormat,
+      if (playlist != null) 'playlist': playlist,
       if (title != null) 'title': title,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
@@ -2668,6 +2740,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       Value<String>? url,
       Value<DownloadMediaType>? mediaType,
       Value<DownloadQuality?>? quality,
+      Value<DownloadAudioFormat>? audioFormat,
+      Value<bool>? playlist,
       Value<String?>? title,
       Value<DownloadTaskStatus>? status,
       Value<DateTime>? createdAt,
@@ -2684,6 +2758,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
       url: url ?? this.url,
       mediaType: mediaType ?? this.mediaType,
       quality: quality ?? this.quality,
+      audioFormat: audioFormat ?? this.audioFormat,
+      playlist: playlist ?? this.playlist,
       title: title ?? this.title,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
@@ -2714,6 +2790,14 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
     if (quality.present) {
       map['quality'] = Variable<int>(
           $DownloadTaskRowsTable.$converterqualityn.toSql(quality.value));
+    }
+    if (audioFormat.present) {
+      map['audio_format'] = Variable<int>($DownloadTaskRowsTable
+          .$converteraudioFormat
+          .toSql(audioFormat.value));
+    }
+    if (playlist.present) {
+      map['playlist'] = Variable<bool>(playlist.value);
     }
     if (title.present) {
       map['title'] = Variable<String>(title.value);
@@ -2760,6 +2844,8 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
           ..write('url: $url, ')
           ..write('mediaType: $mediaType, ')
           ..write('quality: $quality, ')
+          ..write('audioFormat: $audioFormat, ')
+          ..write('playlist: $playlist, ')
           ..write('title: $title, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
@@ -3873,6 +3959,8 @@ typedef $$DownloadTaskRowsTableCreateCompanionBuilder
   required String url,
   required DownloadMediaType mediaType,
   Value<DownloadQuality?> quality,
+  Value<DownloadAudioFormat> audioFormat,
+  Value<bool> playlist,
   Value<String?> title,
   required DownloadTaskStatus status,
   required DateTime createdAt,
@@ -3891,6 +3979,8 @@ typedef $$DownloadTaskRowsTableUpdateCompanionBuilder
   Value<String> url,
   Value<DownloadMediaType> mediaType,
   Value<DownloadQuality?> quality,
+  Value<DownloadAudioFormat> audioFormat,
+  Value<bool> playlist,
   Value<String?> title,
   Value<DownloadTaskStatus> status,
   Value<DateTime> createdAt,
@@ -3928,6 +4018,14 @@ class $$DownloadTaskRowsTableFilterComposer
       get quality => $composableBuilder(
           column: $table.quality,
           builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnWithTypeConverterFilters<DownloadAudioFormat, DownloadAudioFormat, int>
+      get audioFormat => $composableBuilder(
+          column: $table.audioFormat,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<bool> get playlist => $composableBuilder(
+      column: $table.playlist, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnFilters(column));
@@ -3987,6 +4085,12 @@ class $$DownloadTaskRowsTableOrderingComposer
   ColumnOrderings<int> get quality => $composableBuilder(
       column: $table.quality, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<int> get audioFormat => $composableBuilder(
+      column: $table.audioFormat, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get playlist => $composableBuilder(
+      column: $table.playlist, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get title => $composableBuilder(
       column: $table.title, builder: (column) => ColumnOrderings(column));
 
@@ -4042,6 +4146,13 @@ class $$DownloadTaskRowsTableAnnotationComposer
 
   GeneratedColumnWithTypeConverter<DownloadQuality?, int> get quality =>
       $composableBuilder(column: $table.quality, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<DownloadAudioFormat, int> get audioFormat =>
+      $composableBuilder(
+          column: $table.audioFormat, builder: (column) => column);
+
+  GeneratedColumn<bool> get playlist =>
+      $composableBuilder(column: $table.playlist, builder: (column) => column);
 
   GeneratedColumn<String> get title =>
       $composableBuilder(column: $table.title, builder: (column) => column);
@@ -4105,6 +4216,8 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             Value<String> url = const Value.absent(),
             Value<DownloadMediaType> mediaType = const Value.absent(),
             Value<DownloadQuality?> quality = const Value.absent(),
+            Value<DownloadAudioFormat> audioFormat = const Value.absent(),
+            Value<bool> playlist = const Value.absent(),
             Value<String?> title = const Value.absent(),
             Value<DownloadTaskStatus> status = const Value.absent(),
             Value<DateTime> createdAt = const Value.absent(),
@@ -4122,6 +4235,8 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             url: url,
             mediaType: mediaType,
             quality: quality,
+            audioFormat: audioFormat,
+            playlist: playlist,
             title: title,
             status: status,
             createdAt: createdAt,
@@ -4139,6 +4254,8 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             required String url,
             required DownloadMediaType mediaType,
             Value<DownloadQuality?> quality = const Value.absent(),
+            Value<DownloadAudioFormat> audioFormat = const Value.absent(),
+            Value<bool> playlist = const Value.absent(),
             Value<String?> title = const Value.absent(),
             required DownloadTaskStatus status,
             required DateTime createdAt,
@@ -4156,6 +4273,8 @@ class $$DownloadTaskRowsTableTableManager extends RootTableManager<
             url: url,
             mediaType: mediaType,
             quality: quality,
+            audioFormat: audioFormat,
+            playlist: playlist,
             title: title,
             status: status,
             createdAt: createdAt,

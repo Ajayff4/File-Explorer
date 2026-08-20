@@ -42,11 +42,15 @@ class DownloaderState {
       tasks.where((task) => task.isFinished).toList();
 
   int get queuedCount {
-    return tasks.where((task) => task.status == DownloadTaskStatus.queued).length;
+    return tasks
+        .where((task) => task.status == DownloadTaskStatus.queued)
+        .length;
   }
 
   int get runningCount {
-    return tasks.where((task) => task.status == DownloadTaskStatus.running).length;
+    return tasks
+        .where((task) => task.status == DownloadTaskStatus.running)
+        .length;
   }
 
   int get completedCount {
@@ -56,7 +60,9 @@ class DownloaderState {
   }
 
   int get failedCount {
-    return tasks.where((task) => task.status == DownloadTaskStatus.failed).length;
+    return tasks
+        .where((task) => task.status == DownloadTaskStatus.failed)
+        .length;
   }
 
   int get pendingCount => queuedCount + runningCount;
@@ -158,8 +164,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
 
   void setMaxConcurrentDownloads(int maxConcurrent) {
     final clamped = maxConcurrent.clamp(1, 16);
-    final updated = state.settings
-        .copyWith(maxConcurrentDownloads: clamped);
+    final updated = state.settings.copyWith(maxConcurrentDownloads: clamped);
     state = state.copyWith(settings: updated);
     unawaited(_settingsStore?.save(updated) ?? Future.value());
     _tryStartNext();
@@ -183,8 +188,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
   }
 
   void setOutputDirectory(String directory) {
-    final updated =
-        state.settings.copyWith(outputDirectory: directory);
+    final updated = state.settings.copyWith(outputDirectory: directory);
     state = state.copyWith(settings: updated);
     unawaited(_settingsStore?.save(updated) ?? Future.value());
   }
@@ -193,6 +197,8 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     required String url,
     DownloadMediaType mediaType = DownloadMediaType.video,
     DownloadQuality quality = DownloadQuality.auto,
+    DownloadAudioFormat audioFormat = DownloadAudioFormat.original,
+    bool playlist = false,
   }) {
     final trimmedUrl = url.trim();
     final now = DateTime.now();
@@ -202,6 +208,8 @@ class DownloaderController extends StateNotifier<DownloaderState> {
       url: trimmedUrl,
       mediaType: mediaType,
       quality: quality,
+      audioFormat: audioFormat,
+      playlist: playlist,
       status: DownloadTaskStatus.queued,
       createdAt: now,
       updatedAt: now,
@@ -304,8 +312,9 @@ class DownloaderController extends StateNotifier<DownloaderState> {
       return;
     }
 
-    final runningCount =
-        state.tasks.where((task) => task.status == DownloadTaskStatus.running).length;
+    final runningCount = state.tasks
+        .where((task) => task.status == DownloadTaskStatus.running)
+        .length;
     if (runningCount >= state.settings.maxConcurrentDownloads) {
       return;
     }
@@ -322,12 +331,14 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     unawaited(
       _engine
           .start(
-            taskId: taskId,
-            url: task.url,
-            mediaType: task.mediaType,
-            quality: task.quality,
-            outputDirectory: task.outputDirectory,
-          )
+        taskId: taskId,
+        url: task.url,
+        mediaType: task.mediaType,
+        quality: task.quality,
+        audioFormat: task.audioFormat,
+        playlist: task.playlist,
+        outputDirectory: task.outputDirectory,
+      )
           .catchError((Object error) {
         _markFailed(taskId, error.toString());
       }),
@@ -363,10 +374,11 @@ class DownloaderController extends StateNotifier<DownloaderState> {
                 : DownloadTaskStatus.running,
             updatedAt: now,
             progress: DownloadProgress(
-              transferredBytes: event.transferredBytes ?? task.progress.transferredBytes,
+              transferredBytes:
+                  event.transferredBytes ?? task.progress.transferredBytes,
               totalBytes: event.totalBytes ?? task.progress.totalBytes,
-              speedBytesPerSecond:
-                  event.speedBytesPerSecond ?? task.progress.speedBytesPerSecond,
+              speedBytesPerSecond: event.speedBytesPerSecond ??
+                  task.progress.speedBytesPerSecond,
             ),
           ),
         );
@@ -386,11 +398,11 @@ class DownloaderController extends StateNotifier<DownloaderState> {
           (task, now) => task.copyWith(
             status: DownloadTaskStatus.completed,
             updatedAt: now,
-            title: (event.title?.isNotEmpty ?? false)
-                ? event.title
-                : task.title,
+            title:
+                (event.title?.isNotEmpty ?? false) ? event.title : task.title,
             progress: DownloadProgress(
-              transferredBytes: event.transferredBytes ?? task.progress.totalBytes ?? 1,
+              transferredBytes:
+                  event.transferredBytes ?? task.progress.totalBytes ?? 1,
               totalBytes: event.totalBytes ?? task.progress.totalBytes,
               speedBytesPerSecond: 0,
             ),
@@ -409,7 +421,8 @@ class DownloaderController extends StateNotifier<DownloaderState> {
 
   void _markFailed(String taskId, String message) {
     final currentTask = state.taskById(taskId);
-    if (currentTask == null || currentTask.status == DownloadTaskStatus.cancelled) {
+    if (currentTask == null ||
+        currentTask.status == DownloadTaskStatus.cancelled) {
       _runningTaskIds.remove(taskId);
       _tryStartNext();
       return;

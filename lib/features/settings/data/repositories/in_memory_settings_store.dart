@@ -53,8 +53,8 @@ class InMemorySettingsStore implements SettingsStore {
     }
 
     return defaults.copyWith(
-      showHiddenFiles: boolValues[SettingKey.showHiddenFiles] ??
-          defaults.showHiddenFiles,
+      showHiddenFiles:
+          boolValues[SettingKey.showHiddenFiles] ?? defaults.showHiddenFiles,
       confirmDestructiveActions:
           boolValues[SettingKey.confirmDestructiveActions] ??
               defaults.confirmDestructiveActions,

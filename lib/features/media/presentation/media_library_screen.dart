@@ -582,8 +582,8 @@ class _MediaFolderTile extends ConsumerWidget {
                                   )
                                 : MediaThumbnail(
                                     entry: entry,
-                                    fallback:
-                                        fileIconForEntry(context, entry, size: 96),
+                                    fallback: fileIconForEntry(context, entry,
+                                        size: 96),
                                     dimension: 96,
                                   ),
                       ),

@@ -20,7 +20,8 @@ class DownloaderSettings {
     String? outputDirectory,
   }) {
     return DownloaderSettings(
-      maxConcurrentDownloads: maxConcurrentDownloads ?? this.maxConcurrentDownloads,
+      maxConcurrentDownloads:
+          maxConcurrentDownloads ?? this.maxConcurrentDownloads,
       outputDirectory: outputDirectory ?? this.outputDirectory,
     );
   }

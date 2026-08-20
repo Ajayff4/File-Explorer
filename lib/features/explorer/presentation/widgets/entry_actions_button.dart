@@ -712,8 +712,8 @@ Future<bool> showCompressOptionsSheet({
     return false;
   }
   final choices = _compressionChoicesFor(sourcePaths, singleSourceKind);
-  final isSingleFile = sourcePaths.length == 1 &&
-      singleSourceKind == FileSystemEntityType.file;
+  final isSingleFile =
+      sourcePaths.length == 1 && singleSourceKind == FileSystemEntityType.file;
   final defaultFileName = _defaultArchiveName(
     sourcePaths: sourcePaths,
     destinationDirectory: destinationDirectory,
@@ -815,7 +815,7 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
     super.dispose();
   }
 
-@override
+  @override
   Widget build(BuildContext context) {
     final supportsPassword = _choice.supportsPassword;
     return AlertDialog(
@@ -1032,8 +1032,7 @@ class _CompressionOptionsDialogState extends State<_CompressionOptionsDialog> {
         fileName == '..') {
       return;
     }
-    final password =
-        _choice.supportsPassword ? _passwordController.text : '';
+    final password = _choice.supportsPassword ? _passwordController.text : '';
     Navigator.of(context).pop(
       _CompressionOptions(
         fileName: fileName,

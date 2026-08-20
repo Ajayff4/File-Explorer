@@ -16,8 +16,7 @@ class DriftDownloaderSettingsStore implements DownloaderSettingsStore {
       for (final row in rows) row.key: row.value,
     };
 
-    final maxConcurrent =
-        int.tryParse(values[_maxConcurrentKey] ?? '') ?? 1;
+    final maxConcurrent = int.tryParse(values[_maxConcurrentKey] ?? '') ?? 1;
     return DownloaderSettings(
       maxConcurrentDownloads: maxConcurrent.clamp(1, 16),
       outputDirectory: values[_outputDirectoryKey] ?? '',
@@ -28,18 +27,18 @@ class DriftDownloaderSettingsStore implements DownloaderSettingsStore {
   Future<void> save(DownloaderSettings settings) async {
     final now = DateTime.now();
     await _database.into(_database.settingRows).insertOnConflictUpdate(
-      SettingRowsCompanion.insert(
-        key: _maxConcurrentKey,
-        value: '${settings.maxConcurrentDownloads}',
-        updatedAt: now,
-      ),
-    );
+          SettingRowsCompanion.insert(
+            key: _maxConcurrentKey,
+            value: '${settings.maxConcurrentDownloads}',
+            updatedAt: now,
+          ),
+        );
     await _database.into(_database.settingRows).insertOnConflictUpdate(
-      SettingRowsCompanion.insert(
-        key: _outputDirectoryKey,
-        value: settings.outputDirectory,
-        updatedAt: now,
-      ),
-    );
+          SettingRowsCompanion.insert(
+            key: _outputDirectoryKey,
+            value: settings.outputDirectory,
+            updatedAt: now,
+          ),
+        );
   }
 }

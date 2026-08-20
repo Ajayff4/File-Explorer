@@ -40,6 +40,34 @@ _update_pkg = os.path.join(_UPDATE_BASE, "yt_dlp")
 if os.path.isdir(_update_pkg) and _UPDATE_BASE not in sys.path:
     sys.path.insert(0, _UPDATE_BASE)
 
+def _load_threads_plugin():
+    """Import the vendored Threads extractor and register it with yt-dlp.
+
+    Must import the plugin module BEFORE yt-dlp's meta_path finder is
+    consulted: yt-dlp installs a PluginFinder that hijacks any later
+    `import yt_dlp_plugins` and raises ModuleNotFoundError (it only scans
+    sys.path for real directories, which never exist under Chaquopy's in-APK
+    virtual filesystem). Importing first puts the module in sys.modules, so the
+    finder is never asked. Then the extractor class is registered directly in
+    yt-dlp's registry, since yt-dlp's own plugin discovery cannot see
+    Chaquopy-packaged modules.
+    """
+    try:
+        from yt_dlp_plugins.extractor.threads import ThreadsIE
+    except Exception:
+        return
+    try:
+        import yt_dlp.extractor as _yt_extractor
+        # Build the main extractor registry first, then append the plugin class.
+        _yt_extractor.gen_extractor_classes()
+        _yt_extractor._extractors_context.value[ThreadsIE.__name__] = ThreadsIE
+        with open(os.path.join(_app_files_dir(), "downloader_debug.log"), "a") as _f:
+            _f.write("ThreadsIE registered\n")
+    except Exception:
+        pass
+
+
+_load_threads_plugin()
 import yt_dlp
 
 _events = []
@@ -127,11 +155,12 @@ def _ffmpeg_location():
         return None
 
 
-def _base_opts(task_id, url, media_type, output_dir, quality="auto"):
+def _base_opts(task_id, url, media_type, output_dir, quality="auto",
+               audio_format="original", playlist=False):
     opts = {
         "quiet": True,
         "no_warnings": True,
-        "noplaylist": True,
+        "noplaylist": not playlist,
         "format": _format_for(media_type, quality),
         "extractor_args": {"youtube": {"player_client": ["android"]}},
         "outtmpl": os.path.join(output_dir, "%(title).200B [%(id)s].%(ext)s"),
@@ -140,6 +169,12 @@ def _base_opts(task_id, url, media_type, output_dir, quality="auto"):
         "socket_timeout": 30,
         "progress_hooks": [_progress_hook(task_id)],
     }
+    if media_type == "audio" and audio_format == "mp3":
+        opts["postprocessors"] = [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }]
     ffmpeg = _ffmpeg_location()
     if ffmpeg:
         opts["ffmpeg_location"] = ffmpeg
@@ -188,20 +223,34 @@ def _progress_hook(task_id):
     return hook
 
 
-def _final_filename(downloader, url, media_type, info):
+def _final_filename(downloader, url, media_type, info, audio_format="original"):
     """Best-effort resolution of the on-disk filename after download."""
     requested = info.get("requested_downloads")
     if requested:
         filepath = requested[0].get("filepath")
         if filepath:
-            return os.path.basename(filepath)
+            name = os.path.basename(filepath)
+            if audio_format != "mp3" or name.lower().endswith(".mp3"):
+                return name
+    for entry in reversed(info.get("entries") or []):
+        reqs = entry.get("requested_downloads") or []
+        if reqs and reqs[0].get("filepath"):
+            name = os.path.basename(reqs[0]["filepath"])
+            if audio_format != "mp3" or name.lower().endswith(".mp3"):
+                return name
     try:
         prepared = downloader.prepare_filename(info)
         if prepared:
-            return os.path.basename(prepared)
+            name = os.path.basename(prepared)
+            if audio_format == "mp3":
+                name = os.path.splitext(name)[0] + ".mp3"
+            return name
     except Exception:
         pass
-    return info.get("title") or url
+    name = info.get("title") or url
+    if audio_format == "mp3":
+        name = os.path.splitext(name)[0] + ".mp3"
+    return name
 
 
 def _default_output_dir():
@@ -217,21 +266,26 @@ def _default_output_dir():
     return candidates[-1]
 
 
-def _run_download(task_id, url, media_type, output_dir, quality="auto"):
-    _debug("run_download task=%s url=%s type=%s quality=%s" % (task_id, url, media_type, quality))
+def _run_download(task_id, url, media_type, output_dir, quality="auto",
+                  audio_format="original", playlist=False):
+    _debug("run_download task=%s url=%s type=%s quality=%s audio_format=%s playlist=%s"
+           % (task_id, url, media_type, quality, audio_format, playlist))
     try:
         if not output_dir or not os.path.isdir(output_dir):
             output_dir = _default_output_dir()
         os.makedirs(output_dir, exist_ok=True)
         _debug("output_dir=%s" % output_dir)
 
-        opts = _base_opts(task_id, url, media_type, output_dir, quality)
-        _debug("format=%s ffmpeg=%s" % (opts.get("format"), opts.get("ffmpeg_location")))
+        opts = _base_opts(task_id, url, media_type, output_dir, quality,
+                          audio_format, playlist)
+        _debug("format=%s noplaylist=%s ffmpeg=%s postprocessors=%s"
+               % (opts.get("format"), opts.get("noplaylist"),
+                  opts.get("ffmpeg_location"), opts.get("postprocessors")))
         with yt_dlp.YoutubeDL(opts) as ydl:
             _debug("YoutubeDL created, extract_info starting")
             info = ydl.extract_info(url, download=True) or {}
             _debug("extract_info done, type=%s" % info.get("_type"))
-            if info.get("_type") == "playlist":
+            if info.get("_type") == "playlist" and not playlist:
                 info = (info.get("entries") or [{}])[0] or {}
                 _debug("playlist unwrapped")
 
@@ -239,7 +293,7 @@ def _run_download(task_id, url, media_type, output_dir, quality="auto"):
             "taskId": task_id,
             "kind": "completed",
             "title": info.get("title") or url,
-            "fileName": _final_filename(ydl, url, media_type, info),
+            "fileName": _final_filename(ydl, url, media_type, info, audio_format),
             "totalBytes": info.get("filesize"),
         })
     except CancelledError:
@@ -260,14 +314,17 @@ def _run_download(task_id, url, media_type, output_dir, quality="auto"):
         _active.pop(task_id, None)
 
 
-def start(task_id, url, media_type, output_dir, quality="auto"):
-    _debug("start task=%s url=%s type=%s quality=%s" % (task_id, url, media_type, quality))
+def start(task_id, url, media_type, output_dir, quality="auto",
+          audio_format="original", playlist=False):
+    _debug("start task=%s url=%s type=%s quality=%s audio_format=%s playlist=%s"
+           % (task_id, url, media_type, quality, audio_format, playlist))
     if task_id in _active:
         _debug("start: already active")
         return
     worker = threading.Thread(
         target=_run_download,
-        args=(task_id, url, media_type, output_dir, quality),
+        args=(task_id, url, media_type, output_dir, quality,
+              audio_format, playlist),
         daemon=True,
         name="ytdlp-%s" % (task_id[-8:] or task_id),
     )
@@ -487,6 +544,7 @@ def apply_update():
         ]:
             del sys.modules[name]
         import yt_dlp
+        _load_threads_plugin()
 
         return {"applied": True, "version": _normalize_version(_current_version()), "message": ""}
     except Exception as error:

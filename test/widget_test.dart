@@ -4,6 +4,7 @@ import 'package:file_explorer/features/explorer/data/repositories/storage_reposi
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 void main() {
@@ -23,7 +24,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('File Explorer'), findsWidgets);
+    expect(find.byType(SliverAppBar), findsOneWidget);
     expect(find.text('Internal storage'), findsOneWidget);
     expect(find.text('Images'), findsWidgets);
   });

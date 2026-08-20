@@ -282,21 +282,20 @@ class TransferController extends StateNotifier<TransferState> {
 
   void cancelAllPending() {
     final now = DateTime.now();
-    final cancellable =
-        state.tasks.where((task) => task.canCancel).toList();
+    final cancellable = state.tasks.where((task) => task.canCancel).toList();
     if (cancellable.isEmpty) {
       return;
     }
     final cancelledById = {
-      for (final task in cancellable) task.id: task.copyWith(
-        status: TransferTaskStatus.cancelled,
-        updatedAt: now,
-      ),
+      for (final task in cancellable)
+        task.id: task.copyWith(
+          status: TransferTaskStatus.cancelled,
+          updatedAt: now,
+        ),
     };
     state = state.copyWith(
       tasks: [
-        for (final task in state.tasks)
-          cancelledById[task.id] ?? task,
+        for (final task in state.tasks) cancelledById[task.id] ?? task,
       ],
     );
     for (final task in cancelledById.values) {
