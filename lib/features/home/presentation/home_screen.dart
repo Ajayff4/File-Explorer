@@ -111,7 +111,7 @@ class HomeScreen extends ConsumerWidget {
             children: [
               _StoragePanel(summary: summary),
               const SizedBox(height: 16),
-              const _ShortcutGrid(),
+              _ShortcutGrid(),
               const SizedBox(height: 16),
               const _CoreFeaturesTile(),
               const SizedBox(height: 16),
@@ -220,7 +220,9 @@ class _DownloaderTile extends StatelessWidget {
     if (state.failedCount > 0) {
       parts.add('${state.failedCount} failed');
     }
-    return parts.isEmpty ? 'Paste a link to download videos and audio' : parts.join(' · ');
+    return parts.isEmpty
+        ? 'Paste a link to download videos and audio'
+        : parts.join(' · ');
   }
 }
 

@@ -6,6 +6,49 @@ Progress log for the Flutter application.
 
 ### Completed
 
+- Fixed Home category/shortcut tiles not following the selected theme accent at
+  launch — they stayed the default purple (`7C3AED`) until the user revisited
+  the Home tab:
+  - **Symptom** — pick any non-purple accent in Settings (e.g. green), relaunch,
+    and the Home shortcut tiles (Images, Videos, Music, Files, etc.) render in
+    the default purple; navigating away and back to Home "fixes" them. Other
+    Home widgets (storage panel icons) and the rest of the app already themed
+    correctly.
+  - **Root cause (two compounding issues)** —
+    1. MaterialApp's default `themeAnimationDuration` (200 ms) wraps the app in
+       an `AnimatedTheme`. Settings load asynchronously, so when the accent
+       arrives `FileExplorerApp` rebuilds and MaterialApp restarts the theme
+       *animation*; `HomeScreen` rebuilds in the same frame the animation
+       starts and reads the interpolated (still-purple) accent. The lazily
+       built shortcut-grid items are never re-invoked as the animation
+       progresses, so they stay purple.
+    2. `_ShortcutGrid()` was instantiated `const`, so it was identical across
+       `HomeScreen` rebuilds and its element never rebuilt to pick up the final
+       theme.
+  - **Fix** — set `themeAnimationDuration: Duration.zero` on `MaterialApp`
+    (`lib/app/app.dart`) so a theme change applies instantly and any rebuild
+    reads the final accent, and drop `const` from `_ShortcutGrid()`
+    (`lib/features/home/presentation/home_screen.dart`) so the grid element
+    rebuilds when `HomeScreen` does.
+  - **Verification** — new regression widget test
+    `test/theme_accent_repro_test.dart`: with a green accent + dark mode
+    pre-saved, the shortcut-tile icon color must equal the app's resolved
+    `darkTheme.colorScheme.primary` after settings settle (was purple before
+    the fix). Full suite 131/131, `flutter analyze` clean; debug APK installed
+    on the device (RMX3031) and confirmed to load the saved accent (red + light
+    mode) correctly on first frame.
+
+### Verified
+
+- `flutter analyze` — clean.
+- `flutter test` — **131/131 pass** (incl. the new theme-accent regression test).
+- Debug APK on device (RMX3031 / Android 13): home tiles render the saved
+  accent immediately at launch.
+
+## 2026-08-20
+
+### Completed
+
 - CRED-style deep premium UI polish across the app (staged, uncommitted):
   - **Deep premium accent palette** — each theme accent now maps to a richer,
     more saturated seed color (`7C3AED` purple, `059669` green, `DB2777` pink,
@@ -42,8 +85,126 @@ Progress log for the Flutter application.
 ### Verified
 
 - `flutter analyze` — clean (no issues).
-- Changes staged but not yet committed; `git status` shows 12 modified/new files
-  (1 new file: `neumorphic_card.dart`).
+- Committed as `55ed617 feat(ui): CRED-style neumorphic polish` (14 files,
+  1 new: `neumorphic_card.dart`).
+
+## 2026-08-20
+
+### Completed
+
+- Fixed the last stale widget test (`test/widget_test.dart`): the Home app bar
+  no longer carries the "File Explorer" title (pinned `SliverAppBar`), so the
+  dashboard assertion now checks for the `SliverAppBar` + storage/shortcut
+  markers instead of the removed title. The full suite (130 tests) is green —
+  no stale Home/media expectations remain.
+- Downloader: **audio transcoding to MP3** via the bundled ffmpeg:
+  - New `DownloadAudioFormat` enum (`original`/`mp3`); audio downloads pick an
+    audio format, MP3 uses yt-dlp's `FFmpegExtractAudio` postprocessor
+    (192 kbps) and the bundled LGPL ffmpeg.
+  - `enqueue`/`start` engine path, MethodChannel, and Kotlin bridge thread the
+    `audioFormat` through to `downloader.py`; the final filename is resolved
+    from the converted `.mp3` (with a per-entry + prepared-name fallback).
+  - URL entry card shows an **Audio format** chip row when Audio is selected.
+- Downloader: **playlist/noplaylist handling refinement**:
+  - New per-task **Playlist** toggle (FilterChip) in the URL entry card.
+  - `start` passes `playlist` through to Python; `noplaylist` is now driven by
+    the toggle (default off keeps single-video behavior), and the completed
+    filename fallback scans playlist entries in reverse for the last file.
+  - Task rows show a `Playlist` badge; audio MP3 tasks show an `MP3` badge.
+- Persisted both choices on the task row — drift schema bumped to **v10** with
+  `audioFormat` + `playlist` columns (defaults `0`/`false`), added via a guarded
+  `pragma_table_info` check (reused the v9 `addColumn` helper) so fresh installs
+  and version-skipping DBs upgrade cleanly. Restores/retries keep both.
+- Fresh controller test: audio format + playlist flag carry through to the
+  engine's `start` call.
+- Fixed the **`user_version=7` migration crash** (2nd occurrence of the same bug
+  class; the first was the v9 `duplicate column name: quality`):
+  - **On-device symptom** — the Settings screen hangs with an endless
+    `LinearProgressIndicator` at the top and every control dead. Root cause was
+    not the settings screen itself: the whole app's drift DB open was failing.
+  - **Root cause** — drift's `beforeOpen` runs `createAll` (`CREATE TABLE IF NOT
+    EXISTS`) with the *current* schema before `onUpgrade`. A version-skipping DB
+    (device was at `user_version=7`, predating the downloader) therefore already
+    had every table materialized — including `download_task_rows` with the v10
+    columns — before the migration branches ran. The `from < 8`
+    `migrator.createTable(downloadTaskRows)` then threw `table download_task_rows
+    already exists`, aborting the DB open. Every store-backed query
+    (`SettingsStore`, `DownloadTaskStore`, `FavoritesStore`, `RecentsStore`,
+    `TransferTaskStore`) then threw, so `SettingsController.loadSettings()`
+    never finished and `isLoading` stayed `true` forever.
+  - **Fix** — every `createTable` migration branch is now guarded with a
+    `sqlite_master` existence check (`tableExists(...)` helper), mirroring the
+    existing `addColumnIfMissing` pragma guard from the v9 fix:
+    `if (from < N && !await tableExists('<table>')) { await migrator.createTable(...) }`.
+  - **Why it was never caught by tests** — unit tests use fresh in-memory DBs
+    that start at version 0 and never hit a skipped-version state. A
+    version-skipping upgrade must be tested with a real pre-version DB file.
+  - **3rd hit of the same class (during on-device verification)** —
+    `duplicate column name: audio_format`: the new `addColumnIfMissing` guard
+    compared the pragma result against a hand-written camelCase string
+    (`'audioFormat'`), but drift's SQL column is snake_cased (`audio_format`),
+    so the guard always missed and `addColumn` rethrew the duplicate-column
+    error. Single-word columns (`quality`, `playlist`) were unaffected. Fixed by
+    deriving the SQL name from the column (`column.name`) instead of a string
+    literal. Documented in `DOS_AND_DONTS.md` / ROADMAP guardrails.
+  - Documented as a permanent rule in `DOS_AND_DONTS.md` and the ROADMAP
+    guardrails so it cannot happen a fourth time.
+
+### Verified
+
+- `flutter analyze` — clean.
+- `flutter test` — **130/130 pass** (widget test included; no stale failures).
+- **On-device upgrade check** (debug APK, RMX3031 / Android 13) — DB was
+  `user_version=7` with `audio_format`/`playlist` already materialized;
+  after launching the fixed build it opened cleanly (no
+  `SqliteException` in logcat), `PRAGMA user_version` = **10**, and all v10
+  columns present. Settings loading bar resolves instead of hanging.
+- `python3 -m py_compile` on `downloader.py` — OK; the Python integration
+  harness (`tool/downloader_integration_test.py`) still drives the public API
+  unchanged (new `start` args are optional).
+
+### Completed (Threads video downloads)
+
+- Fixed **Threads downloads reporting "This link is not supported by yt-dlp"**
+  even though the `yt-dlp-threads` plugin was installed:
+  - **Symptom** — pasting a `threads.com`/`threads.net` link failed with
+    `Unsupported URL`; yt-dlp fell back to its generic extractor. The error log
+    showed the plugin was never loaded even though `yt_dlp_plugins/extractor/
+    threads.py` was bundled in the APK's requirements.
+  - **Root cause (two compounding issues)** —
+    1. yt-dlp discovers plugins by scanning `sys.path` for a *physical*
+       `yt_dlp_plugins/extractor` directory. Under Chaquopy, modules live in an
+       in-APK virtual filesystem and are materialized only on import, so the
+       directory is never visible to that scan.
+    2. Worse, yt-dlp registers its own `PluginFinder` on `sys.meta_path` for
+       `yt_dlp_plugins*`, and when the directory scan comes up empty it raises
+       `ModuleNotFoundError` to prevent other importers from being tried — so a
+       plain `import yt_dlp_plugins.extractor.threads` from app code was
+       hijacked and failed too.
+  - **Fix** —
+    - Vendored the plugin under `android/app/src/main/python/yt_dlp_plugins`
+      with `__init__.py` files (Chaquopy requires a regular package; the
+      upstream pip package is a PEP 420 namespace package with no
+      `__init__.py`), plus `extractPackages("yt_dlp_plugins")` so the files
+      exist on disk.
+    - `downloader.py` imports the plugin module **before** yt-dlp is imported
+      (so yt-dlp's meta_path finder is never consulted), then registers
+      `ThreadsIE` directly into `yt_dlp.extractor._extractors_context` after
+      `gen_extractor_classes()` has populated the registry.
+    - Registration is re-run after an in-app yt-dlp update reloads the
+      interpreter's yt_dlp modules.
+  - Documented in `DOS_AND_DONTS.md` + ROADMAP guardrails so plugin
+    bundling/loading under Chaquopy is understood going forward.
+- Kept the Copy URL kebab action on download task cards (all states), sharing a
+  `_copyTaskUrl` helper.
+
+### Verified
+
+- `flutter analyze` — clean; `flutter test` — **130/130 pass**.
+- Device (RMX3031 / Android 13): `downloader_debug.log` shows
+  `ThreadsIE registered`; the previously failing URL
+  `https://www.threads.com/share/BArqL89YDA/` now resolves with the bundled
+  yt-dlp 2026.8.19 in the venv: title, `id`, 4 formats, 108s duration.
 
 ## 2026-08-19
 

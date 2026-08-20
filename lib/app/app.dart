@@ -24,6 +24,7 @@ class FileExplorerApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(settings.themeAccent),
       darkTheme: AppTheme.dark(settings.themeAccent),
+      themeAnimationDuration: Duration.zero,
       themeMode: switch (settings.themeMode) {
         AppThemeMode.system => ThemeMode.system,
         AppThemeMode.light => ThemeMode.light,

@@ -112,6 +112,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio media folder tiles use it in list and grid views. |
 | ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
 | ✅ | UI polish | Settings theme-mode segmented button: icons removed, compact density. |
+| ✅ | UI polish | Home category/shortcut tiles follow the selected accent immediately at launch (no stale purple until revisit): `themeAnimationDuration: Duration.zero` + non-const `_ShortcutGrid()` so the lazily built grid re-reads the final theme; regression-tested (2026-08-20). |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. |
@@ -121,7 +122,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Downloader | Browse view and change-folder picker render as grids (thumbnails/icons, 4–8 responsive columns) via shared `DownloadEntryGrid`. |
 | ✅ | Downloader | Quality presets (Auto / 480p / 720p / 1080p / Max) persisted on the task row (drift schema v9) and honored in Python's format selection. |
 | ✅ | Downloader | Static **pure-LGPL** ffmpeg bundled in assets (cross-compiled FFmpeg 7.1 with Zig, `--disable-gpl`), copied into app storage on first launch, used for video+audio merging (`-c copy`). LGPL-2.1 text + provenance ship next to the asset (2026-08-19, replaces a GPLv3 johnvansickle binary). |
-| ⚠️ | Downloader | Site support limited to what `yt-dlp` can resolve (Threads and sites without a working extractor fail); no playlists, no DRM/login-gated content, no audio transcoding to a specific container (e.g. mp3). See `docs/DOWNLOADER.md` → Limitations. |
+| ✅ | Downloader | **Threads video downloads** via a vendored yt-dlp extractor plugin (`yt-dlp-threads`, crawler-UA bypass of the login wall). Bundled in app python (with `__init__.py` — Chaquopy can't import upstream's PEP 420 namespace package), imported before yt-dlp so its meta_path `PluginFinder` can't hijack the import, and registered directly into yt-dlp's extractor registry (verified: resolves `threads.com` share + `@user/post` links). Re-registered after an in-app yt-dlp update. |
+| ⚠️ | Downloader | Site support limited to what `yt-dlp` (plus the vendored Threads plugin) can resolve; no DRM/login-gated content. See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
 
 ## Last Verified
@@ -130,7 +132,7 @@ Current local check status:
 
 ```bash
 git status --short
-# 12 modified/new files staged: CRED-style neumorphic UI polish (uncommitted)
+# clean after downloader mp3/playlist + test-fix slice (uncommitted)
 
 dart format lib
 # passed
@@ -139,13 +141,19 @@ flutter analyze
 # passed
 
 flutter test
-# passed except 3 pre-existing stale widget expectations around Home/media behavior
+# passed — 131/131 (stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
 
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
 
-Update 2026-08-20: `flutter analyze` clean on the staged CRED-style neumorphic UI polish (`NeumorphicCard` + theme accents/controls + card migration + audio folder icons + unified pending blue). Changes are staged but uncommitted.
+Update 2026-08-20: `flutter analyze` clean and `flutter test` 130/130 after the downloader MP3-transcoding + playlist-toggle slice (schema v10 `audioFormat`/`playlist` columns) and the stale widget-test fix. Python module `py_compile` clean; native changes (Kotlin bridge, Python) pending a debug APK build + on-device verification.
+
+Update 2026-08-20 (2nd): fixed the `user_version=7` migration crash — unguarded `createTable(downloadTaskRows)` in the `from < 8` branch threw `table already exists` on a version-skipping device DB (7 → 10), failing the whole DB open and freezing Settings on its loading bar. All `createTable` branches are now `tableExists`-guarded, and the v10 `addColumn` guard was hardened to use the SQL column name (`column.name`) after a 3rd hit (`duplicate column name: audio_format`, camelCase vs snake_case mismatch). See `DOS_AND_DONTS.md` + CHANGELOG. **Verified on device**: v7 DB opened cleanly, `PRAGMA user_version` now 10, no SqliteException.
+
+Update 2026-08-20 (4th): **Home theme-accent bug fixed** — shortcut/category tiles stayed default purple at launch until Home was revisited. Root cause: MaterialApp's default 200 ms `AnimatedTheme` restarts on the async settings load, so `HomeScreen`'s rebuild reads the still-old interpolated accent and the lazily built shortcut grid never re-renders; `const _ShortcutGrid()` also never rebuilt. Fix: `themeAnimationDuration: Duration.zero` in `app.dart` + non-const `_ShortcutGrid()` in `home_screen.dart`. Regression test `test/theme_accent_repro_test.dart`; suite now **131/131**; debug APK verified on device (saved red+light accent renders on first frame). See CHANGELOG.
+
+Update 2026-08-20 (3rd): **Threads downloads now work.** The `yt-dlp-threads` plugin was pip-installed from GitHub but never loaded: yt-dlp discovers plugins by scanning sys.path for a real `yt_dlp_plugins/extractor` directory, which never exists under Chaquopy's in-APK virtual filesystem — and yt-dlp's own meta_path `PluginFinder` then blocks any direct `import yt_dlp_plugins` with `ModuleNotFoundError`. Fixed by vendoring the plugin in `src/main/python/yt_dlp_plugins` (with `__init__.py`, `extractPackages` for real files), importing it before yt-dlp registers that finder, and registering `ThreadsIE` directly in `yt_dlp.extractor._extractors_context` (re-run after in-app yt-dlp updates). Device log confirms `ThreadsIE registered`; extractor resolves `threads.com` share + `@user/post` URLs (title/formats/duration verified locally against the exact failing URL). See `DOS_AND_DONTS.md` + CHANGELOG.
 
 Local analyzer passes after the MediaStore category discovery implementation. Verified on a real Android device: Images/Videos/Audio categories open in ~1–2s (previously scaled with total folder/file count). Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
@@ -178,7 +186,7 @@ Recommended next slices, in order:
 | ✅ | 1 | Media | MediaStore-backed category discovery for images/audio/video (replace recursive filesystem walk). |
 | ✅ | 2 | Media | MediaStore-backed category discovery for all kinds (documents/apps/archives via `MediaStore.Files`). |
 | ✅ | 3 | Media | Post-transfer MediaStore rescanning (`mediaStoreScanProvider`). |
-| [ ] | 4 | Tests | Update stale test expectations for current Home/media behavior. |
+| ✅ | 4 | Tests | Update stale test expectations for current Home/media behavior — widget test now asserts the pinned `SliverAppBar` + storage/shortcut markers; full suite 130/130 (2026-08-20). |
 | ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
 | ✅ | 6 | Downloader | Universal Downloader: yt-dlp bundled via Chaquopy, queue + progress + retry + concurrency limit (2026-08-13, `docs/DOWNLOADER.md`). |
 | ✅ | 7 | Downloader | Pause/resume, copy-error, kebab-menu completed actions, separate browse view, full picker path, completion datetime (2026-08-14). |
@@ -276,8 +284,8 @@ Removed from the roadmap.
 | ✅ | Bundle static **pure-LGPL** ffmpeg in assets (FFmpeg 7.1 cross-compiled with Zig, `--disable-gpl --disable-nonfree`), copy into app storage on first launch, and use it for video+audio merging (`_ffmpeg_location`, `extractFfmpeg`). Replaces the GPLv3 johnvansickle binary; LGPL-2.1 text + provenance ship with the asset (2026-08-19). |
 | ✅ | Verify a live download end-to-end on a real device — confirmed 2026-08-14 (wireless debug); regression pass 2026-08-19 after the stuck-download fix. |
 | ✅ | Fix downloads stuck at "Downloading": drift migration `duplicate column name: quality` crash (pre-v9 DB with the column already materialized) broke DB open and crashed `initialize()` before event subscription. Guarded the `from < 9` `addColumn` with a `pragma_table_info` check; controller now subscribes to events first and tolerates store failures (2026-08-19). |
-| [ ] | Audio transcoding to a specific container (e.g. mp3) via the already-bundled ffmpeg. |
-| [ ] | Playlist/`noplaylist` handling refinement. |
+| ✅ | Audio transcoding to a specific container (e.g. mp3) via the already-bundled ffmpeg — `DownloadAudioFormat` enum + `FFmpegExtractAudio` postprocessor, persisted schema v10 `audioFormat` (2026-08-20). |
+| ✅ | Playlist/`noplaylist` handling refinement — per-task Playlist toggle drives `noplaylist`, persisted schema v10 `playlist` column (2026-08-20). |
 
 ### Viewers And Players
 
@@ -318,6 +326,16 @@ Removed from the roadmap.
 - Preserve feature-first boundaries as the app grows.
 - Add tests for controller logic, storage/transfer edge cases, and shared helpers.
 - Avoid large refactors unless they directly unblock the current slice.
+- **Drift migrations must never assume a table/column is absent.** `beforeOpen`
+  runs `createAll` with the *current* schema before `onUpgrade`, so any DB that
+  skips versions (or is older than a feature) already has every table
+  materialized. Every migration branch that adds a table or column must be
+  guarded (`tableExists`/`pragma_table_info`) or the DB open crashes — happened
+  twice already: v9 `duplicate column name: quality`, and v8→v10
+  `table download_task_rows already exists` from a v7 device DB. See
+  `DOS_AND_DONTS.md` and CHANGELOG 2026-08-20. When bumping `schemaVersion`,
+  verify the upgrade on a real DB file at the *previous* version, not just a
+  fresh install.
 
 ## Useful References
 
