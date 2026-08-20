@@ -8,6 +8,7 @@ import 'package:file_explorer/features/media/presentation/widgets/media_thumbnai
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -215,7 +216,7 @@ class _AllFilesAccessPrompt extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Center(
-      child: Card(
+      child: NeumorphicCard(
         margin: const EdgeInsets.all(24),
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -277,7 +278,7 @@ class _MediaResultsView extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Card(
+          NeumorphicCard(
             child: ListTile(
               leading: Icon(kind.icon),
               title: Text('No ${kind.label.toLowerCase()} found'),
@@ -303,6 +304,13 @@ class _MediaResultsView extends StatelessWidget {
               sizeBytes: group.totalBytes,
             ),
             badgeCount: group.count,
+            leading: kind == MediaLibraryKind.audio
+                ? KindFolderIcon(
+                    icon: kind.icon,
+                    color: FileEntryColors.audio,
+                    size: 48,
+                  )
+                : null,
             onTap: () => _openMediaFolder(context, kind, group.path),
           );
         },
@@ -567,12 +575,17 @@ class _MediaFolderTile extends ConsumerWidget {
                                 size: 64,
                                 color: FileEntryColors.document,
                               )
-                            : MediaThumbnail(
-                                entry: entry,
-                                fallback:
-                                    fileIconForEntry(context, entry, size: 96),
-                                dimension: 96,
-                              ),
+                            : kind == MediaLibraryKind.audio
+                                ? KindFolderIcon(
+                                    icon: kind.icon,
+                                    color: FileEntryColors.audio,
+                                  )
+                                : MediaThumbnail(
+                                    entry: entry,
+                                    fallback:
+                                        fileIconForEntry(context, entry, size: 96),
+                                    dimension: 96,
+                                  ),
                       ),
                     ),
                     Positioned(
@@ -643,7 +656,7 @@ class _MediaErrorState extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Card(
+        NeumorphicCard(
           child: ListTile(
             leading: const Icon(Icons.error_outline_rounded),
             title: const Text('Could not load library'),

@@ -14,6 +14,7 @@ import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:path/path.dart' as p;
 
 class HomeScreen extends ConsumerWidget {
@@ -34,8 +35,8 @@ class HomeScreen extends ConsumerWidget {
 
     return CustomScrollView(
       slivers: [
-        SliverAppBar.large(
-          title: const Text('File Explorer'),
+        SliverAppBar(
+          pinned: true,
           actions: [
             IconButton(
               tooltip: 'Search',
@@ -174,7 +175,7 @@ class _CoreFeaturesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const Icon(Icons.auto_awesome_rounded),
         title: const Text('What this app can do'),
@@ -194,7 +195,7 @@ class _DownloaderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = _downloaderSummary(context, state);
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const Icon(Icons.download_rounded),
         title: const Text('Universal Downloader'),
@@ -230,7 +231,7 @@ class _TransferStationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const Icon(Icons.sync_alt_rounded),
         title: const Text('Transfer Station'),
@@ -256,7 +257,7 @@ class _StoragePanel extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedVolume = _selectedVolumeFor(explorerState);
 
-    return Card(
+    return NeumorphicCard(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -363,7 +364,7 @@ class _ShortcutGrid extends StatelessWidget {
           itemBuilder: (context, index) {
             final shortcut = shortcuts[index];
             final colors = Theme.of(context).colorScheme;
-            return Card(
+            return NeumorphicCard(
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
@@ -425,7 +426,7 @@ class _RecentLocationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: Icon(
           recent.isFolder ? Icons.folder_open_rounded : Icons.insert_drive_file,
@@ -468,7 +469,7 @@ class _EmptyRecentsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return const NeumorphicCard(
       child: ListTile(
         leading: Icon(Icons.history_rounded),
         title: Text('No recent folders yet'),
@@ -484,7 +485,7 @@ class _FavoriteLocationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const Icon(Icons.star_rounded),
         title: Text(
@@ -522,7 +523,7 @@ class _EmptyFavoritesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return const NeumorphicCard(
       child: ListTile(
         leading: Icon(Icons.star_border_rounded),
         title: Text('No favorite folders yet'),

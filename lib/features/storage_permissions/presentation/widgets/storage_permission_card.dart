@@ -1,4 +1,5 @@
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 
 class StoragePermissionCard extends StatelessWidget {
@@ -21,7 +22,7 @@ class StoragePermissionCard extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
-        child: Card(
+        child: NeumorphicCard(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(

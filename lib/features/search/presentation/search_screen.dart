@@ -7,6 +7,7 @@ import 'package:file_explorer/features/recents/presentation/controllers/recents_
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -406,7 +407,7 @@ class _SearchHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return const NeumorphicCard(
       child: ListTile(
         leading: Icon(Icons.manage_search_rounded),
         title: Text('Type to search this location'),
@@ -422,7 +423,7 @@ class _SearchLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const SizedBox.square(
           dimension: 24,
@@ -439,7 +440,7 @@ class _NoSearchResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Card(
+    return const NeumorphicCard(
       child: ListTile(
         leading: Icon(Icons.search_off_rounded),
         title: Text('No matches found'),
@@ -455,7 +456,7 @@ class _SearchError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return NeumorphicCard(
       child: ListTile(
         leading: const Icon(Icons.error_outline_rounded),
         title: const Text('Search failed'),

@@ -2,6 +2,49 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-20
+
+### Completed
+
+- CRED-style deep premium UI polish across the app (staged, uncommitted):
+  - **Deep premium accent palette** — each theme accent now maps to a richer,
+    more saturated seed color (`7C3AED` purple, `059669` green, `DB2777` pink,
+    `DC2626` red, `2563EB` royal blue) for neon-glow gradients on dark surfaces.
+  - **Neumorphic card system** — new `NeumorphicCard` widget
+    (`lib/app/theme/neumorphic_card.dart`): soft extruded-plastic surface that
+    matches the surrounding background hue, dual light/dark shadow pair
+    (light top-left, dark bottom-right) derived from the base color, no
+    gradients, large radius (default 24), and a tactile press feedback that
+    swaps shadows inset on tap (110 ms).
+  - **Card migration** — `Card` swapped for `NeumorphicCard` across Home
+    (storage panel, shortcut grid, feature/downloader/transfer tiles, recents,
+    favorites), Downloader (URL entry, settings, summary, task cards),
+    Transfers (summary + task cards), Media (permission prompt, empty/error
+    states), Search (hint/loading/empty/error), Settings (theme mode, accent
+    picker, switch tiles), Core Features grid, and the storage permission card.
+  - **Neumorphic control theming** — theme-wide updates in `app_theme.dart`:
+    rounded (24 px top) bottom sheets with drag handle, filled rounded (16 px)
+    input fields with primary focus border, switches with neumorphic thumb/
+    track outline, rounded checkboxes (5 px) with white check mark, and
+    segmented buttons with `primaryContainer` selection background.
+  - **Home header** — `SliverAppBar.large` replaced with a pinned `SliverAppBar`
+    for a denser, always-visible header.
+  - **Kind-specific folder icons** — new `KindFolderIcon` widget
+    (`file_entry_visuals.dart`): folder-shaped icon with a top-left→bottom-right
+    gradient, darker tab, and soft glow; used for audio media folder tiles in
+    list and grid views (with a new `leading` override on `FileEntryListTile`).
+  - **Pending color unified** — Transfers and Downloader pending/summary stat
+    color switched from orange (`FF9800`) to blue (`1E88E5`), consistent with
+    the pending queue status color.
+  - **Settings theme segment** — removed icons from the theme-mode segmented
+    button and used compact visual density.
+
+### Verified
+
+- `flutter analyze` — clean (no issues).
+- Changes staged but not yet committed; `git status` shows 12 modified/new files
+  (1 new file: `neumorphic_card.dart`).
+
 ## 2026-08-19
 
 ### Completed

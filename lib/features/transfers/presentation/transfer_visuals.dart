@@ -35,10 +35,10 @@ Color colorForTransferStatus(
     TransferTaskStatus.running => scheme.primary,
     TransferTaskStatus.awaitingDestination ||
     TransferTaskStatus.queued =>
-      _pendingOrange,
+      _pendingBlue,
   };
 }
 
 const _doneGreen = Color(0xFF43A047);
-const _pendingOrange = Color(0xFFFF9800);
+const _pendingBlue = Color(0xFF1E88E5);
 const _failedRed = Color(0xFFE53935);

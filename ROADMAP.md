@@ -105,6 +105,13 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
 | ✅ | UI polish | Grid tiles keep icons, long names, and item counts aligned. |
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
+| ✅ | UI polish | CRED-style deep premium accent palette: richer saturated seed colors (`7C3AED` purple, `059669` green, `DB2777` pink, `DC2626` red, `2563EB` royal blue). |
+| ✅ | UI polish | Neumorphic card system (`NeumorphicCard`): soft extruded-plastic surface, dual light/dark shadows derived from the background hue, press-inset tactile feedback, used across Home/Downloader/Transfers/Media/Search/Settings/Core Features/permission card. |
+| ✅ | UI polish | Neumorphic control theming: rounded bottom sheets with drag handle, filled rounded inputs with primary focus border, neumorphic switches, rounded checkboxes, segmented buttons with primary selection. |
+| ✅ | UI polish | Home header is a pinned `SliverAppBar` (denser, always visible). |
+| ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio media folder tiles use it in list and grid views. |
+| ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
+| ✅ | UI polish | Settings theme-mode segmented button: icons removed, compact density. |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. |
@@ -123,7 +130,7 @@ Current local check status:
 
 ```bash
 git status --short
-# clean: MediaStore category discovery committed
+# 12 modified/new files staged: CRED-style neumorphic UI polish (uncommitted)
 
 dart format lib
 # passed
@@ -137,6 +144,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-08-20: `flutter analyze` clean on the staged CRED-style neumorphic UI polish (`NeumorphicCard` + theme accents/controls + card migration + audio folder icons + unified pending blue). Changes are staged but uncommitted.
 
 Local analyzer passes after the MediaStore category discovery implementation. Verified on a real Android device: Images/Videos/Audio categories open in ~1–2s (previously scaled with total folder/file count). Android debug build is only necessary after native, Gradle, manifest, platform-channel, dependency, or asset changes.
 
@@ -179,6 +188,7 @@ Recommended next slices, in order:
 | ✅ | 11 | Downloader | Fix downloads stuck at "Downloading": guarded `addColumn(quality)` migration (duplicate-column crash) + controller subscribes to events before store loads (2026-08-19). |
 | [ ] | 12 | Media | Add thumbnail cache for media libraries and Explorer. |
 | [ ] | 13 | UI | Polish media folder view on real device and tune grid density. |
+| [ ] | 14 | UI | Commit the staged CRED-style neumorphic UI polish (2026-08-20). |
 
 ## Must-Have Feature Plan
 

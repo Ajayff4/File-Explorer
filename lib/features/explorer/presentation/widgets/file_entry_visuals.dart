@@ -58,6 +58,72 @@ class FileTypeBadge extends StatelessWidget {
   }
 }
 
+class KindFolderIcon extends StatelessWidget {
+  const KindFolderIcon({
+    required this.icon,
+    required this.color,
+    this.size = 64,
+    super.key,
+  });
+
+  final IconData icon;
+  final Color color;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final brighter = Color.lerp(color, Colors.white, 0.18)!;
+    final darker = Color.lerp(color, Colors.black, 0.22)!;
+    return SizedBox.square(
+      dimension: size,
+      child: Stack(
+        children: [
+          Positioned(
+            left: size * 0.14,
+            top: 0,
+            child: Container(
+              width: size * 0.46,
+              height: size * 0.16,
+              decoration: BoxDecoration(
+                color: darker,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(size * 0.06),
+                  topRight: Radius.circular(size * 0.06),
+                ),
+              ),
+            ),
+          ),
+          Positioned.fill(
+            child: Padding(
+              padding: EdgeInsets.only(top: size * 0.11),
+              child: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [brighter, color],
+                  ),
+                  borderRadius: BorderRadius.circular(size * 0.1),
+                  boxShadow: [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.35),
+                      blurRadius: size * 0.08,
+                      offset: Offset(0, size * 0.03),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Icon(icon, color: Colors.white, size: size * 0.44),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 Widget fileIconForEntry(BuildContext context, FileSystemEntry entry,
     {double size = 40}) {
   if (entry.isFolder) {
@@ -398,6 +464,7 @@ class FileEntryListTile extends StatelessWidget {
     this.isSelected = false,
     this.onToggleSelection,
     this.badgeCount,
+    this.leading,
     super.key,
   });
 
@@ -408,6 +475,7 @@ class FileEntryListTile extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onToggleSelection;
   final int? badgeCount;
+  final Widget? leading;
 
   @override
   Widget build(BuildContext context) {
@@ -440,11 +508,13 @@ class FileEntryListTile extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
                       child: Center(
-                        child: MediaThumbnail(
-                          entry: entry,
-                          fallback: fileIconForEntry(context, entry, size: 48),
-                          dimension: 64,
-                        ),
+                        child: leading ??
+                            MediaThumbnail(
+                              entry: entry,
+                              fallback:
+                                  fileIconForEntry(context, entry, size: 48),
+                              dimension: 64,
+                            ),
                       ),
                     ),
                   ),

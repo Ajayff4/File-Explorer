@@ -2,6 +2,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -76,7 +77,7 @@ class _TransferSummaryCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final activeTask = state.activeTask;
 
-    return Card(
+    return NeumorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -131,7 +132,10 @@ class _TransferSummaryCard extends StatelessWidget {
                 _SummaryStat(
                   label: 'Pending',
                   count: state.pendingCount,
-                  color: scheme.primary,
+                  color: colorForTransferStatus(
+                    context,
+                    TransferTaskStatus.queued,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 _SummaryStat(
@@ -302,7 +306,7 @@ class _TransferTaskCard extends StatelessWidget {
     final showProgress = task.status == TransferTaskStatus.running ||
         task.status == TransferTaskStatus.queued;
 
-    return Card(
+    return NeumorphicCard(
       margin: const EdgeInsets.only(top: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),

@@ -1,4 +1,5 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -86,7 +87,7 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
     final feature = widget.feature;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Card(
+    return NeumorphicCard(
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),

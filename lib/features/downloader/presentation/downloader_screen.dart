@@ -11,6 +11,7 @@ import 'package:file_explorer/features/explorer/domain/repositories/storage_repo
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -165,7 +166,7 @@ class _UrlEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return NeumorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -265,7 +266,7 @@ class _DownloaderSettingsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = state.settings;
 
-    return Card(
+    return NeumorphicCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
@@ -345,7 +346,7 @@ class _DownloaderSummaryCard extends StatelessWidget {
             orElse: () => state.activeTasks.first,
           );
 
-    return Card(
+    return NeumorphicCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -408,7 +409,7 @@ class _DownloaderSummaryCard extends StatelessWidget {
                 _SummaryStat(
                   label: 'Pending',
                   count: state.pendingCount,
-                  color: scheme.primary,
+                  color: const Color(0xFF1E88E5),
                 ),
                 const SizedBox(width: 12),
                 _SummaryStat(
@@ -544,7 +545,7 @@ class _DownloadTaskCard extends ConsumerWidget {
         task.status == DownloadTaskStatus.queued ||
         task.status == DownloadTaskStatus.paused;
 
-    return Card(
+    return NeumorphicCard(
       margin: const EdgeInsets.only(top: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
