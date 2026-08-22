@@ -430,7 +430,7 @@ class _ToolsSection extends ConsumerWidget {
         icon: Icons.delete_rounded,
         label: 'Recycle',
         color: const Color(0xFFDC2626),
-        onTap: () => _comingSoon(context, 'Recycle bin'),
+        onTap: () => context.go(AppRoutes.recycleBin, extra: rootPath),
       ),
     ];
 
@@ -489,12 +489,6 @@ class _Tool {
   final String label;
   final Color color;
   final VoidCallback? onTap;
-}
-
-void _comingSoon(BuildContext context, String name) {
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(content: Text('$name is coming soon')),
-  );
 }
 
 class _SectionHeader extends StatelessWidget {

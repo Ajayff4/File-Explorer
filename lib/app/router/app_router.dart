@@ -10,6 +10,7 @@ import 'package:file_explorer/features/media/presentation/media_viewer_screen.da
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/analyzer/presentation/storage_analyzer_screen.dart';
+import 'package:file_explorer/features/recycle_bin/presentation/recycle_bin_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -87,6 +88,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               final rootPath =
                   extra is String && extra.isNotEmpty ? extra : '/';
               return StorageAnalyzerScreen(rootPath: rootPath);
+            },
+          ),
+          GoRoute(
+            path: AppRoutes.recycleBin,
+            builder: (context, state) {
+              final extra = state.extra;
+              final rootPath =
+                  extra is String && extra.isNotEmpty ? extra : '/';
+              return RecycleBinScreen(rootPath: rootPath);
             },
           ),
           GoRoute(
@@ -177,6 +187,7 @@ class AppRoutes {
   static const settings = '/settings';
   static const downloader = '/downloader';
   static const analyzer = '/analyzer';
+  static const recycleBin = '/recycle-bin';
   static const downloaderBrowse = '/downloader/browse';
 
   static String media(MediaLibraryKind kind) {

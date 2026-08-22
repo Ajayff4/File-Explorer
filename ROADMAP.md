@@ -86,6 +86,9 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Hybrid thumbnail caching: native MediaStore thumbnail first, persistent disk cache, decode fallback (2026-08-22). |
 | ✅ | Analyzer | Storage Analyzer: isolate scan, donut chart, largest folders/files (2026-08-22). |
+| ✅ | Recycle bin | Delete redirects to `.recycle_bin` (moveToTrash) instead of permanent erase, per-volume trash with `.meta.json` sidecars (2026-08-22). |
+| ✅ | Recycle bin | Restore (parent dir recreated, collision rename), delete permanently, empty trash (2026-08-22). |
+| ✅ | Recycle bin | Multi-select, select-all, bulk restore/delete, and list/grid view toggle (2026-08-22). |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
@@ -144,11 +147,13 @@ flutter analyze
 # passed
 
 flutter test
-# passed — 131/131 (stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
+# passed — 135/135 (recycle bin repository tests added 2026-08-22; stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
 
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-08-22: **Recycle bin landed** — `TransferController` redirects delete to `moveToTrash` (`.recycle_bin` per volume, `.meta.json` sidecars); restore / delete-permanently / empty-trash, plus select-all, bulk restore/delete, and a list/grid toggle. Also fixed the transfer snackbars that never dismissed (Flutter 3.38+ `persist` default for snackbars with an action — added `persist: false`) and the dead "Transfers" action (stale context → `router.go`). `flutter analyze` clean; `flutter test` 135/135; debug APK verified on device.
 
 Update 2026-08-20: `flutter analyze` clean and `flutter test` 130/130 after the downloader MP3-transcoding + playlist-toggle slice (schema v10 `audioFormat`/`playlist` columns) and the stale widget-test fix. Python module `py_compile` clean; native changes (Kotlin bridge, Python) pending a debug APK build + on-device verification.
 
@@ -319,7 +324,7 @@ Removed from the roadmap.
 | --- | --- | --- |
 | ✅ | Media | Thumbnail cache (2026-08-22 — hybrid native + disk, see Immediate Pending Work #12). |
 | ✅ | Storage | Storage analyzer (2026-08-22 — isolate scan, donut chart, largest folders/files). |
-| [ ] | Storage | Recycle bin. |
+| ✅ | Storage | Recycle bin (2026-08-22 — moveToTrash redirect, restore/delete-permanently/empty, select-all + bulk, list/grid). |
 | [ ] | Network | Optional network providers, not first-release core. |
 
 ## Guardrails

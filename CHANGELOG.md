@@ -89,6 +89,39 @@ Progress log for the Flutter application.
   - New `scan_probe_test.dart` covers the isolate scan/aggregation.
   - `flutter analyze` clean; debug APK verified on device (RMX3031).
 
+- Added a **Recycle bin** (`/recycle-bin`, reachable from Home → Tools →
+  Recycle). Deleted files are no longer erased outright — `TransferController`
+  redirects `delete` to `moveToTrash`, so deletions are recoverable:
+  - `RecycleBinRepository` (`lib/features/recycle_bin/data/`) moves a file or
+    folder into a hidden `.recycle_bin` directory at the volume root and writes
+    a `.meta.json` sidecar (original path, name, deleted-at, isFolder, size)
+    so the entry can be restored or emptied later.
+  - `TrashItem` entity + `RecycleBinController` (load/restore/deletePermanently/
+    emptyTrash, plus `restoreMany`/`deleteMany` bulk variants), surfaced via
+    `RecycleBinScreen` from Home → Tools.
+  - Restore recreates the original parent directory and auto-renames on
+    collision; delete-permanently and empty-trash erase the on-disk item(s).
+  - Multi-select with **select-all**, bulk restore, and bulk delete (permanent
+    delete shows a confirm dialog), plus a **list/grid view toggle** backed by
+    reusable `TrashItemListTile` / `TrashItemGridTile` widgets
+    (`lib/features/recycle_bin/presentation/widgets/`).
+  - Repository tests in `test/features/recycle_bin/`; full suite green
+    (135 tests). `flutter analyze` clean; debug APK verified on device.
+
+- Fixed **transfer snackbars that never dismissed** and whose "Transfers"
+  action was dead:
+  - **Root cause** — Flutter 3.38+ changed `SnackBar` defaulting: a snackbar
+    with an `action` now sets `persist: true` (no auto-dismiss) unless
+    `persist` is explicitly `false`. Every transfer "queued" snackbar carries a
+    "Transfers" action, so it stayed on screen indefinitely.
+  - **Fix** — `persist: false` + explicit `Duration(seconds: 4)` on the three
+    queued-snackbar sites (explorer multi-select, entry actions, media viewer).
+  - Also captured `GoRouter.of(context)` up front and used `router.go(...)` for
+    the action instead of the widget's own `context`, which was disposed after
+    selection exit and made the button a no-op.
+  - `flutter analyze` clean; verified on device — snackbar auto-dismisses after
+    4s and the Transfers button navigates.
+
 ## 2026-08-20
 
 ### Completed

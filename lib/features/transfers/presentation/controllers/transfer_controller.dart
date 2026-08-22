@@ -95,13 +95,16 @@ class TransferController extends StateNotifier<TransferState> {
     int? archiveCompressionLevel,
   }) {
     final now = DateTime.now();
+    final effectiveOperation = operation == TransferOperation.delete
+        ? TransferOperation.moveToTrash
+        : operation;
     final task = TransferTask(
       id: 'transfer-${now.microsecondsSinceEpoch}-${_nextSequence++}',
-      operation: operation,
+      operation: effectiveOperation,
       sourcePaths: List.unmodifiable(sourcePaths),
       displayName: displayName,
       destinationPath: destinationPath,
-      status: _initialStatusFor(operation, destinationPath),
+      status: _initialStatusFor(effectiveOperation, destinationPath),
       createdAt: now,
       updatedAt: now,
       progress: TransferProgress(totalBytes: totalBytes),

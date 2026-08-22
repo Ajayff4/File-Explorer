@@ -2,6 +2,7 @@ enum TransferOperation {
   copy,
   move,
   delete,
+  moveToTrash,
   rename,
   extractArchive,
   compressArchive,
@@ -153,6 +154,7 @@ extension TransferOperationLabels on TransferOperation {
       TransferOperation.copy => 'Copy',
       TransferOperation.move => 'Move',
       TransferOperation.delete => 'Delete',
+      TransferOperation.moveToTrash => 'Move to trash',
       TransferOperation.rename => 'Rename',
       TransferOperation.extractArchive => 'Extract',
       TransferOperation.compressArchive => 'Compress',
@@ -167,7 +169,8 @@ extension TransferOperationLabels on TransferOperation {
         true,
       TransferOperation.extractArchive ||
       TransferOperation.compressArchive ||
-      TransferOperation.delete =>
+      TransferOperation.delete ||
+      TransferOperation.moveToTrash =>
         false,
     };
   }

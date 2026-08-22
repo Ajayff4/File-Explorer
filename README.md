@@ -47,8 +47,16 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Docs/Apps/Archives served from MediaStore.Files + per-folder `queryFiles`.
 - ✅ Folder view grouped by parent folder with per-folder counts.
 - ✅ Grid + list toggle, sort via `...` menu (Name/Modified/Size/Type).
-- ✅ Thumbnails with APK icon extraction and typed icons.
+- ✅ Hybrid thumbnail caching — native MediaStore thumbnail first, persistent disk cache, decode fallback; APK icon extraction and typed icons.
 - ✅ Shared `FileEntryListTile` + formatting helpers.
+
+### 📊 Storage Analyzer
+
+- ✅ Home → Tools → Analyzer scans a volume on an isolate and reports total,
+  per-category, and per-folder usage.
+- ✅ Animated donut chart with size/percent legend; largest folders (tap →
+  Explorer) and largest files.
+- ✅ Skips inaccessible directories (`/Android/data`) instead of aborting the scan.
 
 ### 🎬 Viewers & Players
 
@@ -71,6 +79,13 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Conflict choices: `Skip`, `Replace`, `Keep both`.
 - ✅ Persistent queue/history via Drift.
 - ✅ Post-transfer MediaStore rescan so new files appear, moved sources update.
+
+### 🗑️ Recycle Bin
+
+- ✅ Deletes move files/folders into a hidden `.recycle_bin` at the volume root
+  (JSON sidecars) instead of erasing them.
+- ✅ Restore (parent dir recreated, collision rename), delete permanently, empty trash.
+- ✅ Multi-select, select-all, bulk restore/delete, and list/grid view toggle.
 
 ### ⬇️ Universal Downloader
 
@@ -322,17 +337,19 @@ lib/
     router/
     theme/
   features/
+    analyzer/
+    archive/
+    downloader/
     explorer/
     favorites/
     home/
     media/
     recents/
+    recycle_bin/
     search/
     settings/
     storage_permissions/
     transfers/
-    downloader/
-    zip/
   shared/
     database/
     formatters/

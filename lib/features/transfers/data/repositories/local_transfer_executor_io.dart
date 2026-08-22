@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:file_explorer/features/recycle_bin/data/recycle_bin_repository.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:file_explorer/shared/archive/archive_format.dart';
@@ -67,6 +68,11 @@ class LocalTransferExecutor implements TransferExecutor {
         case TransferOperation.delete:
           final bytes = await _pathSize(sourcePath);
           await _deletePath(sourcePath);
+          transferredBytes += bytes == 0 ? 1 : bytes;
+          report(sourcePath);
+        case TransferOperation.moveToTrash:
+          final bytes = await _pathSize(sourcePath);
+          await const RecycleBinRepository().moveToTrash(sourcePath);
           transferredBytes += bytes == 0 ? 1 : bytes;
           report(sourcePath);
         case TransferOperation.rename:
