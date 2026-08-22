@@ -217,14 +217,17 @@ class _RenameDialogState extends State<_RenameDialog> {
 
 void _showQueuedSnackBar(BuildContext context, TransferOperation operation) {
   final messenger = ScaffoldMessenger.of(context);
+  final router = GoRouter.of(context);
   messenger
-    ..clearSnackBars()
+    ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text('${operation.label} task queued'),
+        duration: const Duration(seconds: 4),
+        persist: false,
         action: SnackBarAction(
           label: 'Transfers',
-          onPressed: () => context.go(AppRoutes.transfers),
+          onPressed: () => router.go(AppRoutes.transfers),
         ),
       ),
     );

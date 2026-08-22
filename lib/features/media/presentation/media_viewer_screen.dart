@@ -316,15 +316,20 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
   }
 
   void _showTransferSnackBar(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        action: SnackBarAction(
-          label: 'Transfers',
-          onPressed: () => context.go(AppRoutes.transfers),
+    final router = GoRouter.of(context);
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(message),
+          duration: const Duration(seconds: 4),
+          persist: false,
+          action: SnackBarAction(
+            label: 'Transfers',
+            onPressed: () => router.go(AppRoutes.transfers),
+          ),
         ),
-      ),
-    );
+      );
   }
 }
 

@@ -1261,13 +1261,14 @@ void _showQueuedSnackBar(
   BuildContext context,
   TransferOperation operation,
 ) {
+  final router = GoRouter.of(context);
   _showMessage(
     context,
     '${operation.label} task queued',
     duration: const Duration(seconds: 4),
     action: SnackBarAction(
       label: 'Transfers',
-      onPressed: () => context.go(AppRoutes.transfers),
+      onPressed: () => router.go(AppRoutes.transfers),
     ),
   );
 }
@@ -1293,12 +1294,13 @@ void _showMessageWithMessenger(
   Duration duration = const Duration(seconds: 4),
 }) {
   messenger
-    ..clearSnackBars()
+    ..hideCurrentSnackBar()
     ..showSnackBar(
       SnackBar(
         content: Text(message),
         action: action,
         duration: duration,
+        persist: false,
       ),
     );
 }
