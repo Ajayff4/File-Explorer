@@ -438,16 +438,31 @@ class _ToolsSection extends ConsumerWidget {
         color: const Color(0xFF546E7A),
         onTap: () => context.push(AppRoutes.encryptor),
       ),
+      _Tool(
+        icon: Icons.qr_code_scanner_rounded,
+        label: 'QR scanner',
+        color: const Color(0xFF00897B),
+        onTap: () => context.push(AppRoutes.qrScanner),
+      ),
     ];
 
     return NeumorphicCard(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
-        child: Row(
-          children: [
-            for (final tool in tools) Expanded(child: _ToolTile(tool: tool)),
-          ],
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tileWidth = (constraints.maxWidth - 24) / 3;
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 12,
+              children: [
+                for (final tool in tools)
+                  SizedBox(width: tileWidth, child: _ToolTile(tool: tool)),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

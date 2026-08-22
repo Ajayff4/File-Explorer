@@ -156,6 +156,8 @@ flutter build apk --debug
 # passed after native media_store channel changes
 ```
 
+Update 2026-08-22 (3rd): **QR scanner landed** — new Tools feature (`/qr-scanner`) with three tabs: live camera scan (`mobile_scanner`, QR-only + torch + permission recovery + result sheet with copy/open/scan-another), QR generation (`qr_flutter`), and a Drift-persisted scan history (`qr_scan_rows`, schema v11). Gallery scan added via `image_picker` + `MobileScannerController.analyzeImage`. Generated QR codes are now recorded into the same history with a `Scanned`/`Generated` badge (`type` column, schema v12, guarded migration). Fixed a deadlock where the camera never initialized (the `MobileScanner` widget that requests permission was only built after permission was already granted), and hardened lifecycle start/stop. Home Tools row re-laid-out as a 2×3 `Wrap` grid so labels (incl. "QR scanner") fit on one line. `flutter analyze` clean; debug APK verified on device.
+
 Update 2026-08-22 (2nd): **Encryption landed** — `.ff4` AES-256-GCM containers (PBKDF2-HMAC-SHA256) with in-place encrypt/decrypt of single files, folders (recursive), and multi-selects; optional file-name hiding (random id); lock icon in Explorer; the `Encryptor` Tools screen (flat list of all `.ff4` files, list/grid + select-all); and encrypt/decrypt running through the Transfer Station as queueable tasks. Also: consistent list/grid toggle icons across Explorer/Media/Recycle/Encryptor, a shared `AppLoadingIndicator` (analyzer-style spinner) used everywhere, Tools back button now returns Home (`context.push`), and destructive-action confirmations now apply to multi-select delete and recycle-bin permanent delete. `flutter analyze` clean; `flutter test` 142/142; debug APK verified on device.
 
 Update 2026-08-22: **Recycle bin landed** — `TransferController` redirects delete to `moveToTrash` (`.recycle_bin` per volume, `.meta.json` sidecars); restore / delete-permanently / empty-trash, plus select-all, bulk restore/delete, and a list/grid toggle. Also fixed the transfer snackbars that never dismissed (Flutter 3.38+ `persist` default for snackbars with an action — added `persist: false`) and the dead "Transfers" action (stale context → `router.go`). `flutter analyze` clean; `flutter test` 135/135; debug APK verified on device.
@@ -333,7 +335,8 @@ Removed from the roadmap.
 | [ ] | Network | ShareIt/Xender-style peer transfer — 2+ devices on the same network transfer files to each other directly (existing network task). |
 | ✅ | Security | `.eslock`-style encryption — folder-level, single-file, and multi-select encrypt/decrypt; `.ff4` AES-256-GCM, `Encryptor` Tools-screen feature, Transfer-Station integration (2026-08-22). |
 | [ ] | UI | Multi-window — multiple independent windows that can stay on any screen, independent of each other. |
-| [ ] | Tools | QR scanner — scan QR codes with a camera, keep a history of past scans, and generate a QR code from arbitrary text; new Tools-section feature. |
+| [✅] | Tools | QR scanner — scan QR codes with a camera, keep a history of past scans, and generate a QR code from arbitrary text; new Tools-section feature. |
+| [✅] | Tools | QR scanner — scan codes from the media gallery: pick a saved image (image_picker) and decode any QR/barcode in it via `MobileScannerController.analyzeImage`, reusing the scan-history + result-sheet path. Generated codes are recorded into the same history with a Scanned/Generated badge (schema v12). |
 
 ## Guardrails
 

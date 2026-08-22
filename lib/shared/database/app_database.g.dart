@@ -2862,6 +2862,311 @@ class DownloadTaskRowsCompanion extends UpdateCompanion<DownloadTaskRow> {
   }
 }
 
+class $QrScanRowsTable extends QrScanRows
+    with TableInfo<$QrScanRowsTable, QrScanRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $QrScanRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _contentMeta =
+      const VerificationMeta('content');
+  @override
+  late final GeneratedColumn<String> content = GeneratedColumn<String>(
+      'content', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _formatMeta = const VerificationMeta('format');
+  @override
+  late final GeneratedColumn<String> format = GeneratedColumn<String>(
+      'format', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('scanned'));
+  static const VerificationMeta _scannedAtMeta =
+      const VerificationMeta('scannedAt');
+  @override
+  late final GeneratedColumn<DateTime> scannedAt = GeneratedColumn<DateTime>(
+      'scanned_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [id, content, format, type, scannedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'qr_scan_rows';
+  @override
+  VerificationContext validateIntegrity(Insertable<QrScanRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('content')) {
+      context.handle(_contentMeta,
+          content.isAcceptableOrUnknown(data['content']!, _contentMeta));
+    } else if (isInserting) {
+      context.missing(_contentMeta);
+    }
+    if (data.containsKey('format')) {
+      context.handle(_formatMeta,
+          format.isAcceptableOrUnknown(data['format']!, _formatMeta));
+    } else if (isInserting) {
+      context.missing(_formatMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    }
+    if (data.containsKey('scanned_at')) {
+      context.handle(_scannedAtMeta,
+          scannedAt.isAcceptableOrUnknown(data['scanned_at']!, _scannedAtMeta));
+    } else if (isInserting) {
+      context.missing(_scannedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  QrScanRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return QrScanRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      content: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}content'])!,
+      format: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}format'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      scannedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}scanned_at'])!,
+    );
+  }
+
+  @override
+  $QrScanRowsTable createAlias(String alias) {
+    return $QrScanRowsTable(attachedDatabase, alias);
+  }
+}
+
+class QrScanRow extends DataClass implements Insertable<QrScanRow> {
+  final String id;
+  final String content;
+  final String format;
+  final String type;
+  final DateTime scannedAt;
+  const QrScanRow(
+      {required this.id,
+      required this.content,
+      required this.format,
+      required this.type,
+      required this.scannedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['content'] = Variable<String>(content);
+    map['format'] = Variable<String>(format);
+    map['type'] = Variable<String>(type);
+    map['scanned_at'] = Variable<DateTime>(scannedAt);
+    return map;
+  }
+
+  QrScanRowsCompanion toCompanion(bool nullToAbsent) {
+    return QrScanRowsCompanion(
+      id: Value(id),
+      content: Value(content),
+      format: Value(format),
+      type: Value(type),
+      scannedAt: Value(scannedAt),
+    );
+  }
+
+  factory QrScanRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return QrScanRow(
+      id: serializer.fromJson<String>(json['id']),
+      content: serializer.fromJson<String>(json['content']),
+      format: serializer.fromJson<String>(json['format']),
+      type: serializer.fromJson<String>(json['type']),
+      scannedAt: serializer.fromJson<DateTime>(json['scannedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'content': serializer.toJson<String>(content),
+      'format': serializer.toJson<String>(format),
+      'type': serializer.toJson<String>(type),
+      'scannedAt': serializer.toJson<DateTime>(scannedAt),
+    };
+  }
+
+  QrScanRow copyWith(
+          {String? id,
+          String? content,
+          String? format,
+          String? type,
+          DateTime? scannedAt}) =>
+      QrScanRow(
+        id: id ?? this.id,
+        content: content ?? this.content,
+        format: format ?? this.format,
+        type: type ?? this.type,
+        scannedAt: scannedAt ?? this.scannedAt,
+      );
+  QrScanRow copyWithCompanion(QrScanRowsCompanion data) {
+    return QrScanRow(
+      id: data.id.present ? data.id.value : this.id,
+      content: data.content.present ? data.content.value : this.content,
+      format: data.format.present ? data.format.value : this.format,
+      type: data.type.present ? data.type.value : this.type,
+      scannedAt: data.scannedAt.present ? data.scannedAt.value : this.scannedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QrScanRow(')
+          ..write('id: $id, ')
+          ..write('content: $content, ')
+          ..write('format: $format, ')
+          ..write('type: $type, ')
+          ..write('scannedAt: $scannedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, content, format, type, scannedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is QrScanRow &&
+          other.id == this.id &&
+          other.content == this.content &&
+          other.format == this.format &&
+          other.type == this.type &&
+          other.scannedAt == this.scannedAt);
+}
+
+class QrScanRowsCompanion extends UpdateCompanion<QrScanRow> {
+  final Value<String> id;
+  final Value<String> content;
+  final Value<String> format;
+  final Value<String> type;
+  final Value<DateTime> scannedAt;
+  final Value<int> rowid;
+  const QrScanRowsCompanion({
+    this.id = const Value.absent(),
+    this.content = const Value.absent(),
+    this.format = const Value.absent(),
+    this.type = const Value.absent(),
+    this.scannedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  QrScanRowsCompanion.insert({
+    required String id,
+    required String content,
+    required String format,
+    this.type = const Value.absent(),
+    required DateTime scannedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        content = Value(content),
+        format = Value(format),
+        scannedAt = Value(scannedAt);
+  static Insertable<QrScanRow> custom({
+    Expression<String>? id,
+    Expression<String>? content,
+    Expression<String>? format,
+    Expression<String>? type,
+    Expression<DateTime>? scannedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (content != null) 'content': content,
+      if (format != null) 'format': format,
+      if (type != null) 'type': type,
+      if (scannedAt != null) 'scanned_at': scannedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  QrScanRowsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? content,
+      Value<String>? format,
+      Value<String>? type,
+      Value<DateTime>? scannedAt,
+      Value<int>? rowid}) {
+    return QrScanRowsCompanion(
+      id: id ?? this.id,
+      content: content ?? this.content,
+      format: format ?? this.format,
+      type: type ?? this.type,
+      scannedAt: scannedAt ?? this.scannedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (content.present) {
+      map['content'] = Variable<String>(content.value);
+    }
+    if (format.present) {
+      map['format'] = Variable<String>(format.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (scannedAt.present) {
+      map['scanned_at'] = Variable<DateTime>(scannedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('QrScanRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('content: $content, ')
+          ..write('format: $format, ')
+          ..write('type: $type, ')
+          ..write('scannedAt: $scannedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2876,6 +3181,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingRowsTable settingRows = $SettingRowsTable(this);
   late final $DownloadTaskRowsTable downloadTaskRows =
       $DownloadTaskRowsTable(this);
+  late final $QrScanRowsTable qrScanRows = $QrScanRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2886,7 +3192,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         recentLocationRows,
         searchIndexEntryRows,
         settingRows,
-        downloadTaskRows
+        downloadTaskRows,
+        qrScanRows
       ];
 }
 
@@ -4309,6 +4616,171 @@ typedef $$DownloadTaskRowsTableProcessedTableManager = ProcessedTableManager<
     ),
     DownloadTaskRow,
     PrefetchHooks Function()>;
+typedef $$QrScanRowsTableCreateCompanionBuilder = QrScanRowsCompanion Function({
+  required String id,
+  required String content,
+  required String format,
+  Value<String> type,
+  required DateTime scannedAt,
+  Value<int> rowid,
+});
+typedef $$QrScanRowsTableUpdateCompanionBuilder = QrScanRowsCompanion Function({
+  Value<String> id,
+  Value<String> content,
+  Value<String> format,
+  Value<String> type,
+  Value<DateTime> scannedAt,
+  Value<int> rowid,
+});
+
+class $$QrScanRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $QrScanRowsTable> {
+  $$QrScanRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get format => $composableBuilder(
+      column: $table.format, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get scannedAt => $composableBuilder(
+      column: $table.scannedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$QrScanRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $QrScanRowsTable> {
+  $$QrScanRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get content => $composableBuilder(
+      column: $table.content, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get format => $composableBuilder(
+      column: $table.format, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get scannedAt => $composableBuilder(
+      column: $table.scannedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$QrScanRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $QrScanRowsTable> {
+  $$QrScanRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get content =>
+      $composableBuilder(column: $table.content, builder: (column) => column);
+
+  GeneratedColumn<String> get format =>
+      $composableBuilder(column: $table.format, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get scannedAt =>
+      $composableBuilder(column: $table.scannedAt, builder: (column) => column);
+}
+
+class $$QrScanRowsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $QrScanRowsTable,
+    QrScanRow,
+    $$QrScanRowsTableFilterComposer,
+    $$QrScanRowsTableOrderingComposer,
+    $$QrScanRowsTableAnnotationComposer,
+    $$QrScanRowsTableCreateCompanionBuilder,
+    $$QrScanRowsTableUpdateCompanionBuilder,
+    (QrScanRow, BaseReferences<_$AppDatabase, $QrScanRowsTable, QrScanRow>),
+    QrScanRow,
+    PrefetchHooks Function()> {
+  $$QrScanRowsTableTableManager(_$AppDatabase db, $QrScanRowsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$QrScanRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$QrScanRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$QrScanRowsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> content = const Value.absent(),
+            Value<String> format = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<DateTime> scannedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              QrScanRowsCompanion(
+            id: id,
+            content: content,
+            format: format,
+            type: type,
+            scannedAt: scannedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String content,
+            required String format,
+            Value<String> type = const Value.absent(),
+            required DateTime scannedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              QrScanRowsCompanion.insert(
+            id: id,
+            content: content,
+            format: format,
+            type: type,
+            scannedAt: scannedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$QrScanRowsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $QrScanRowsTable,
+    QrScanRow,
+    $$QrScanRowsTableFilterComposer,
+    $$QrScanRowsTableOrderingComposer,
+    $$QrScanRowsTableAnnotationComposer,
+    $$QrScanRowsTableCreateCompanionBuilder,
+    $$QrScanRowsTableUpdateCompanionBuilder,
+    (QrScanRow, BaseReferences<_$AppDatabase, $QrScanRowsTable, QrScanRow>),
+    QrScanRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4325,4 +4797,6 @@ class $AppDatabaseManager {
       $$SettingRowsTableTableManager(_db, _db.settingRows);
   $$DownloadTaskRowsTableTableManager get downloadTaskRows =>
       $$DownloadTaskRowsTableTableManager(_db, _db.downloadTaskRows);
+  $$QrScanRowsTableTableManager get qrScanRows =>
+      $$QrScanRowsTableTableManager(_db, _db.qrScanRows);
 }

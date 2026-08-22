@@ -163,7 +163,37 @@ Progress log for the Flutter application.
     the app.
   - Destructive-action confirmation now also covers **multi-select delete** and
     **recycle-bin permanent delete** (previously only single-file delete honored
-    the "confirm destructive actions" setting).
+    the     "confirm destructive actions" setting).
+
+- Added a **QR scanner** Tools feature (`/qr-scanner`, reachable from Home → Tools →
+  QR scanner and the Core Features screen):
+  - **Live camera scan** — `mobile_scanner` controller (QR-only formats,
+    no-duplicate detection) with a scan-frame overlay, torch toggle, lifecycle
+    pause/resume, and a permission-denied recovery view (opens app settings).
+    Detected codes show a bottom sheet with copy / open-URL / scan-another.
+  - **Generate** — `qr_flutter` renders a scannable QR from arbitrary text with a
+    copy button.
+  - **History** — Drift-persisted `qr_scan_rows` table (schema v11, guarded
+    migration), surfaced as a History tab with per-item delete, clear-all, and
+    tap-to-copy/open-link.
+  - **Gallery scan** — `image_picker` picks a saved image and
+    `MobileScannerController.analyzeImage` decodes any QR/barcode in it, reusing the
+    same record + result-sheet path.
+  - **Generation history** — generated QR codes are now recorded into the same
+    history with a `type` column (`scanned`/`generated`); history tiles show a color
+    badge distinguishing them. Added `QrScanType` enum + `type` column (schema bumped
+    **v11 → v12**, guarded via `addColumnIfMissing`).
+  - **Bug fix** — the Scan tab never started the camera: the `MobileScanner` widget
+    (which requests camera permission) was only built once `hasCameraPermission` was
+    already true, so on first open it fell into the "Camera could not be started"
+    branch and never initialized. Now `MobileScanner` is always built and an error
+    overlay is shown only when an actual error occurs. Lifecycle `start()`/`stop()`
+    are guarded with `isRunning`.
+  - `flutter analyze` clean; debug APK verified on device.
+
+- Fixed the Home **Tools** row overflowing into 3 rows: replaced the single 6-wide
+  `Row` of `Expanded` tiles with a 2×3 `Wrap` grid (tile width computed from
+  `LayoutBuilder`), so every label (incl. "QR scanner") fits on one line.
 
 ## 2026-08-20
 

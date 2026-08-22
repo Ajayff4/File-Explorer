@@ -119,7 +119,7 @@ feature below works end to end on a real device over wireless ADB.
 
 ### 🚧 Upcoming
 
-- QR scanner — scan QR codes, keep a scan history, and generate QR codes from text.
+- QR scanner — scan QR codes with the camera, keep a scan history, generate QR codes from text, and scan codes from gallery images.
 - Nearby sharing — direct device-to-device transfer on the same network (ShareIt/Xender style).
 - Multi-window — multiple independent windows that stay on any screen.
 

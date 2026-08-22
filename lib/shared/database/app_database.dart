@@ -71,6 +71,17 @@ class SettingRows extends Table {
   Set<Column<Object>> get primaryKey => {key};
 }
 
+class QrScanRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get content => text()();
+  TextColumn get format => text()();
+  TextColumn get type => text().withDefault(const Constant('scanned'))();
+  DateTimeColumn get scannedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class DownloadTaskRows extends Table {
   TextColumn get id => text()();
   TextColumn get url => text()();
@@ -102,13 +113,14 @@ class DownloadTaskRows extends Table {
     SearchIndexEntryRows,
     SettingRows,
     DownloadTaskRows,
+    QrScanRows,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -120,7 +132,7 @@ class AppDatabase extends _$AppDatabase {
         // a column when it is actually missing.
         Future<void> addColumnIfMissing(
           TableInfo<Table, dynamic> table,
-          GeneratedColumn<Object> column,
+          GeneratedColumn column,
         ) async {
           final columnName = column.name;
           final columns = await customSelect(
@@ -190,6 +202,12 @@ class AppDatabase extends _$AppDatabase {
             downloadTaskRows,
             downloadTaskRows.playlist,
           );
+        }
+        if (from < 11 && !await tableExists('qr_scan_rows')) {
+          await migrator.createTable(qrScanRows);
+        }
+        if (from < 12) {
+          await addColumnIfMissing(qrScanRows, qrScanRows.type);
         }
       },
     );

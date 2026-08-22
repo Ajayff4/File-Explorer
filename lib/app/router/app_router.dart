@@ -12,6 +12,7 @@ import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/analyzer/presentation/storage_analyzer_screen.dart';
 import 'package:file_explorer/features/recycle_bin/presentation/recycle_bin_screen.dart';
 import 'package:file_explorer/features/encryption/presentation/encryptor_screen.dart';
+import 'package:file_explorer/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -105,6 +106,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const EncryptorScreen(),
           ),
           GoRoute(
+            path: AppRoutes.qrScanner,
+            builder: (context, state) => const QrScannerScreen(),
+          ),
+          GoRoute(
             path: AppRoutes.settings,
             builder: (context, state) => const SettingsScreen(),
           ),
@@ -194,6 +199,7 @@ class AppRoutes {
   static const analyzer = '/analyzer';
   static const recycleBin = '/recycle-bin';
   static const encryptor = '/encryptor';
+  static const qrScanner = '/qr-scanner';
   static const downloaderBrowse = '/downloader/browse';
 
   static String media(MediaLibraryKind kind) {
