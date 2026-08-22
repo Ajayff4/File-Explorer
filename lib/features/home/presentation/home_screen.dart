@@ -106,12 +106,14 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           sliver: SliverList.list(
             children: [
               _StoragePanel(summary: summary),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               _ShortcutGrid(),
+              const SizedBox(height: 20),
+              const _ToolsSection(),
               const SizedBox(height: 16),
               const _CoreFeaturesTile(),
               const SizedBox(height: 16),
@@ -397,13 +399,107 @@ class _ShortcutGrid extends StatelessWidget {
   }
 }
 
+class _ToolsSection extends StatelessWidget {
+  const _ToolsSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final tools = <_Tool>[
+      _Tool(
+        icon: Icons.folder_zip_rounded,
+        label: 'Archiver',
+        color: const Color(0xFF8D6E63),
+        onTap: () => context.go(AppRoutes.media(MediaLibraryKind.archives)),
+      ),
+      _Tool(
+        icon: Icons.download_rounded,
+        label: 'Downloader',
+        color: const Color(0xFFD81B60),
+        onTap: () => context.go(AppRoutes.downloader),
+      ),
+      _Tool(
+        icon: Icons.pie_chart_rounded,
+        label: 'Analyzer',
+        color: const Color(0xFF059669),
+        onTap: () => _comingSoon(context, 'Storage Analyzer'),
+      ),
+      _Tool(
+        icon: Icons.delete_rounded,
+        label: 'Recycle',
+        color: const Color(0xFFDC2626),
+        onTap: () => _comingSoon(context, 'Recycle bin'),
+      ),
+    ];
+
+    return NeumorphicCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+        child: Row(
+          children: [
+            for (final tool in tools) Expanded(child: _ToolTile(tool: tool)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ToolTile extends StatelessWidget {
+  const _ToolTile({required this.tool});
+
+  final _Tool tool;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: tool.onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(tool.icon, size: 26, color: tool.color),
+            const SizedBox(height: 6),
+            Text(
+              tool.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _Tool {
+  const _Tool({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback? onTap;
+}
+
+void _comingSoon(BuildContext context, String name) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('$name is coming soon')),
+  );
+}
+
 class _SectionHeader extends StatelessWidget {
   const _SectionHeader({
     required this.title,
     required this.actionLabel,
     required this.onPressed,
   });
-
   final String title;
   final String actionLabel;
   final VoidCallback onPressed;
