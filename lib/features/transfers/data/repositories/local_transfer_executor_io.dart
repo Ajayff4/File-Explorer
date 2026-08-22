@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:archive/archive_io.dart';
+import 'package:file_explorer/features/encryption/data/encryption_repository.dart';
+import 'package:file_explorer/features/encryption/data/encryption_service.dart';
 import 'package:file_explorer/features/recycle_bin/data/recycle_bin_repository.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
@@ -38,6 +40,48 @@ class LocalTransferExecutor implements TransferExecutor {
       await _compressPaths(sources, destinationPath, task: task);
       transferredBytes = totalBytes == 0 ? 1 : totalBytes;
       report(destinationPath);
+      return;
+    }
+
+    if (task.operation == TransferOperation.encrypt) {
+      final repository = EncryptionRepository(EncryptionService());
+      final result = await repository.encryptPaths(
+        sources,
+        password: task.encryptionPassword ?? '',
+        encryptName: task.encryptName ?? false,
+        onProgress: (path, bytes) {
+          transferredBytes += bytes;
+          report(path);
+        },
+      );
+      if (result.encryptedCount == 0) {
+        throw TransferExecutionException(
+          code: TransferFailureCode.unknown,
+          message: result.skipped.isEmpty
+              ? 'Nothing to encrypt'
+              : 'Could not encrypt ${result.skipped.length} item(s)',
+        );
+      }
+      return;
+    }
+
+    if (task.operation == TransferOperation.decrypt) {
+      final repository = EncryptionRepository(EncryptionService());
+      try {
+        await repository.decryptPaths(
+          sources,
+          password: task.encryptionPassword ?? '',
+          onProgress: (path, bytes) {
+            transferredBytes += bytes;
+            report(path);
+          },
+        );
+      } on WrongPasswordException {
+        throw TransferExecutionException(
+          code: TransferFailureCode.unknown,
+          message: 'Wrong password',
+        );
+      }
       return;
     }
 
@@ -86,6 +130,9 @@ class LocalTransferExecutor implements TransferExecutor {
           report(sourcePath);
         case TransferOperation.compressArchive:
           throw StateError('Compression is handled before source iteration');
+        case TransferOperation.encrypt:
+        case TransferOperation.decrypt:
+          throw StateError('Encryption/decryption handled before source iteration');
       }
     }
   }

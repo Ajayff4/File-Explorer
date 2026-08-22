@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 
 class TextFileViewerScreen extends StatefulWidget {
@@ -92,7 +93,7 @@ class _TextFileViewerScreenState extends State<TextFileViewerScreen> {
 
   Widget _buildBody(ColorScheme colorScheme) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingIndicator();
     }
 
     if (_error != null) {

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/encryption/data/encryption_service.dart';
+import 'package:file_explorer/features/encryption/presentation/encryption_actions.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
@@ -233,6 +235,10 @@ void openFileForPreview({
   List<FileSystemEntry> playlist = const [],
 }) {
   final type = entry.type;
+  if (isEncryptedFile(entry.path)) {
+    decryptPathWithDialog(context, ref, entry.path);
+    return;
+  }
   if (type == FileSystemEntryType.image ||
       type == FileSystemEntryType.video ||
       type == FileSystemEntryType.audio) {
@@ -548,6 +554,30 @@ class _EntryActionsSheet extends ConsumerWidget {
                 },
               ),
           ],
+          if (isEncryptedFile(entry.path))
+            ListTile(
+              leading: const Icon(Icons.lock_open_rounded),
+              title: const Text('Decrypt'),
+              onTap: () {
+                Navigator.of(context).pop();
+                decryptPathWithDialog(parentContext, ref, entry.path);
+              },
+            )
+          else
+            ListTile(
+              leading: const Icon(Icons.lock_rounded),
+              title: const Text('Encrypt'),
+              onTap: () {
+                Navigator.of(context).pop();
+                encryptPathsWithDialog(
+                  parentContext,
+                  ref,
+                  [entry.path],
+                  displayName: entry.name,
+                  itemCount: 1,
+                );
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.inventory_2_rounded),
             title: const Text('Compress'),

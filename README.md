@@ -87,6 +87,14 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Restore (parent dir recreated, collision rename), delete permanently, empty trash.
 - ✅ Multi-select, select-all, bulk restore/delete, and list/grid view toggle.
 
+### 🔒 Encryption
+
+- ✅ AES-256-GCM (PBKDF2-HMAC-SHA256) `.ff4` containers.
+- ✅ Encrypt/decrypt single files, folders (recursive), and multi-selects in place.
+- ✅ Optional file-name hiding (random id) with name/type recovery on decrypt.
+- ✅ `Encryptor` tool listing all `.ff4` files flat (list/grid, select-all, bulk decrypt).
+- ✅ Encrypt/decrypt run through the Transfer Station as queueable tasks with progress.
+
 ### ⬇️ Universal Downloader
 
 - ✅ Paste a YouTube/Instagram/Twitter/other media link and download as video or audio.
@@ -108,6 +116,12 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Persistent favorites, recents, transfer queue/history.
 - ✅ Settings screen (Explorer, Transfers, Search toggles).
 - ✅ Drift + build_runner codegen.
+
+### 🚧 Upcoming
+
+- QR scanner — scan QR codes, keep a scan history, and generate QR codes from text.
+- Nearby sharing — direct device-to-device transfer on the same network (ShareIt/Xender style).
+- Multi-window — multiple independent windows that stay on any screen.
 
 ---
 
@@ -340,6 +354,7 @@ lib/
     analyzer/
     archive/
     downloader/
+    encryption/
     explorer/
     favorites/
     home/
@@ -351,8 +366,10 @@ lib/
     storage_permissions/
     transfers/
   shared/
+    archive/
     database/
     formatters/
+    widgets/
 ```
 
 The codebase is organized feature-first so platform storage, transfer engine, search,

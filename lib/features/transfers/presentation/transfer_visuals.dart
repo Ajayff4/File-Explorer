@@ -10,6 +10,8 @@ IconData iconForTransferOperation(TransferOperation operation) {
     TransferOperation.rename => Icons.edit_rounded,
     TransferOperation.extractArchive => Icons.archive_rounded,
     TransferOperation.compressArchive => Icons.inventory_2_rounded,
+    TransferOperation.encrypt => Icons.lock_rounded,
+    TransferOperation.decrypt => Icons.lock_open_rounded,
   };
 }
 
@@ -22,6 +24,8 @@ Color colorForTransferOperation(TransferOperation operation) {
     TransferOperation.rename => const Color(0xFF00897B),
     TransferOperation.extractArchive => const Color(0xFF6D4C41),
     TransferOperation.compressArchive => const Color(0xFF8D6E63),
+    TransferOperation.encrypt => const Color(0xFF546E7A),
+    TransferOperation.decrypt => const Color(0xFF546E7A),
   };
 }
 

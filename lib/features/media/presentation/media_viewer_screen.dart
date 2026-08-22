@@ -11,6 +11,7 @@ import 'package:file_explorer/features/media/presentation/local_media_source_stu
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
@@ -980,7 +981,7 @@ class _PlaybackPreviewState extends State<_PlaybackPreview> {
       future: _initialization,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingIndicator();
         }
         if (snapshot.hasError || controller == null) {
           return _PreviewError(

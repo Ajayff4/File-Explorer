@@ -1,8 +1,11 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/encryption/data/encryption_service.dart';
+import 'package:file_explorer/features/encryption/presentation/encryption_actions.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:flutter/material.dart';
@@ -65,7 +68,16 @@ class SelectionBottomBar extends ConsumerWidget {
               _ActionButton(
                 tooltip: 'Delete',
                 icon: Icons.delete_rounded,
-                onTap: () {
+                onTap: () async {
+                  final shouldConfirm = ref
+                      .read(settingsControllerProvider)
+                      .settings
+                      .confirmDestructiveActions;
+                  if (shouldConfirm) {
+                    final confirmed =
+                        await _confirmDeleteSelection(context, selectedCount);
+                    if (confirmed != true || !context.mounted) return;
+                  }
                   transferController.queueOperation(
                     operation: TransferOperation.delete,
                     sourcePaths: selectedPaths,
@@ -309,10 +321,60 @@ void _showMoreOptions(
                 _showProperties(context, ref, selectedPaths);
               },
             ),
+            if (selectedPaths.any(isEncryptedFile))
+              ListTile(
+                leading: const Icon(Icons.lock_open_rounded),
+                title: const Text('Decrypt'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  decryptPathsWithDialog(
+                    context,
+                    ref,
+                    selectedPaths,
+                    onDone: onExitSelection,
+                  );
+                },
+              ),
+            if (selectedPaths.any((p) => !isEncryptedFile(p)))
+              ListTile(
+                leading: const Icon(Icons.lock_rounded),
+                title: const Text('Encrypt'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  encryptPathsWithDialog(
+                    context,
+                    ref,
+                    selectedPaths,
+                    displayName: displayName,
+                    itemCount: selectedPaths.length,
+                    onDone: onExitSelection,
+                  );
+                },
+              ),
           ],
         ),
       );
     },
+  );
+}
+
+Future<bool?> _confirmDeleteSelection(BuildContext context, int count) {
+  return showDialog<bool>(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Delete'),
+      content: Text('Delete $count item${count == 1 ? '' : 's'}?'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(false),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: const Text('Delete'),
+        ),
+      ],
+    ),
   );
 }
 

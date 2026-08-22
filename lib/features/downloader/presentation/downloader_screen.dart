@@ -12,6 +12,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -1197,7 +1198,7 @@ class _FolderPickerSheetState extends State<_FolderPickerSheet> {
           const Divider(height: 1),
           Expanded(
             child: _loading
-                ? const Center(child: CircularProgressIndicator())
+                ? const AppLoadingIndicator()
                 : _folders.isEmpty
                     ? const Center(child: Text('No sub-folders'))
                     : DownloadEntryGrid(

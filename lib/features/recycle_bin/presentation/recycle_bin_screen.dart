@@ -1,6 +1,8 @@
 import 'package:file_explorer/features/recycle_bin/domain/entities/trash_item.dart';
 import 'package:file_explorer/features/recycle_bin/presentation/controllers/recycle_bin_controller.dart';
 import 'package:file_explorer/features/recycle_bin/presentation/widgets/trash_item_tiles.dart';
+import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -95,7 +97,7 @@ class _RecycleBinScreenState extends ConsumerState<RecycleBinScreen> {
       ),
       body: switch (state) {
         RecycleBinState(loading: true) =>
-          const Center(child: CircularProgressIndicator()),
+          const AppLoadingIndicator(),
         RecycleBinState(error: final error?) => Center(child: Text(error)),
         RecycleBinState(items: final items) => items.isEmpty
             ? const _EmptyView()
@@ -121,12 +123,24 @@ class _RecycleBinScreenState extends ConsumerState<RecycleBinScreen> {
           onRestore: () => ref
               .read(recycleBinControllerProvider.notifier)
               .restore(item),
-          onDelete: () => ref
-              .read(recycleBinControllerProvider.notifier)
-              .deletePermanently(item),
+          onDelete: () => _deletePermanently(item),
         );
       },
     );
+  }
+
+  Future<void> _deletePermanently(TrashItem item) async {
+    final shouldConfirm = ref
+        .read(settingsControllerProvider)
+        .settings
+        .confirmDestructiveActions;
+    if (shouldConfirm) {
+      final confirmed = await _confirmPermanentDelete(context, 1);
+      if (confirmed != true) return;
+    }
+    await ref
+        .read(recycleBinControllerProvider.notifier)
+        .deletePermanently(item);
   }
 
   Widget _buildGrid(List<TrashItem> items) {

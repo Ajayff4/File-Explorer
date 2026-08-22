@@ -17,6 +17,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -195,6 +196,22 @@ class ExplorerScreen extends ConsumerWidget {
                   ref.read(explorerControllerProvider.notifier).refresh();
                 },
                 icon: const Icon(Icons.refresh_rounded),
+              ),
+              IconButton(
+                tooltip: viewMode == ExplorerViewMode.list
+                    ? 'Grid view'
+                    : 'List view',
+                onPressed: () {
+                  ref.read(explorerViewModeProvider.notifier).state =
+                      viewMode == ExplorerViewMode.list
+                          ? ExplorerViewMode.grid
+                          : ExplorerViewMode.list;
+                },
+                icon: Icon(
+                  viewMode == ExplorerViewMode.list
+                      ? Icons.grid_view_rounded
+                      : Icons.view_list_rounded,
+                ),
               ),
               PopupMenuButton<_MoreMenuAction>(
                 tooltip: 'More',
@@ -619,7 +636,7 @@ class ExplorerScreen extends ConsumerWidget {
                       },
                     ),
                     loading: () =>
-                        const Center(child: CircularProgressIndicator()),
+                        const AppLoadingIndicator(),
                   );
                 },
                 error: (error, stackTrace) => _DirectoryError(
@@ -630,7 +647,7 @@ class ExplorerScreen extends ConsumerWidget {
                         .loadInitialDirectory();
                   },
                 ),
-                loading: () => const Center(child: CircularProgressIndicator()),
+                loading: () => const AppLoadingIndicator(),
               ),
             ),
           ],
@@ -1185,7 +1202,7 @@ class _FilteredEntryListView extends StatelessWidget {
       future: _filterEntriesByContent(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return const AppLoadingIndicator();
         }
 
         final filteredEntries = snapshot.data ?? [];

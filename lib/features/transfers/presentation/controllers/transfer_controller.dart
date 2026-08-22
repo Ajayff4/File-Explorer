@@ -93,6 +93,8 @@ class TransferController extends StateNotifier<TransferState> {
     int? totalBytes,
     String? archivePassword,
     int? archiveCompressionLevel,
+    String? encryptionPassword,
+    bool? encryptName,
   }) {
     final now = DateTime.now();
     final effectiveOperation = operation == TransferOperation.delete
@@ -110,6 +112,8 @@ class TransferController extends StateNotifier<TransferState> {
       progress: TransferProgress(totalBytes: totalBytes),
       archivePassword: archivePassword,
       archiveCompressionLevel: archiveCompressionLevel,
+      encryptionPassword: encryptionPassword,
+      encryptName: encryptName,
     );
 
     state = state.copyWith(tasks: [task, ...state.tasks]);

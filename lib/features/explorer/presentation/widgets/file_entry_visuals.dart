@@ -20,6 +20,7 @@ class FileEntryColors {
   static const image = Color(0xFFEC407A);
   static const video = Color(0xFFAB47BC);
   static const audio = Color(0xFF26A69A);
+  static const encrypted = Color(0xFF546E7A);
 }
 
 class FileTypeBadge extends StatelessWidget {
@@ -238,6 +239,7 @@ IconData iconForFileSystemEntry(FileSystemEntry entry) {
       Icons.inventory_2_rounded,
     'apk' || 'apks' || 'xapk' || 'apkm' || 'aab' => Icons.android_rounded,
     'exe' || 'msi' || 'deb' || 'rpm' => Icons.apps_rounded,
+    'ff4' => Icons.lock_rounded,
     _ => iconForFileSystemEntryType(entry.type),
   };
 }
@@ -276,6 +278,7 @@ Color colorForFileSystemEntry(BuildContext context, FileSystemEntry entry) {
       FileEntryColors.archive,
     'apk' || 'apks' || 'xapk' || 'apkm' || 'aab' => FileEntryColors.app,
     'exe' || 'msi' || 'deb' || 'rpm' => colorScheme.primary,
+    'ff4' => FileEntryColors.encrypted,
     _ => switch (entry.type) {
         FileSystemEntryType.image => FileEntryColors.image,
         FileSystemEntryType.video => FileEntryColors.video,

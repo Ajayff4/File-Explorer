@@ -122,6 +122,49 @@ Progress log for the Flutter application.
   - `flutter analyze` clean; verified on device — snackbar auto-dismisses after
     4s and the Transfers button navigates.
 
+- Added **file encryption** (`.ff4`, the `.eslock`-style feature):
+  - `EncryptionService` (`lib/features/encryption/data/`) implements AES-256-GCM
+    with PBKDF2-HMAC-SHA256 (100k iterations) key derivation. A `.ff4` container
+    holds magic/version, a salt, the GCM nonce, ciphertext, and tag. The original
+    file name is stored in the header unless "encrypt file name" is checked, in
+    which case it is length-prefixed inside the encrypted payload — either way
+    the name + type are recovered on decrypt. Wrong passwords throw
+    `WrongPasswordException`.
+  - `EncryptionRepository` encrypts files/folders/multi-selects **in place**
+    (each file becomes `<name>.ff4` or a 32-char random-hex id, original deleted,
+    folder structure preserved) and decrypts `.ff4` containers back to their
+    original names. Recursive `.ff4` discovery runs on an isolate
+    (`scanEncryptedFiles`).
+  - UI: encrypt dialog (password, confirm, show-password, encrypt-file-name) and
+    decrypt dialog (password, show-password); long-press Encrypt/Decrypt on
+    files and folders, multi-select Encrypt/Decrypt, tapping a `.ff4` opens
+    decrypt, and a lock icon + `encrypted` color for `.ff4` files in list/grid.
+  - **Encryptor** Tools screen (`/encryptor`): lists every `.ff4` file on the
+    primary volume in one flat list, with list/grid toggle, multi-select, and
+    select-all for bulk decrypt.
+  - Encrypt/decrypt run through the **Transfer Station** as queueable
+    `TransferOperation.encrypt`/`decrypt` tasks (progress, retry, cancel) instead
+    of a blocking modal. Password is kept in-memory only (not persisted), matching
+    the archive-password behavior.
+  - Tests: `test/features/encryption/encryption_service_test.dart` (round-trips,
+    wrong password, non-FF4 rejection, in-place folder encryption, name/id
+    naming). Suite 142/142; `flutter analyze` clean; debug APK verified on device.
+
+- **Consistency polish**:
+  - List/grid view toggle is now a direct app-bar button (showing the target
+    view's icon) in Explorer and Media libraries, matching Recycle bin and
+    Encryptor.
+  - Extracted `AppLoadingIndicator` (the analyzer's 64px `strokeWidth: 5`
+    spinner) and replaced every full-screen `Center(child:
+    CircularProgressIndicator())` with it; the analyzer's scanning view now uses
+    the shared widget too.
+  - Tools (Archiver/Downloader/Analyzer/Recycle/Encryptor) now navigate with
+    `context.push`, so the Android back button returns Home instead of minimizing
+    the app.
+  - Destructive-action confirmation now also covers **multi-select delete** and
+    **recycle-bin permanent delete** (previously only single-file delete honored
+    the "confirm destructive actions" setting).
+
 ## 2026-08-20
 
 ### Completed

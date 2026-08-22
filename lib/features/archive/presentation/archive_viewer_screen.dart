@@ -5,6 +5,7 @@ import 'package:file_explorer/features/archive/domain/entities/archive_entry.dar
 import 'package:file_explorer/features/archive/presentation/controllers/archive_viewer_controller.dart';
 import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -89,7 +90,7 @@ class ArchiveViewerScreen extends ConsumerWidget {
           ],
         ),
         body: listing.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const AppLoadingIndicator(),
           error: (error, _) => _ArchiveViewerError(
             error: error,
             onRetry: () {

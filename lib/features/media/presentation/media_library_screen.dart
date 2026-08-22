@@ -9,6 +9,7 @@ import 'package:file_explorer/features/search/domain/entities/search_result.dart
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
@@ -168,6 +169,20 @@ class MediaLibraryScreen extends ConsumerWidget {
               onPressed: () =>
                   ref.invalidate(mediaLibraryResultsProvider(request)),
               icon: const Icon(Icons.refresh_rounded),
+            ),
+            IconButton(
+              tooltip: viewMode == ExplorerViewMode.list
+                  ? 'Grid view'
+                  : 'List view',
+              onPressed: () => ref.read(mediaLibraryViewModeProvider.notifier).state =
+                  viewMode == ExplorerViewMode.list
+                      ? ExplorerViewMode.grid
+                      : ExplorerViewMode.list,
+              icon: Icon(
+                viewMode == ExplorerViewMode.list
+                    ? Icons.grid_view_rounded
+                    : Icons.view_list_rounded,
+              ),
             ),
             _MediaMoreMenu(sortOption: sortOption, viewMode: viewMode),
             const SizedBox(width: 8),
@@ -646,7 +661,7 @@ class _MediaLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Center(child: CircularProgressIndicator());
+    return const AppLoadingIndicator();
   }
 }
 

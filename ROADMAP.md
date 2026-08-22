@@ -89,6 +89,9 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Recycle bin | Delete redirects to `.recycle_bin` (moveToTrash) instead of permanent erase, per-volume trash with `.meta.json` sidecars (2026-08-22). |
 | ✅ | Recycle bin | Restore (parent dir recreated, collision rename), delete permanently, empty trash (2026-08-22). |
 | ✅ | Recycle bin | Multi-select, select-all, bulk restore/delete, and list/grid view toggle (2026-08-22). |
+| ✅ | Encryption | `.ff4` AES-256-GCM encryption: encrypt/decrypt single files, folders (recursive), and multi-selects in place (2026-08-22). |
+| ✅ | Encryption | Optional file-name hiding (random id), lock icon in Explorer, and the `Encryptor` tool listing all `.ff4` files flat with list/grid + select-all (2026-08-22). |
+| ✅ | Encryption | Encrypt/decrypt run through the Transfer Station as queueable tasks with progress (2026-08-22). |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
@@ -147,11 +150,13 @@ flutter analyze
 # passed
 
 flutter test
-# passed — 135/135 (recycle bin repository tests added 2026-08-22; stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
+# passed — 142/142 (encryption service/repository tests added 2026-08-22; recycle bin repository tests added 2026-08-22; stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
 
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-08-22 (2nd): **Encryption landed** — `.ff4` AES-256-GCM containers (PBKDF2-HMAC-SHA256) with in-place encrypt/decrypt of single files, folders (recursive), and multi-selects; optional file-name hiding (random id); lock icon in Explorer; the `Encryptor` Tools screen (flat list of all `.ff4` files, list/grid + select-all); and encrypt/decrypt running through the Transfer Station as queueable tasks. Also: consistent list/grid toggle icons across Explorer/Media/Recycle/Encryptor, a shared `AppLoadingIndicator` (analyzer-style spinner) used everywhere, Tools back button now returns Home (`context.push`), and destructive-action confirmations now apply to multi-select delete and recycle-bin permanent delete. `flutter analyze` clean; `flutter test` 142/142; debug APK verified on device.
 
 Update 2026-08-22: **Recycle bin landed** — `TransferController` redirects delete to `moveToTrash` (`.recycle_bin` per volume, `.meta.json` sidecars); restore / delete-permanently / empty-trash, plus select-all, bulk restore/delete, and a list/grid toggle. Also fixed the transfer snackbars that never dismissed (Flutter 3.38+ `persist` default for snackbars with an action — added `persist: false`) and the dead "Transfers" action (stale context → `router.go`). `flutter analyze` clean; `flutter test` 135/135; debug APK verified on device.
 
@@ -325,7 +330,10 @@ Removed from the roadmap.
 | ✅ | Media | Thumbnail cache (2026-08-22 — hybrid native + disk, see Immediate Pending Work #12). |
 | ✅ | Storage | Storage analyzer (2026-08-22 — isolate scan, donut chart, largest folders/files). |
 | ✅ | Storage | Recycle bin (2026-08-22 — moveToTrash redirect, restore/delete-permanently/empty, select-all + bulk, list/grid). |
-| [ ] | Network | Optional network providers, not first-release core. |
+| [ ] | Network | ShareIt/Xender-style peer transfer — 2+ devices on the same network transfer files to each other directly (existing network task). |
+| ✅ | Security | `.eslock`-style encryption — folder-level, single-file, and multi-select encrypt/decrypt; `.ff4` AES-256-GCM, `Encryptor` Tools-screen feature, Transfer-Station integration (2026-08-22). |
+| [ ] | UI | Multi-window — multiple independent windows that can stay on any screen, independent of each other. |
+| [ ] | Tools | QR scanner — scan QR codes with a camera, keep a history of past scans, and generate a QR code from arbitrary text; new Tools-section feature. |
 
 ## Guardrails
 

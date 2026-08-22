@@ -412,25 +412,31 @@ class _ToolsSection extends ConsumerWidget {
         icon: Icons.folder_zip_rounded,
         label: 'Archiver',
         color: const Color(0xFF8D6E63),
-        onTap: () => context.go(AppRoutes.media(MediaLibraryKind.archives)),
+        onTap: () => context.push(AppRoutes.media(MediaLibraryKind.archives)),
       ),
       _Tool(
         icon: Icons.download_rounded,
         label: 'Downloader',
         color: const Color(0xFFD81B60),
-        onTap: () => context.go(AppRoutes.downloader),
+        onTap: () => context.push(AppRoutes.downloader),
       ),
       _Tool(
         icon: Icons.pie_chart_rounded,
         label: 'Analyzer',
         color: const Color(0xFF059669),
-        onTap: () => context.go(AppRoutes.analyzer, extra: rootPath),
+        onTap: () => context.push(AppRoutes.analyzer, extra: rootPath),
       ),
       _Tool(
         icon: Icons.delete_rounded,
         label: 'Recycle',
         color: const Color(0xFFDC2626),
-        onTap: () => context.go(AppRoutes.recycleBin, extra: rootPath),
+        onTap: () => context.push(AppRoutes.recycleBin, extra: rootPath),
+      ),
+      _Tool(
+        icon: Icons.lock_rounded,
+        label: 'Encryptor',
+        color: const Color(0xFF546E7A),
+        onTap: () => context.push(AppRoutes.encryptor),
       ),
     ];
 

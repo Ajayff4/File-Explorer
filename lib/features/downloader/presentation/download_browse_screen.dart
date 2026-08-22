@@ -3,6 +3,7 @@ import 'package:file_explorer/features/downloader/presentation/download_entry_gr
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -114,7 +115,7 @@ class _DownloadBrowseScreenState extends ConsumerState<DownloadBrowseScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const AppLoadingIndicator()
           : _entries.isEmpty
               ? const Center(child: Text('No items in this folder'))
               : DownloadEntryGrid(

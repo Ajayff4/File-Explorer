@@ -7,6 +7,7 @@ import 'package:file_explorer/features/media/presentation/local_media_actions.da
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
 import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
 import 'package:file_explorer/features/archive/presentation/controllers/archive_viewer_controller.dart';
+import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,7 +277,7 @@ class _ArchiveFilePreviewScreenState
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return const AppLoadingIndicator();
     }
 
     if (_error != null) {
@@ -289,7 +290,7 @@ class _ArchiveFilePreviewScreenState
       ArchivePreviewKind.image ||
       ArchivePreviewKind.video ||
       ArchivePreviewKind.audio =>
-        const Center(child: CircularProgressIndicator()),
+        const AppLoadingIndicator(),
       ArchivePreviewKind.text => _ArchiveTextPreview(
           text: utf8.decode(bytes, allowMalformed: true),
         ),

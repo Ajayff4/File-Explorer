@@ -6,6 +6,8 @@ enum TransferOperation {
   rename,
   extractArchive,
   compressArchive,
+  encrypt,
+  decrypt,
 }
 
 enum TransferTaskStatus {
@@ -65,6 +67,8 @@ class TransferTask {
     this.conflictPolicy = ConflictPolicy.ask,
     this.archivePassword,
     this.archiveCompressionLevel,
+    this.encryptionPassword,
+    this.encryptName,
     this.failureMessage,
     this.failureCode,
   });
@@ -81,6 +85,8 @@ class TransferTask {
   final ConflictPolicy conflictPolicy;
   final String? archivePassword;
   final int? archiveCompressionLevel;
+  final String? encryptionPassword;
+  final bool? encryptName;
   final String? failureMessage;
   final TransferFailureCode? failureCode;
 
@@ -122,6 +128,8 @@ class TransferTask {
     ConflictPolicy? conflictPolicy,
     String? archivePassword,
     int? archiveCompressionLevel,
+    String? encryptionPassword,
+    bool? encryptName,
     String? failureMessage,
     TransferFailureCode? failureCode,
     bool clearFailureMessage = false,
@@ -141,6 +149,8 @@ class TransferTask {
       archivePassword: archivePassword ?? this.archivePassword,
       archiveCompressionLevel:
           archiveCompressionLevel ?? this.archiveCompressionLevel,
+      encryptionPassword: encryptionPassword ?? this.encryptionPassword,
+      encryptName: encryptName ?? this.encryptName,
       failureMessage:
           clearFailureMessage ? null : failureMessage ?? this.failureMessage,
       failureCode: clearFailureCode ? null : failureCode ?? this.failureCode,
@@ -158,6 +168,8 @@ extension TransferOperationLabels on TransferOperation {
       TransferOperation.rename => 'Rename',
       TransferOperation.extractArchive => 'Extract',
       TransferOperation.compressArchive => 'Compress',
+      TransferOperation.encrypt => 'Encrypt',
+      TransferOperation.decrypt => 'Decrypt',
     };
   }
 
@@ -169,6 +181,8 @@ extension TransferOperationLabels on TransferOperation {
         true,
       TransferOperation.extractArchive ||
       TransferOperation.compressArchive ||
+      TransferOperation.encrypt ||
+      TransferOperation.decrypt ||
       TransferOperation.delete ||
       TransferOperation.moveToTrash =>
         false,

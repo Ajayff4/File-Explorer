@@ -116,14 +116,39 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        feature.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              feature.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                          ),
+                          if (feature.comingSoon) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: colorScheme.secondaryContainer,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'Coming soon',
+                                style: TextStyle(
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w700,
+                                  color: colorScheme.onSecondaryContainer,
                                 ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 6),
                       Text(
@@ -160,12 +185,14 @@ class _CoreFeature {
     required this.title,
     required this.description,
     required this.color,
+    this.comingSoon = false,
   });
 
   final IconData icon;
   final String title;
   final String description;
   final Color color;
+  final bool comingSoon;
 }
 
 const _coreFeatures = [
@@ -212,6 +239,13 @@ const _coreFeatures = [
     color: Color(0xFF8D6E63),
   ),
   _CoreFeature(
+    icon: Icons.lock_rounded,
+    title: 'Encryption',
+    description:
+        'Encrypt files, folders, and multi-selections into password-protected .ff4 files (AES-256), with optional file-name hiding; decrypt from the file actions.',
+    color: Color(0xFF00897B),
+  ),
+  _CoreFeature(
     icon: Icons.search_rounded,
     title: 'Search',
     description:
@@ -236,5 +270,29 @@ const _coreFeatures = [
     title: 'Settings',
     description: 'Tune Explorer, transfer, search, history, and Home behavior.',
     color: Color(0xFF7E57C2),
+  ),
+  _CoreFeature(
+    icon: Icons.qr_code_scanner_rounded,
+    title: 'QR scanner',
+    description:
+        'Scan QR codes with the camera, keep a history of past scans, and generate QR codes from text.',
+    color: Color(0xFF00897B),
+    comingSoon: true,
+  ),
+  _CoreFeature(
+    icon: Icons.wifi_tethering_rounded,
+    title: 'Nearby sharing',
+    description:
+        'Transfer files directly between devices on the same network, ShareIt/Xender style.',
+    color: Color(0xFF1E88E5),
+    comingSoon: true,
+  ),
+  _CoreFeature(
+    icon: Icons.auto_awesome_mosaic_rounded,
+    title: 'Multi-window',
+    description:
+        'Open multiple independent windows that stay on any screen.',
+    color: Color(0xFF8E24AA),
+    comingSoon: true,
   ),
 ];
