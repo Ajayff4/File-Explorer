@@ -11,6 +11,7 @@ Color appThemeSeed(AppThemeAccent accent) {
     AppThemeAccent.pink => const Color(0xFFDB2777),
     AppThemeAccent.red => const Color(0xFFDC2626),
     AppThemeAccent.royalBlue => const Color(0xFF2563EB),
+    AppThemeAccent.mint => const Color(0xFF00B887),
   };
 }
 

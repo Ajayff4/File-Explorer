@@ -253,6 +253,7 @@ extension on AppThemeAccent {
         AppThemeAccent.pink => 'Pink',
         AppThemeAccent.red => 'Red',
         AppThemeAccent.royalBlue => 'Royal blue',
+        AppThemeAccent.mint => 'Mint',
       };
 }
 

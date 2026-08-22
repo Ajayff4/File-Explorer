@@ -550,7 +550,21 @@ class _MediaFolderTile extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final entry = group.cover.entry;
-    final isDocument = kind == MediaLibraryKind.documents;
+    final kindIcon = switch (kind) {
+      MediaLibraryKind.audio => KindFolderIcon(
+          icon: kind.icon,
+          color: FileEntryColors.audio,
+        ),
+      MediaLibraryKind.documents => KindFolderIcon(
+          icon: kind.icon,
+          color: FileEntryColors.document,
+        ),
+      MediaLibraryKind.archives => KindFolderIcon(
+          icon: kind.icon,
+          color: FileEntryColors.archive,
+        ),
+      _ => null,
+    };
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
@@ -569,23 +583,13 @@ class _MediaFolderTile extends ConsumerWidget {
                   children: [
                     Positioned.fill(
                       child: Center(
-                        child: isDocument
-                            ? const Icon(
-                                Icons.insert_drive_file_rounded,
-                                size: 64,
-                                color: FileEntryColors.document,
-                              )
-                            : kind == MediaLibraryKind.audio
-                                ? KindFolderIcon(
-                                    icon: kind.icon,
-                                    color: FileEntryColors.audio,
-                                  )
-                                : MediaThumbnail(
-                                    entry: entry,
-                                    fallback: fileIconForEntry(context, entry,
-                                        size: 96),
-                                    dimension: 96,
-                                  ),
+                        child: kindIcon ??
+                            MediaThumbnail(
+                              entry: entry,
+                              fallback: fileIconForEntry(context, entry,
+                                  size: 96),
+                              dimension: 96,
+                            ),
                       ),
                     ),
                     Positioned(

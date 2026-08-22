@@ -14,6 +14,7 @@ enum AppThemeAccent {
   pink,
   red,
   royalBlue,
+  mint,
 }
 
 class AppSettings {
