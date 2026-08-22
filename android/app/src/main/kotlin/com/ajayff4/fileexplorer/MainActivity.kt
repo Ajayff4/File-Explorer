@@ -2,6 +2,7 @@ package com.ajayff4.fileexplorer
 
 import android.app.WallpaperManager
 import android.content.ActivityNotFoundException
+import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
@@ -35,6 +36,7 @@ class MainActivity: FlutterActivity() {
     private val ALL_FILES_ACCESS_REQUEST_CODE = 4700
     private val storageChannel = "com.ajayff4.fileexplorer/storage"
     private val apkIconChannel = "com.ajayff4.fileexplorer/apk_icon"
+    private val thumbnailChannel = "com.ajayff4.fileexplorer/thumbnail"
     private val wallpaperChannel = "com.ajayff4.fileexplorer/wallpaper"
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
     private val mediaStoreChannel = "com.ajayff4.fileexplorer/media_store"
@@ -241,6 +243,37 @@ class MainActivity: FlutterActivity() {
                                     null,
                                 )
                             }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, thumbnailChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getThumbnail" -> {
+                        val path = call.argument<String>("path")
+                        val maxWidth = call.argument<Int>("maxWidth") ?: 256
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else {
+                            Thread {
+                                try {
+                                    val bytes = getThumbnail(path, maxWidth)
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(bytes)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "thumbnail_failed",
+                                            error.message ?: "Thumbnail failed",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
                         }
                     }
                     else -> result.notImplemented()
@@ -792,6 +825,69 @@ class MainActivity: FlutterActivity() {
 
         val rows = queryMediaRows(uri, selection, selectionArgs, extensionFilterFor(type))
         return rows.size.toLong()
+    }
+
+    @Suppress("DEPRECATION")
+    private fun getThumbnail(path: String, maxWidth: Int): ByteArray? {
+        return try {
+            val uri = mediaStoreContentUriFor(path) ?: return null
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                contentResolver.loadThumbnail(
+                    uri,
+                    android.util.Size(maxWidth, maxWidth),
+                    null,
+                )
+            } else {
+                if (isVideoExtension(extensionOf(path))) {
+                    @Suppress("DEPRECATION")
+                    MediaStore.Video.Thumbnails.getThumbnail(
+                        contentResolver,
+                        ContentUris.parseId(uri),
+                        MediaStore.Video.Thumbnails.MINI_KIND,
+                        null,
+                    )
+                } else {
+                    null
+                }
+            } ?: return null
+
+            ByteArrayOutputStream().use { stream ->
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                stream.toByteArray()
+            }
+        } catch (error: Exception) {
+            null
+        }
+    }
+
+    /// Resolves a filesystem path to its MediaStore content URI (image or
+    /// video collection) so the OS thumbnail APIs can read it. Returns null
+    /// when the file is not indexed by MediaStore.
+    @Suppress("DEPRECATION")
+    private fun mediaStoreContentUriFor(path: String): Uri? {
+        val collection = if (isVideoExtension(extensionOf(path))) {
+            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+        val projection = arrayOf(MediaStore.MediaColumns._ID)
+        val selection = "${MediaStore.MediaColumns.DATA} = ?"
+        contentResolver.query(collection, projection, selection, arrayOf(path), null)
+            ?.use { cursor ->
+                if (cursor.moveToFirst()) {
+                    val id = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(MediaStore.MediaColumns._ID),
+                    )
+                    return ContentUris.withAppendedId(collection, id)
+                }
+            }
+        return null
+    }
+
+    private fun isVideoExtension(ext: String): Boolean {
+        return ext in setOf(
+            "mp4", "avi", "mov", "mkv", "wmv", "flv", "webm", "m4v", "3gp",
+        )
     }
 
     private fun getApkIcon(path: String): ByteArray? {

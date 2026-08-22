@@ -2,6 +2,57 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-22
+
+### Completed
+
+- Added a sixth theme accent, **Mint** (`#00B887`), to the Settings accent
+  picker. The picker renders one swatch per `AppThemeAccent` value, and five
+  swatches left an empty-looking sixth tile on the phone grid; Mint fills it.
+  The color is the FDownloader brand green, requested to match a familiar look.
+  Wired through the three switch sites: the `AppThemeAccent` enum
+  (`app_settings.dart`), `appThemeSeed` (`app_theme.dart`), and the swatch
+  label extension (`settings_screen.dart`). `flutter analyze` clean; debug APK
+  verified on device (RMX3031).
+
+- Media library folder tiles now render the kind-specific folder icon
+  (`KindFolderIcon`) for **Documents** and **Archives**, matching the existing
+  **Audio** treatment (gradient folder body + darker tab + glow). Previously
+  Documents used a flat `insert_drive_file` icon and Archives fell through to
+  the thumbnail path. Implemented as a `kind`-switched `kindIcon` in
+  `_MediaFolderTile` (`media_library_screen.dart`): audio → `FileEntryColors.audio`,
+  documents → `FileEntryColors.document`, archives → `FileEntryColors.archive`;
+  images/videos/apps still use `MediaThumbnail`. `flutter analyze` clean; debug
+  APK verified on device.
+
+- **Hybrid thumbnail caching** for image and video thumbnails (media libraries,
+  Explorer, and search), addressing the long-standing "thumbnail cache"
+  roadmap item:
+  - **Native-first** — a new Kotlin `thumbnail` MethodChannel
+    (`com.ajayff4.fileexplorer/thumbnail`) resolves a file path to its
+    MediaStore content URI and reads the OS thumbnail via
+    `ContentResolver.loadThumbnail` (API 29+); on API 24–28 videos fall back to
+    `MediaStore.Video.Thumbnails.getThumbnail`. This avoids a full decode for
+    every MediaStore-indexed image/video.
+  - **Persistent disk cache** — new `lib/features/media/data/thumbnail_cache.dart`
+    stores thumbnail JPEGs under the app cache dir (`.../thumbnails`) with a
+    simple LRU cap (300 files, oldest-deleted), replacing the previous
+    `Directory.systemTemp` cache that the OS could wipe. In-memory map + in-flight
+    dedup retained.
+  - **Fallback** — images fall back to `Image.file` + `cacheWidth`; videos fall
+    back to the bundled `video_thumbnail` FFmpeg decode (`decodedVideoThumbnail`),
+    both sharing the same disk cache. Unindexed files (e.g. fresh downloads)
+    still render correctly.
+  - `media_thumbnail_io.dart` restructured: `mediaThumbnailFor` now returns
+    `_ImageThumbnail` (native → `Image.file`) and `_VideoThumbnail` (native →
+    decode) widgets. `flutter analyze` clean; debug APK built and installed on
+    device.
+  - Note: the new channel keeps the existing `@Suppress("DEPRECATION")`
+    patterns (`DATA` column path→URI resolution, pre-Q `Video.Thumbnails`);
+    safe for now — Android does not remove deprecated MediaStore APIs, and the
+    pre-Q path is effectively dead code on current devices. See the migration
+    options in `DOS_AND_DONTS.md` if a null-`DATA` edge case ever surfaces.
+
 ## 2026-08-20
 
 ### Completed

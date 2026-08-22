@@ -1,96 +1,28 @@
 import 'dart:io';
 
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/media/data/thumbnail_cache.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
 
 const _apkIconChannel = MethodChannel('com.ajayff4.fileexplorer/apk_icon');
-
-final _thumbnailCache = <String, Uint8List?>{};
-final _thumbnailFutures = <String, Future<Uint8List?>>{};
-
-String _getCachePath(String videoPath, int maxWidth) {
-  final hash = videoPath.hashCode ^ maxWidth.hashCode;
-  final dir = '${Directory.systemTemp.path}/video_thumbnails';
-  return '$dir/$hash.jpg';
-}
-
-Future<void> _ensureCacheDir() async {
-  final dir = Directory('${Directory.systemTemp.path}/video_thumbnails');
-  if (!await dir.exists()) {
-    await dir.create(recursive: true);
-  }
-}
-
-Future<Uint8List?> _getVideoThumbnail(String path, int maxWidth) {
-  final cacheKey = '$path:$maxWidth';
-  if (_thumbnailCache.containsKey(cacheKey)) {
-    return Future.value(_thumbnailCache[cacheKey]);
-  }
-  if (_thumbnailFutures.containsKey(cacheKey)) {
-    return _thumbnailFutures[cacheKey]!;
-  }
-
-  final future = () async {
-    try {
-      await _ensureCacheDir();
-      final cachePath = _getCachePath(path, maxWidth);
-      final cacheFile = File(cachePath);
-      if (await cacheFile.exists()) {
-        final bytes = await cacheFile.readAsBytes();
-        _thumbnailCache[cacheKey] = bytes;
-        return bytes;
-      }
-
-      final thumbnailPath = await VideoThumbnail.thumbnailFile(
-        video: path,
-        thumbnailPath: Directory.systemTemp.path,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: maxWidth,
-        quality: 70,
-      );
-
-      if (thumbnailPath != null) {
-        final file = File(thumbnailPath);
-        if (await file.exists()) {
-          final bytes = await file.readAsBytes();
-          _thumbnailCache[cacheKey] = bytes;
-          try {
-            final cacheFile = File(cachePath);
-            await cacheFile.writeAsBytes(bytes);
-            await file.delete();
-          } catch (_) {}
-          return bytes;
-        }
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }();
-
-  _thumbnailFutures[cacheKey] = future;
-  future.whenComplete(() => _thumbnailFutures.remove(cacheKey));
-  return future;
-}
 
 Widget mediaThumbnailFor({
   required FileSystemEntry entry,
   required Widget fallback,
   double dimension = 48,
 }) {
+  final maxWidth = (dimension * 2).round();
   return switch (entry.type) {
-    FileSystemEntryType.image => Image.file(
-        File(entry.path),
-        fit: BoxFit.cover,
-        cacheWidth: (dimension * 2).round(),
-        errorBuilder: (_, __, ___) => Center(child: fallback),
+    FileSystemEntryType.image => _ImageThumbnail(
+        path: entry.path,
+        fallback: fallback,
+        maxWidth: maxWidth,
       ),
     FileSystemEntryType.video => _VideoThumbnail(
         path: entry.path,
         fallback: fallback,
-        maxWidth: (dimension * 2).round(),
+        maxWidth: maxWidth,
       ),
     FileSystemEntryType.app => _ApkIconThumbnail(
         path: entry.path,
@@ -98,6 +30,73 @@ Widget mediaThumbnailFor({
       ),
     _ => Center(child: fallback),
   };
+}
+
+class _ImageThumbnail extends StatefulWidget {
+  const _ImageThumbnail({
+    required this.path,
+    required this.fallback,
+    required this.maxWidth,
+  });
+
+  final String path;
+  final Widget fallback;
+  final int maxWidth;
+
+  @override
+  State<_ImageThumbnail> createState() => _ImageThumbnailState();
+}
+
+class _ImageThumbnailState extends State<_ImageThumbnail> {
+  Uint8List? _bytes;
+  bool _settled = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void didUpdateWidget(covariant _ImageThumbnail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.path != widget.path || oldWidget.maxWidth != widget.maxWidth) {
+      _bytes = null;
+      _settled = false;
+      _load();
+    }
+  }
+
+  Future<void> _load() async {
+    final bytes = await nativeThumbnail(widget.path, widget.maxWidth);
+    if (mounted) {
+      setState(() {
+        _bytes = bytes;
+        _settled = true;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_bytes != null) {
+      return Image.memory(
+        _bytes!,
+        fit: BoxFit.cover,
+        gaplessPlayback: true,
+        errorBuilder: (_, __, ___) => Center(child: widget.fallback),
+      );
+    }
+    if (_settled) {
+      return Image.file(
+        File(widget.path),
+        fit: BoxFit.cover,
+        cacheWidth: widget.maxWidth,
+        errorBuilder: (_, __, ___) => Center(child: widget.fallback),
+      );
+    }
+    return Center(child: widget.fallback);
+  }
 }
 
 class _ApkIconThumbnail extends StatefulWidget {
@@ -196,7 +195,8 @@ class _VideoThumbnailState extends State<_VideoThumbnail> {
   }
 
   Future<void> _loadThumbnail() async {
-    final bytes = await _getVideoThumbnail(widget.path, widget.maxWidth);
+    var bytes = await nativeThumbnail(widget.path, widget.maxWidth);
+    bytes ??= await decodedVideoThumbnail(widget.path, widget.maxWidth);
     if (mounted) {
       setState(() {
         _bytes = bytes;

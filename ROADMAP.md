@@ -84,6 +84,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media folder view and Explorer type-filter counts use MediaStore fast paths (`queryFiles`/`countMedia`) with filesystem fallback. |
 | ✅ | Media | MediaStore index kept fresh: completed transfers re-scan their paths via `MediaScannerConnection.scanFile`. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
+| ✅ | Media | Hybrid thumbnail caching: native MediaStore thumbnail first, persistent disk cache, decode fallback (2026-08-22). |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
@@ -106,10 +107,11 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | Grid tiles keep icons, long names, and item counts aligned. |
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | UI polish | CRED-style deep premium accent palette: richer saturated seed colors (`7C3AED` purple, `059669` green, `DB2777` pink, `DC2626` red, `2563EB` royal blue). |
+| ✅ | UI polish | Sixth accent **Mint** (`00B887`) added to the picker (2026-08-22). |
 | ✅ | UI polish | Neumorphic card system (`NeumorphicCard`): soft extruded-plastic surface, dual light/dark shadows derived from the background hue, press-inset tactile feedback, used across Home/Downloader/Transfers/Media/Search/Settings/Core Features/permission card. |
 | ✅ | UI polish | Neumorphic control theming: rounded bottom sheets with drag handle, filled rounded inputs with primary focus border, neumorphic switches, rounded checkboxes, segmented buttons with primary selection. |
 | ✅ | UI polish | Home header is a pinned `SliverAppBar` (denser, always visible). |
-| ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio media folder tiles use it in list and grid views. |
+| ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio, documents, and archives media folder tiles use it in list and grid views (2026-08-22). |
 | ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
 | ✅ | UI polish | Settings theme-mode segmented button: icons removed, compact density. |
 | ✅ | UI polish | Home category/shortcut tiles follow the selected accent immediately at launch (no stale purple until revisit): `themeAnimationDuration: Duration.zero` + non-const `_ShortcutGrid()` so the lazily built grid re-reads the final theme; regression-tested (2026-08-20). |
@@ -194,7 +196,7 @@ Recommended next slices, in order:
 | ✅ | 9 | Downloader | Bundle ffmpeg for merged video+audio streams (capped/max qualities) — done, assets→app storage on first launch. |
 | ✅ | 10 | Downloader | Quality presets (Auto/480p/720p/1080p/Max) end-to-end — schema v9 `quality` column, UI chips, Python format caps. |
 | ✅ | 11 | Downloader | Fix downloads stuck at "Downloading": guarded `addColumn(quality)` migration (duplicate-column crash) + controller subscribes to events before store loads (2026-08-19). |
-| [ ] | 12 | Media | Add thumbnail cache for media libraries and Explorer. |
+| ✅ | 12 | Media | Add thumbnail cache for media libraries and Explorer (2026-08-22: hybrid — native MediaStore thumbnail + persistent disk cache, `thumbnail_cache.dart`). |
 | [ ] | 13 | UI | Polish media folder view on real device and tune grid density. |
 | ✅ | 14 | UI | Commit the staged CRED-style neumorphic UI polish — `55ed617` (2026-08-20). |
 
@@ -314,7 +316,7 @@ Removed from the roadmap.
 
 | Status | Area | Task |
 | --- | --- | --- |
-| [ ] | Media | Thumbnail cache. |
+| ✅ | Media | Thumbnail cache (2026-08-22 — hybrid native + disk, see Immediate Pending Work #12). |
 | [ ] | Storage | Storage analyzer. |
 | [ ] | Storage | Recycle bin. |
 | [ ] | Network | Optional network providers, not first-release core. |
