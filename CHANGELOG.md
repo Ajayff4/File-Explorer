@@ -73,6 +73,22 @@ Progress log for the Flutter application.
     previously unused. Hidden in selection mode.
   - `flutter analyze` clean; debug APK verified on device.
 
+- Added a **Storage Analyzer** (`/analyzer`, reachable from Home → Tools →
+  Analyzer):
+  - Recursive background scan on an isolate (`Isolate.run`) that aggregates
+    total size, per-category usage (image/video/audio/document/archive/app/other),
+    per-folder subtree sizes, and the top files.
+  - Manual recursive walk skips directories that cannot be listed — critical on
+    Android 11+ where `Directory.listSync(recursive: true)` throws on protected
+    `/Android/data` and aborts the whole scan (a first-pass bug that made the
+    analyzer report 0).
+  - UI: animated donut chart (rounded caps, segment gaps, center total) with a
+    size + percent legend, a summary card that separates "your files" from the
+    whole-volume `StatFs` figure (system + app data live outside shared
+    storage), and top-10 largest folders (tap → Explorer) + top-20 largest files.
+  - New `scan_probe_test.dart` covers the isolate scan/aggregation.
+  - `flutter analyze` clean; debug APK verified on device (RMX3031).
+
 ## 2026-08-20
 
 ### Completed

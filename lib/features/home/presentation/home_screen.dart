@@ -399,11 +399,14 @@ class _ShortcutGrid extends StatelessWidget {
   }
 }
 
-class _ToolsSection extends StatelessWidget {
+class _ToolsSection extends ConsumerWidget {
   const _ToolsSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rootPath =
+        _selectedVolumeFor(ref.watch(explorerControllerProvider))?.path ?? '/';
+
     final tools = <_Tool>[
       _Tool(
         icon: Icons.folder_zip_rounded,
@@ -421,7 +424,7 @@ class _ToolsSection extends StatelessWidget {
         icon: Icons.pie_chart_rounded,
         label: 'Analyzer',
         color: const Color(0xFF059669),
-        onTap: () => _comingSoon(context, 'Storage Analyzer'),
+        onTap: () => context.go(AppRoutes.analyzer, extra: rootPath),
       ),
       _Tool(
         icon: Icons.delete_rounded,

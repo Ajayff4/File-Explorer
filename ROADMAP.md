@@ -85,6 +85,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | MediaStore index kept fresh: completed transfers re-scan their paths via `MediaScannerConnection.scanFile`. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Hybrid thumbnail caching: native MediaStore thumbnail first, persistent disk cache, decode fallback (2026-08-22). |
+| ✅ | Analyzer | Storage Analyzer: isolate scan, donut chart, largest folders/files (2026-08-22). |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
@@ -317,7 +318,7 @@ Removed from the roadmap.
 | Status | Area | Task |
 | --- | --- | --- |
 | ✅ | Media | Thumbnail cache (2026-08-22 — hybrid native + disk, see Immediate Pending Work #12). |
-| [ ] | Storage | Storage analyzer. |
+| ✅ | Storage | Storage analyzer (2026-08-22 — isolate scan, donut chart, largest folders/files). |
 | [ ] | Storage | Recycle bin. |
 | [ ] | Network | Optional network providers, not first-release core. |
 
