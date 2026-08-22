@@ -290,9 +290,9 @@ class _MediaResultsView extends StatelessWidget {
 
     if (viewMode == ExplorerViewMode.list) {
       return ListView.separated(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         itemCount: groups.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, indent: 96),
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
         itemBuilder: (context, index) {
           final group = groups[index];
           return FileEntryListTile(
@@ -308,7 +308,7 @@ class _MediaResultsView extends StatelessWidget {
                 ? KindFolderIcon(
                     icon: kind.icon,
                     color: FileEntryColors.audio,
-                    size: 48,
+                    size: 56,
                   )
                 : null,
             onTap: () => _openMediaFolder(context, kind, group.path),

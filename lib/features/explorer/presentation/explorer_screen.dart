@@ -948,9 +948,9 @@ class _EntryList extends ConsumerWidget {
     final selectedPaths = explorerState.selectedPaths;
 
     return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 12),
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 96),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final entry = entries[index];
         final isSelected = selectedPaths.contains(entry.path);
@@ -968,6 +968,9 @@ class _EntryList extends ConsumerWidget {
           onTap: _canOpenEntry(entry)
               ? () => _openEntry(context, ref, entry, entries)
               : null,
+          trailing: isSelectionMode
+              ? null
+              : EntryActionsButton(entry: entry),
         );
       },
     );

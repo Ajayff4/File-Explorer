@@ -465,6 +465,7 @@ class FileEntryListTile extends StatelessWidget {
     this.onToggleSelection,
     this.badgeCount,
     this.leading,
+    this.trailing,
     super.key,
   });
 
@@ -476,97 +477,134 @@ class FileEntryListTile extends StatelessWidget {
   final VoidCallback? onToggleSelection;
   final int? badgeCount;
   final Widget? leading;
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: isSelectionMode ? onToggleSelection : onTap,
-      onLongPress: isSelectionMode ? null : (onLongPress ?? onToggleSelection),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            if (isSelectionMode) ...[
-              SizedBox(
-                width: 24,
-                height: 24,
-                child: Checkbox(
-                  visualDensity: VisualDensity.compact,
-                  value: isSelected,
-                  onChanged: (_) => onToggleSelection?.call(),
-                ),
-              ),
-              const SizedBox(width: 12),
-            ],
-            SizedBox(
-              width: 64,
-              height: 64,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Center(
-                        child: leading ??
-                            MediaThumbnail(
-                              entry: entry,
-                              fallback:
-                                  fileIconForEntry(context, entry, size: 48),
-                              dimension: 64,
-                            ),
-                      ),
+    final colorScheme = Theme.of(context).colorScheme;
+    final kindColor = colorForFileSystemEntry(context, entry);
+    final showsThumbnail = entry.type == FileSystemEntryType.image ||
+        entry.type == FileSystemEntryType.video ||
+        entry.type == FileSystemEntryType.app;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      child: Material(
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: isSelectionMode ? onToggleSelection : onTap,
+          onLongPress:
+              isSelectionMode ? null : (onLongPress ?? onToggleSelection),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                if (isSelectionMode) ...[
+                  SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      visualDensity: VisualDensity.compact,
+                      value: isSelected,
+                      onChanged: (_) => onToggleSelection?.call(),
                     ),
                   ),
-                  if (badgeCount != null)
-                    Positioned(
-                      top: -4,
-                      right: -6,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 5, vertical: 1),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primary,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        constraints:
-                            const BoxConstraints(minWidth: 18, minHeight: 18),
-                        child: Text(
-                          formatCount(badgeCount!),
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onPrimary,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
+                  const SizedBox(width: 12),
+                ],
+                SizedBox(
+                  width: 56,
+                  height: 56,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Positioned.fill(
+                        child: leading != null
+                            ? Center(child: leading)
+                            : showsThumbnail
+                                ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: MediaThumbnail(
+                                      entry: entry,
+                                      fallback: fileIconForEntry(context, entry,
+                                          size: 56),
+                                      dimension: 56,
+                                    ),
+                                  )
+                                : Container(
+                                    decoration: BoxDecoration(
+                                      color: kindColor.withValues(alpha: 0.14),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: Center(
+                                      child: Icon(
+                                        iconForFileSystemEntry(entry),
+                                        size: 28,
+                                        color: kindColor,
+                                      ),
+                                    ),
+                                  ),
+                      ),
+                      if (badgeCount != null)
+                        Positioned(
+                          top: -4,
+                          right: -6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            constraints: const BoxConstraints(
+                                minWidth: 18, minHeight: 18),
+                            child: Text(
+                              formatCount(badgeCount!),
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: colorScheme.onPrimary,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
                       ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    entry.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodyLarge,
+                      const SizedBox(height: 3),
+                      Text(
+                        _buildSubtitle(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    _buildSubtitle(),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
+                ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 4),
+                  trailing!,
                 ],
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

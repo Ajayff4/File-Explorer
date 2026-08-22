@@ -285,15 +285,15 @@ class _MediaFolderGridState extends ConsumerState<_MediaFolderGrid> {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columnCount = (constraints.maxWidth / 92).floor().clamp(3, 6);
+        final columnCount = (constraints.maxWidth / 96).floor().clamp(3, 6);
 
         return GridView.builder(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 24),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
           itemCount: _entries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            mainAxisSpacing: 2,
-            crossAxisSpacing: 2,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
           ),
           itemBuilder: (context, index) {
             final entry = _entries[index];
@@ -398,10 +398,13 @@ class _MediaGridTile extends StatelessWidget {
 
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(10),
       child: InkWell(
+        borderRadius: BorderRadius.circular(10),
         onTap: onTap,
         onLongPress: onLongPress,
-        child: ClipRect(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
           child: AspectRatio(
             aspectRatio: 1,
             child: Stack(

@@ -53,6 +53,26 @@ Progress log for the Flutter application.
     pre-Q path is effectively dead code on current devices. See the migration
     options in `DOS_AND_DONTS.md` if a null-`DATA` edge case ever surfaces.
 
+- Polished the **media folder grid** (`media_folder_screen.dart`) — it had
+  been skipped by the earlier neumorphism pass and still used flat
+  `surfaceContainerHighest` tiles with 2 px gaps and no rounding. Now rounded
+  (radius 10) tiles, 8 px gaps, 12 px outer padding, and a slightly larger
+  column divisor (`/96`) for breathing room. `flutter analyze` clean; debug APK
+  verified on device.
+
+- Redesigned the **list views** (Explorer and media library, both via the
+  shared `FileEntryListTile`) from divider-separated rows into modern rounded
+  cards:
+  - No divider lines — cards separated by 8 px gaps, horizontal margin 12.
+  - Extra row height (14 px vertical padding) and 56 px icon area.
+  - Kind-colored tinted icon squircle (14 % alpha background + colored glyph)
+    for folders/documents/archives/audio; real rounded thumbnails for
+    images/videos/apps.
+  - Bold filename, dimmed subtitle (size · date), and a wired-in
+    `EntryActionsButton` (⋮ more menu) trailing — the widget existed but was
+    previously unused. Hidden in selection mode.
+  - `flutter analyze` clean; debug APK verified on device.
+
 ## 2026-08-20
 
 ### Completed
