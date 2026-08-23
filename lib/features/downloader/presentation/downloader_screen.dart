@@ -3,16 +3,12 @@ import 'package:file_explorer/features/downloader/data/repositories/download_eng
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/downloader/domain/repositories/download_engine.dart';
 import 'package:file_explorer/features/downloader/presentation/controllers/downloader_controller.dart';
-import 'package:file_explorer/features/downloader/presentation/download_entry_grid.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_visuals.dart';
-import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
-import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
-import 'package:file_explorer/features/explorer/domain/repositories/storage_repository.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
-import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
+import 'package:file_explorer/shared/widgets/folder_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -365,7 +361,20 @@ class _DownloaderSettingsCard extends ConsumerWidget {
                 overflow: TextOverflow.ellipsis,
               ),
               trailing: TextButton(
-                onPressed: () => _pickOutputDirectory(context, ref),
+                onPressed: () async {
+                  final selected = await pickFolder(
+                    context,
+                    ref,
+                    currentPath: settings.outputDirectory,
+                  );
+                  if (selected != null &&
+                      selected.isNotEmpty &&
+                      context.mounted) {
+                    ref
+                        .read(downloaderControllerProvider.notifier)
+                        .setOutputDirectory(selected);
+                  }
+                },
                 child: const Text('Change'),
               ),
             ),
@@ -1011,219 +1020,6 @@ class _EmptyDownloaderQueue extends StatelessWidget {
   }
 }
 
-Future<void> _pickOutputDirectory(BuildContext context, WidgetRef ref) async {
-  final repository = ref.read(storageRepositoryProvider);
-  var currentPath =
-      ref.read(downloaderControllerProvider).settings.outputDirectory;
-  if (currentPath.isEmpty) {
-    final volumes = await repository.getStorageVolumes();
-    currentPath = volumes.isEmpty ? '/' : volumes.first.path;
-  }
-
-  if (!context.mounted) {
-    return;
-  }
-
-  final selected = await showModalBottomSheet<String>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (sheetContext) {
-      return SafeArea(
-        child: _FolderPickerSheet(
-          repository: repository,
-          startPath: currentPath,
-          onSelected: (path) => Navigator.of(sheetContext).pop(path),
-        ),
-      );
-    },
-  );
-
-  if (selected != null && selected.isNotEmpty && context.mounted) {
-    ref
-        .read(downloaderControllerProvider.notifier)
-        .setOutputDirectory(selected);
-  }
-}
-
-class _FolderPickerSheet extends StatefulWidget {
-  const _FolderPickerSheet({
-    required this.repository,
-    required this.startPath,
-    required this.onSelected,
-  });
-
-  final StorageRepository repository;
-  final String startPath;
-  final ValueChanged<String> onSelected;
-
-  @override
-  State<_FolderPickerSheet> createState() => _FolderPickerSheetState();
-}
-
-class _FolderPickerSheetState extends State<_FolderPickerSheet> {
-  late String _currentPath;
-  List<FileSystemEntry> _folders = [];
-  bool _loading = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentPath = widget.startPath;
-    _load();
-  }
-
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _folders = [];
-    });
-    try {
-      final listing = await widget.repository.listDirectory(_currentPath);
-      if (!mounted) {
-        return;
-      }
-      setState(() {
-        _folders = listing.entries.where((entry) => entry.isFolder).toList()
-          ..sort(
-              (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
-        _loading = false;
-      });
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _createFolder() async {
-    final name = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) {
-        String input = '';
-        return AlertDialog(
-          title: const Text('New folder'),
-          content: TextField(
-            autofocus: true,
-            textCapitalization: TextCapitalization.words,
-            decoration: const InputDecoration(
-              labelText: 'Folder name',
-              hintText: 'e.g. My Downloads',
-            ),
-            onChanged: (value) => input = value,
-            onSubmitted: (value) =>
-                Navigator.of(dialogContext).pop(value.trim()),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(input.trim()),
-              child: const Text('Create'),
-            ),
-          ],
-        );
-      },
-    );
-
-    if (name == null || name.isEmpty || !mounted) {
-      return;
-    }
-
-    final path = _currentPath.endsWith('/')
-        ? '$_currentPath$name'
-        : '$_currentPath/$name';
-    final created = await widget.repository.createFolder(path);
-    if (!mounted) {
-      return;
-    }
-    if (created) {
-      setState(() {
-        _currentPath = path;
-      });
-      _load();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Could not create that folder')),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height * 0.7,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 8, 4),
-            child: Row(
-              children: [
-                IconButton(
-                  tooltip: 'Up',
-                  onPressed: _currentPath == _parent(_currentPath)
-                      ? null
-                      : () {
-                          setState(() {
-                            _currentPath = _parent(_currentPath);
-                          });
-                          _load();
-                        },
-                  icon: const Icon(Icons.arrow_upward_rounded),
-                ),
-                IconButton(
-                  tooltip: 'Create folder',
-                  onPressed: () => _createFolder(),
-                  icon: const Icon(Icons.create_new_folder_rounded),
-                ),
-                Expanded(
-                  child: Text(
-                    _currentPath,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                TextButton(
-                  onPressed: () => widget.onSelected(_currentPath),
-                  child: const Text('Use folder'),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1),
-          Expanded(
-            child: _loading
-                ? const AppLoadingIndicator()
-                : _folders.isEmpty
-                    ? const Center(child: Text('No sub-folders'))
-                    : DownloadEntryGrid(
-                        entries: _folders,
-                        onOpen: (folder) {
-                          setState(() {
-                            _currentPath = folder.path;
-                          });
-                          _load();
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _parent(String path) {
-    if (path == '/' || path.isEmpty) {
-      return '/';
-    }
-    final index = path.lastIndexOf('/');
-    return index <= 0 ? '/' : path.substring(0, index);
-  }
-}
 
 class _YtDlpUpdateSheet extends ConsumerStatefulWidget {
   const _YtDlpUpdateSheet({required this.engine});

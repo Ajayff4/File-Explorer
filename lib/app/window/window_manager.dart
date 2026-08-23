@@ -275,25 +275,33 @@ class _WindowHostState extends ConsumerState<WindowHost> {
           AppThemeMode.light => ThemeMode.light,
           AppThemeMode.dark => ThemeMode.dark,
         },
-        home: Stack(
-          children: [
-            RepaintBoundary(
-              key: ref.read(windowManagerProvider.notifier).activeBoundaryKey,
-              child: MaterialApp.router(
-                title: 'File Explorer',
-                debugShowCheckedModeBanner: false,
-                theme: AppTheme.light(settings.themeAccent),
-                darkTheme: AppTheme.dark(settings.themeAccent),
-                themeMode: switch (settings.themeMode) {
-                  AppThemeMode.system => ThemeMode.system,
-                  AppThemeMode.light => ThemeMode.light,
-                  AppThemeMode.dark => ThemeMode.dark,
-                },
-                routerConfig: active.router,
+        home: PopScope(
+          canPop: !wm.switcherVisible,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop && wm.switcherVisible) {
+              ref.read(windowManagerProvider.notifier).closeSwitcher();
+            }
+          },
+          child: Stack(
+            children: [
+              RepaintBoundary(
+                key: ref.read(windowManagerProvider.notifier).activeBoundaryKey,
+                child: MaterialApp.router(
+                  title: 'File Explorer',
+                  debugShowCheckedModeBanner: false,
+                  theme: AppTheme.light(settings.themeAccent),
+                  darkTheme: AppTheme.dark(settings.themeAccent),
+                  themeMode: switch (settings.themeMode) {
+                    AppThemeMode.system => ThemeMode.system,
+                    AppThemeMode.light => ThemeMode.light,
+                    AppThemeMode.dark => ThemeMode.dark,
+                  },
+                  routerConfig: active.router,
+                ),
               ),
-            ),
-            if (wm.switcherVisible) const WindowSwitcher(),
-          ],
+              if (wm.switcherVisible) const WindowSwitcher(),
+            ],
+          ),
         ),
       ),
     );
@@ -315,51 +323,7 @@ IconData iconForLocation(String path) {
   return Icons.home_rounded;
 }
 
-/// Small top-right overlay with window actions.
-class WindowControlsOverlay extends ConsumerWidget {
-  const WindowControlsOverlay({super.key});
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final wm = ref.watch(windowManagerProvider);
-    return SafeArea(
-      child: Align(
-        alignment: Alignment.topRight,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Card(
-            elevation: 4,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'New window',
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: () => ref
-                      .read(windowManagerProvider.notifier)
-                      .addWindow(startLocation: wm.active.currentLocation),
-                ),
-                IconButton(
-                  tooltip: 'Windows',
-                  icon: const Icon(Icons.window_rounded),
-                  onPressed: () =>
-                      ref.read(windowManagerProvider.notifier).openSwitcher(),
-                ),
-                if (wm.windows.length > 1)
-                  IconButton(
-                    tooltip: 'Close window',
-                    icon: const Icon(Icons.close_rounded),
-                    onPressed: () =>
-                        ref.read(windowManagerProvider.notifier).removeActive(),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 /// Thumbnail-based overlay for switching between windows. Rendered as a sibling
 /// of the captured window (outside the [RepaintBoundary]) so it is never part
@@ -456,13 +420,15 @@ class WindowSwitcher extends ConsumerWidget {
                               ),
                               if (isActive)
                                 Positioned.fill(
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: scheme.primary,
-                                        width: 3,
+                                  child: IgnorePointer(
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        border: Border.all(
+                                          color: scheme.primary,
+                                          width: 3,
+                                        ),
+                                        borderRadius: BorderRadius.circular(18),
                                       ),
-                                      borderRadius: BorderRadius.circular(18),
                                     ),
                                   ),
                                 ),

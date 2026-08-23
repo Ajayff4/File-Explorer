@@ -115,14 +115,14 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | UI polish | CRED-style deep premium accent palette: richer saturated seed colors (`7C3AED` purple, `059669` green, `DB2777` pink, `DC2626` red, `2563EB` royal blue). |
 | ✅ | UI polish | Sixth accent **Mint** (`00B887`) added to the picker (2026-08-22). |
-| ✅ | UI polish | Neumorphic card system (`NeumorphicCard`): soft extruded-plastic surface, dual light/dark shadows derived from the background hue, press-inset tactile feedback, used across Home/Downloader/Transfers/Media/Search/Settings/Core Features/permission card. |
+| ✅ | UI polish | Neumorphic card system (`NeumorphicCard`): soft extruded-plastic surface, dual light/dark shadows derived from the background hue, and press-inset tactile feedback; used across Home, Downloader, Transfers, Media, Search, Settings, Core Features, and the permission card. |
 | ✅ | UI polish | Neumorphic control theming: rounded bottom sheets with drag handle, filled rounded inputs with primary focus border, neumorphic switches, rounded checkboxes, segmented buttons with primary selection. |
 | ✅ | UI polish | Home header is a pinned `SliverAppBar` (denser, always visible). |
 | ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio, documents, and archives media folder tiles use it in list and grid views (2026-08-22). |
 | ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
 | ✅ | UI polish | Settings theme-mode segmented button: icons removed, compact density. |
-| ✅ | UI polish | Home category/shortcut tiles follow the selected accent immediately at launch (no stale purple until revisit): `themeAnimationDuration: Duration.zero` + non-const `_ShortcutGrid()` so the lazily built grid re-reads the final theme; regression-tested (2026-08-20). |
-| ✅ | Windows | Multi-window — open multiple independent windows, each with its own folder, view mode, and back stack; switch via the Windows button / top-right overlay with a live-thumbnail switcher (2026-08-23). |
+| ✅ | UI polish | Home category/shortcut tiles adopt the selected accent instantly at launch (no stale-purple flash); regression-tested (2026-08-20). |
+| ✅ | Windows | Multi-window — open multiple independent windows, each with its own folder, view mode, and back stack; switch via the **Windows** nav destination, which opens a live-thumbnail switcher (2026-08-23). |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. |
@@ -131,8 +131,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Downloader | Browse/open-folder open a dedicated pushed view (`/downloader/browse`) so back returns to the downloader, not Explorer. |
 | ✅ | Downloader | Browse view and change-folder picker render as grids (thumbnails/icons, 4–8 responsive columns) via shared `DownloadEntryGrid`. |
 | ✅ | Downloader | Quality presets (Auto / 480p / 720p / 1080p / Max) persisted on the task row (drift schema v9) and honored in Python's format selection. |
-| ✅ | Downloader | Static **pure-LGPL** ffmpeg bundled in assets (cross-compiled FFmpeg 7.1 with Zig, `--disable-gpl`), copied into app storage on first launch, used for video+audio merging (`-c copy`). LGPL-2.1 text + provenance ship next to the asset (2026-08-19, replaces a GPLv3 johnvansickle binary). |
-| ✅ | Downloader | **Threads video downloads** via a vendored yt-dlp extractor plugin (`yt-dlp-threads`, crawler-UA bypass of the login wall). Bundled in app python (with `__init__.py` — Chaquopy can't import upstream's PEP 420 namespace package), imported before yt-dlp so its meta_path `PluginFinder` can't hijack the import, and registered directly into yt-dlp's extractor registry (verified: resolves `threads.com` share + `@user/post` links). Re-registered after an in-app yt-dlp update. |
+| ✅ | Downloader | Static **pure-LGPL** FFmpeg bundled in the app assets and used for video+audio merging (`-c copy`); the LGPL-2.1 license text and build provenance ship alongside the asset, replacing a previous GPLv3 binary (2026-08-19). |
+| ✅ | Downloader | **Threads video downloads** via a vendored yt-dlp extractor plugin that bypasses the login wall; auto re-registered after each in-app yt-dlp update (verified: resolves `threads.com` share + `@user/post` links). |
 | ⚠️ | Downloader | Site support limited to what `yt-dlp` (plus the vendored Threads plugin) can resolve; no DRM/login-gated content. See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
 
@@ -156,6 +156,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-08-24: **Share (device-to-device transfer) landed** — renamed from Nearby; picker-based file selection from Explorer, UDP discovery across subnet broadcasts, shared `File Explorer/Share` save folder, and a dormant `--dart-define=LEGACY_STORAGE=true` for Android 9. Send-tab UX: scrolling file list with a pinned, collapsible "Nearby devices" accordion; discovered peers persist after scanning. Info dialog shows device name (now resolved from `ro.product.device` via `getprop`, no new dependency), LAN IP, and port. Also: redundant floating bottom-right multi-window tray removed (Windows nav destination already opens the switcher). `flutter analyze` clean; debug APK verified on device (RMX3031). Bug fixes: blank Send tab, self-discovery loop, clear-pending-only-on-success, receiver keeps listening across transfers, and reconnect-after-stop (session-scoped handshake code).
 
 Update 2026-08-23: **QR generate overhaul + Analyzer/Explorer polish** — the QR Generate tab now produces customizable PNGs: solid or gradient colors (direction selectable), transparent background, Square/Rounded/Dots module styles (**Dots default**) via a new manual matrix renderer (`qr_image_builder.dart`), and a center logo with auto High error correction. **Download** saves into the public `Downloads/QRCodes` folder through a new Kotlin `saveQrToDownloads` MediaStore channel (replacing the hidden app-private path), with an Open action. Color pickers are now collapsible chips with a custom HSV dialog. Storage Analyzer: donut centered on top, full-width legend with per-category usage bars. Explorer: breadcrumbs hide the synthetic `/`, `storage`, `emulated` roots (trail starts at the volume) and the redundant AppBar folder-title was removed. `flutter analyze` clean; debug APK verified on device.
 
@@ -195,28 +197,13 @@ When coming back:
 
 1. Check git status in `project/`.
 2. Commit any completed slice if it is still uncommitted.
-3. Pick the next development slice from Immediate Pending Work.
+3. Choose the next development slice from current product gaps (see *What Works Now* + *Last Verified*).
 
 ## Immediate Pending Work
 
-Recommended next slices, in order:
-
-| Status | Priority | Area | Task |
-| --- | --- | --- | --- |
-| ✅ | 1 | Media | MediaStore-backed category discovery for images/audio/video (replace recursive filesystem walk). |
-| ✅ | 2 | Media | MediaStore-backed category discovery for all kinds (documents/apps/archives via `MediaStore.Files`). |
-| ✅ | 3 | Media | Post-transfer MediaStore rescanning (`mediaStoreScanProvider`). |
-| ✅ | 4 | Tests | Update stale test expectations for current Home/media behavior — widget test now asserts the pinned `SliverAppBar` + storage/shortcut markers; full suite 130/130 (2026-08-20). |
-| ✅ | 5 | Archives | Add archive browsing with in-app media/text previews (extract-free ZIP viewer). |
-| ✅ | 6 | Downloader | Universal Downloader: yt-dlp bundled via Chaquopy, queue + progress + retry + concurrency limit (2026-08-13, `docs/DOWNLOADER.md`). |
-| ✅ | 7 | Downloader | Pause/resume, copy-error, kebab-menu completed actions, separate browse view, full picker path, completion datetime (2026-08-14). |
-| ✅ | 8 | Downloader | Verify a live download end-to-end on a real Android device (Dart ↔ Chaquopy event flow) — confirmed 2026-08-14. |
-| ✅ | 9 | Downloader | Bundle ffmpeg for merged video+audio streams (capped/max qualities) — done, assets→app storage on first launch. |
-| ✅ | 10 | Downloader | Quality presets (Auto/480p/720p/1080p/Max) end-to-end — schema v9 `quality` column, UI chips, Python format caps. |
-| ✅ | 11 | Downloader | Fix downloads stuck at "Downloading": guarded `addColumn(quality)` migration (duplicate-column crash) + controller subscribes to events before store loads (2026-08-19). |
-| ✅ | 12 | Media | Add thumbnail cache for media libraries and Explorer (2026-08-22: hybrid — native MediaStore thumbnail + persistent disk cache, `thumbnail_cache.dart`). |
-| ✅ | 13 | UI | Polish media folder view on real device and tune grid density (2026-08-22: rounded tiles + 8px gaps + padding; Explorer/media-library list views redesigned into rounded cards). |
-| ✅ | 14 | UI | Commit the staged CRED-style neumorphic UI polish — `55ed617` (2026-08-20). |
+All previously planned slices have shipped (see *What Works Now* and *Last
+Verified*). Choose the next feature slice from current product gaps rather than
+this stale list.
 
 ## Must-Have Feature Plan
 
@@ -238,6 +225,11 @@ Goal: media category views (images/audio/video) open in ~1–2s by querying Andr
 | ✅ | Follow-up: call `MediaScannerConnection.scanFile` after transfers so new files appear in MediaStore immediately (2026-08-08 via `mediaStoreScanProvider`). |
 
 ### MediaStore Expansion Map
+
+**Status: implemented** — every flow below has shipped (see the MediaStore notes
+in *What Works Now*). The two non-✅ rows are intentional: the "live query
+without index" walker is a kept low-priority fallback, and the Explorer
+"Contains" counts were explicitly dropped.
 
 Every filesystem-walk flow in the app, its current cost, and the MediaStore strategy. Implementation reference: `docs/MEDIA_STORE_IMPLEMENTATION.md`.
 
@@ -301,7 +293,7 @@ Removed from the roadmap.
 | ✅ | Browse/open-folder in a dedicated pushed view (`/downloader/browse`) so back returns to the downloader. |
 | ✅ | Browse view and change-folder picker render as grids via shared `DownloadEntryGrid` (2026-08-14). |
 | ✅ | Quality presets end-to-end: `DownloadQuality` enum persisted on the task (schema v9), UI chips, Python `_format_for` height caps with merged-stream fallback. |
-| ✅ | Bundle static **pure-LGPL** ffmpeg in assets (FFmpeg 7.1 cross-compiled with Zig, `--disable-gpl --disable-nonfree`), copy into app storage on first launch, and use it for video+audio merging (`_ffmpeg_location`, `extractFfmpeg`). Replaces the GPLv3 johnvansickle binary; LGPL-2.1 text + provenance ship with the asset (2026-08-19). |
+| ✅ | Bundle static **pure-LGPL** FFmpeg in the app assets and use it for video+audio merging (`_ffmpeg_location`, `extractFfmpeg`); the LGPL-2.1 license text and build provenance ship with the asset, replacing a previous GPLv3 binary (2026-08-19). |
 | ✅ | Verify a live download end-to-end on a real device — confirmed 2026-08-14 (wireless debug); regression pass 2026-08-19 after the stuck-download fix. |
 | ✅ | Fix downloads stuck at "Downloading": drift migration `duplicate column name: quality` crash (pre-v9 DB with the column already materialized) broke DB open and crashed `initialize()` before event subscription. Guarded the `from < 9` `addColumn` with a `pragma_table_info` check; controller now subscribes to events first and tolerates store failures (2026-08-19). |
 | ✅ | Audio transcoding to a specific container (e.g. mp3) via the already-bundled ffmpeg — `DownloadAudioFormat` enum + `FFmpegExtractAudio` postprocessor, persisted schema v10 `audioFormat` (2026-08-20). |
@@ -332,16 +324,8 @@ Removed from the roadmap.
 
 ## Later Roadmap
 
-| Status | Area | Task |
-| --- | --- | --- |
-| ✅ | Media | Thumbnail cache (2026-08-22 — hybrid native + disk, see Immediate Pending Work #12). |
-| ✅ | Storage | Storage analyzer (2026-08-22 — isolate scan, donut chart, largest folders/files). |
-| ✅ | Storage | Recycle bin (2026-08-22 — moveToTrash redirect, restore/delete-permanently/empty, select-all + bulk, list/grid). |
-| [ ] | Network | ShareIt/Xender-style peer transfer — 2+ devices on the same network transfer files to each other directly (existing network task). |
-| ✅ | Security | `.eslock`-style encryption — folder-level, single-file, and multi-select encrypt/decrypt; `.ff4` AES-256-GCM, `Encryptor` Tools-screen feature, Transfer-Station integration (2026-08-22). |
-| [✅] | UI | Multi-window — each window is an independent navigation session (own `GoRouter` + nested `ProviderContainer` overriding `explorerControllerProvider`/`explorerViewModeProvider`/`fileSearchControllerProvider`); switch via the Windows button / overlay with a live-thumbnail neumorphic switcher; settings/theme stay global (2026-08-23). |
-| [✅] | Tools | QR scanner — scan QR codes with a camera, keep a history of past scans, and generate a QR code from arbitrary text; new Tools-section feature. |
-| [✅] | Tools | QR scanner — scan codes from the media gallery: pick a saved image (image_picker) and decode any QR/barcode in it via `MobileScannerController.analyzeImage`, reusing the scan-history + result-sheet path. Generated codes are recorded into the same history with a Scanned/Generated badge (schema v12). |
+All planned features have shipped — see *What Works Now* and *Last Verified* for
+the current status. No pending roadmap items remain.
 
 ## Guardrails
 
@@ -365,5 +349,3 @@ Removed from the roadmap.
 
 - Detailed progress log: `CHANGELOG.md`.
 - Run/build commands: `README.md`.
-- Design and phase plan: `../documentation/docs/SOFTWARE_DESIGN_DOCUMENT.md`.
-- POC plan: `../documentation/docs/POC_IMPLEMENTATION_PLAN_IN_PHASES.md`.

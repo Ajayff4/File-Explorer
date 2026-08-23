@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:file_explorer/features/explorer/data/platform/android_storage_platform.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:file_explorer/features/storage_permissions/domain/repositories/storage_permission_repository.dart';
+import 'package:file_explorer/shared/config/storage_config.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class PermissionHandlerStoragePermissionRepository
@@ -22,6 +23,19 @@ class PermissionHandlerStoragePermissionRepository
       );
     }
 
+    // Legacy mode (opt-in, Android < 11 testing): the "All files access"
+    // native check lies on older Android, so rely on the classic storage
+    // permission grant instead.
+    if (kLegacyStorageMode) {
+      final granted = await Permission.storage.isGranted;
+      return granted
+          ? const StoragePermissionState.fullAccess(
+              accessMode: StorageAccessMode.allFiles,
+              message: 'Legacy storage access enabled',
+            )
+          : const StoragePermissionState.needsFullAccess();
+    }
+
     final hasNativeAccess =
         await androidStoragePlatform.isAllFilesAccessGranted();
     if (hasNativeAccess) {
@@ -38,6 +52,11 @@ class PermissionHandlerStoragePermissionRepository
   @override
   Future<StoragePermissionState> requestFullAccess() async {
     if (!Platform.isAndroid) {
+      return checkPermission();
+    }
+
+    if (kLegacyStorageMode) {
+      await Permission.storage.request();
       return checkPermission();
     }
 

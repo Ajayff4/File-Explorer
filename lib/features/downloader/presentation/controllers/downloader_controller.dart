@@ -173,18 +173,23 @@ class DownloaderController extends StateNotifier<DownloaderState> {
   Future<String> _resolveDefaultOutputDirectory() async {
     final volumes = await _storageRepository?.getStorageVolumes() ?? const [];
     if (volumes.isNotEmpty) {
-      final root = volumes.first.path;
-      final download = '$root/Download';
-      try {
-        if (await Directory(download).exists()) {
-          return download;
-        }
-      } on FileSystemException {
-        // fall through to the volume root
-      }
-      return root;
+      return '${volumes.first.path}/File Explorer/Downloader';
     }
     return '/';
+  }
+
+  Future<void> _ensureOutputDirectory(String directory) async {
+    if (directory.isEmpty) {
+      return;
+    }
+    try {
+      final dir = Directory(directory);
+      if (!await dir.exists()) {
+        await dir.create(recursive: true);
+      }
+    } on FileSystemException {
+      // The download engine will surface a clearer error if it cannot write.
+    }
   }
 
   void setOutputDirectory(String directory) {
@@ -247,8 +252,8 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     if (currentTask.status == DownloadTaskStatus.running ||
         currentTask.status == DownloadTaskStatus.paused) {
       unawaited(_engine.cancel(taskId));
-      _runningTaskIds.add(taskId);
     }
+    _runningTaskIds.add(taskId);
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(
@@ -304,7 +309,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
   }
 
   /// Starts a queued download if concurrency allows.
-  void _startIfReady(String taskId) {
+  Future<void> _startIfReady(String taskId) async {
     final task = state.taskById(taskId);
     if (task == null ||
         task.status != DownloadTaskStatus.queued ||
@@ -320,6 +325,7 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     }
 
     _runningTaskIds.add(taskId);
+    await _ensureOutputDirectory(task.outputDirectory);
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(

@@ -8,6 +8,8 @@ enum TransferOperation {
   compressArchive,
   encrypt,
   decrypt,
+  receive,
+  send,
 }
 
 enum TransferTaskStatus {
@@ -170,6 +172,8 @@ extension TransferOperationLabels on TransferOperation {
       TransferOperation.compressArchive => 'Compress',
       TransferOperation.encrypt => 'Encrypt',
       TransferOperation.decrypt => 'Decrypt',
+      TransferOperation.receive => 'Receive',
+      TransferOperation.send => 'Send',
     };
   }
 
@@ -177,14 +181,16 @@ extension TransferOperationLabels on TransferOperation {
     return switch (this) {
       TransferOperation.copy ||
       TransferOperation.move ||
-      TransferOperation.rename =>
+      TransferOperation.rename ||
+      TransferOperation.receive =>
         true,
       TransferOperation.extractArchive ||
       TransferOperation.compressArchive ||
       TransferOperation.encrypt ||
       TransferOperation.decrypt ||
       TransferOperation.delete ||
-      TransferOperation.moveToTrash =>
+      TransferOperation.moveToTrash ||
+      TransferOperation.send =>
         false,
     };
   }

@@ -2,6 +2,66 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-24
+
+### Completed
+
+- **Share feature (formerly "Nearby")** — device-to-device transfer on the same
+  LAN (ShareIt/Xender style):
+  - Picker-based selection: the Send tab opens Explorer in picker mode; chosen
+    files/folders become outgoing items (folders expand recursively, preserving
+    their relative path so the receiver rebuilds the tree).
+  - UDP discovery now hits `255.255.255.255` plus every IPv4 subnet broadcast
+    (`_broadcastTargets`), so peers on the same subnet are found reliably.
+  - Renamed "Nearby" → "Share" across Home shortcut, Core Features, and the app
+    bar.
+  - Shared save location: each feature defaults to
+    `<primary volume>/File Explorer/<Feature>`; Share receives into
+    `/storage/emulated/0/File Explorer/Share` (configurable provider), matching
+    the Downloader/QR convention.
+  - Android 9 support via a dormant build flag
+    `--dart-define=LEGACY_STORAGE=true` (uses `Permission.storage` + scoped
+    paths); default build is unchanged.
+
+- **Send-tab UX** (`nearby_share_screen.dart`):
+  - File list scrolls in a middle `Expanded` (`SingleChildScrollView`) so even
+    200+ files stay browsable; the scan button and a **collapsible "Nearby
+    devices" accordion** are pinned at the bottom and always reachable. Tap the
+    accordion header to minimize/expand; tap a discovered receiver to send.
+  - Discovered peers persist after the scan window ends (shown while
+    `state.peers.isNotEmpty`), rendered as `Card`s.
+
+- **Connection-info dialog**: an info icon in the Share AppBar opens a compact
+  dialog showing **device name, LAN IP, and port (45322)**. The IP is resolved
+  from `NetworkInterface` (wlan preferred); no new dependency.
+
+- **Real device name**: `NearbySharingState.selfName` was hardcoded to
+  "My Phone". It is now resolved from Android `ro.product.device` via
+  `dart:io` `Process.run('/system/bin/getprop', …)` (fallback to
+  `ro.product.model` / `ro.build.product`), so each device shows its real model
+  (e.g. RMX3031).
+
+- **Multi-window**: removed the redundant floating bottom-right
+  `WindowControlsOverlay` tray — the **Windows** nav destination already opens
+  the switcher, which provides New/Close-window actions. `flutter analyze`
+  clean; debug APK verified on device (RMX3031).
+
+- **Bug fixes (verified cross-device: RMX3031 sender / CPH1859 Android 9
+  receiver)**:
+  - Blank Send tab — removed `Expanded` inside `SingleChildScrollView`.
+  - Self-discovery loop — `startScan` listener ignores `peer.id == _deviceId`.
+  - Pending files cleared only on a successful send — the listener clears
+    `_pendingFiles` when the session finishes idle with no error; kept on
+    failure.
+  - Receiver keeps listening across transfers — incoming `NearbySessionFinished`
+    no longer tears down hosting, only resets per-session transfer state.
+  - Reconnect after manual stop — the 4-digit handshake code is generated once
+    per app session and reused across `startHosting` calls, so a sender caching
+    the old code can still reconnect.
+  - Receiver UI cleanup — the 4-digit code card was replaced with a neutral
+    "ready to receive" card (the code is still exchanged automatically); removed
+    the unused `_peersCollapsedProvider`.
+
 ## 2026-08-23
 
 ### Completed

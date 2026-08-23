@@ -2,21 +2,25 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui' as ui;
-
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/qr_scanner/domain/entities/qr_scan.dart';
 import 'package:file_explorer/features/qr_scanner/presentation/controllers/qr_scanner_controller.dart';
 import 'package:file_explorer/features/qr_scanner/presentation/qr_image_builder.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:file_explorer/features/qr_scanner/presentation/qr_output_directory_provider.dart';
+import 'package:file_explorer/shared/widgets/folder_picker_sheet.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+
 
 class QrScannerScreen extends ConsumerStatefulWidget {
   const QrScannerScreen({super.key});
@@ -366,9 +370,6 @@ class _GenerateTab extends ConsumerStatefulWidget {
 }
 
 class _GenerateTabState extends ConsumerState<_GenerateTab> {
-  static const _mediaStoreChannel =
-      MethodChannel('com.ajayff4.fileexplorer/media_store');
-
   final TextEditingController _textController = TextEditingController();
   String _data = '';
   Uint8List? _qrBytes;
@@ -514,25 +515,33 @@ class _GenerateTabState extends ConsumerState<_GenerateTab> {
 
   Future<void> _saveQr() async {
     if (_qrBytes == null) return;
+    final dir = ref.read(qrGeneratorOutputDirectoryProvider);
     try {
+      final directory = Directory(dir);
+      if (!await directory.exists()) {
+        await directory.create(recursive: true);
+      }
       final fileName = 'qr_${DateTime.now().millisecondsSinceEpoch}.png';
-      final path = await _mediaStoreChannel.invokeMethod<String>(
-        'saveQrToDownloads',
-        {'bytes': _qrBytes, 'fileName': fileName},
-      );
+      final path = '$dir/$fileName';
+      await File(path).writeAsBytes(_qrBytes!);
+      final mediaStore = ref.read(mediaStorePlatformProvider);
+      if (mediaStore != null) {
+        try {
+          await mediaStore.scanFiles([path]);
+        } catch (_) {
+          // Rescan is best-effort.
+        }
+      }
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: const Text('QR saved to Downloads'),
-            action: path != null
-                ? SnackBarAction(
-                    label: 'Open',
-                    onPressed: () =>
-                        unawaited(openLocalFileWithSystem(path)),
-                  )
-                : null,
+            content: Text('QR saved to $dir'),
+            action: SnackBarAction(
+              label: 'Open',
+              onPressed: () => unawaited(openLocalFileWithSystem(path)),
+            ),
           ),
         );
     } catch (e) {
@@ -591,6 +600,31 @@ class _GenerateTabState extends ConsumerState<_GenerateTab> {
           onPressed: _generate,
           icon: const Icon(Icons.qr_code_2_rounded),
           label: const Text('Generate QR code'),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          leading: const Icon(Icons.folder_rounded),
+          title: const Text('Save location'),
+          subtitle: Text(
+            ref.watch(qrGeneratorOutputDirectoryProvider),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          trailing: TextButton(
+            onPressed: () async {
+              final selected = await pickFolder(
+                context,
+                ref,
+                currentPath: ref.read(qrGeneratorOutputDirectoryProvider),
+              );
+              if (selected != null && selected.isNotEmpty) {
+                ref
+                    .read(qrGeneratorOutputDirectoryProvider.notifier)
+                    .setDirectory(selected);
+              }
+            },
+            child: const Text('Change'),
+          ),
         ),
         if (hasQr) ...[
           const SizedBox(height: 24),

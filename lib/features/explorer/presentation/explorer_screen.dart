@@ -37,8 +37,6 @@ final explorerFilterTypeProvider = StateProvider<FileSystemEntryType?>((ref) {
 enum _MoreMenuAction {
   newFolder,
   newFile,
-  switchToList,
-  switchToGrid,
   sortNameAsc,
   sortNameDesc,
   sortModifiedNew,
@@ -49,7 +47,22 @@ enum _MoreMenuAction {
 }
 
 class ExplorerScreen extends ConsumerWidget {
-  const ExplorerScreen({super.key});
+  const ExplorerScreen({
+    super.key,
+    this.pickerMode = false,
+    this.pickerTitle,
+    this.onPicked,
+  });
+
+  /// When true the screen acts as a file/folder picker: selection is confirmed
+  /// via [onPicked] instead of feeding the global selection actions.
+  final bool pickerMode;
+
+  /// Title shown in the app bar while not in selection mode.
+  final String? pickerTitle;
+
+  /// Called with the chosen paths when the user confirms the selection.
+  final ValueChanged<List<String>>? onPicked;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -91,6 +104,8 @@ class ExplorerScreen extends ConsumerWidget {
         }
         if (isSelectionMode) {
           ref.read(explorerControllerProvider.notifier).exitSelectionMode();
+        } else if (pickerMode) {
+          return false;
         } else if (context.canPop()) {
           context.pop();
         } else if (_canNavigateUp(explorerState)) {
@@ -102,8 +117,35 @@ class ExplorerScreen extends ConsumerWidget {
         }
         return true;
       },
-      child: Scaffold(
-        appBar: AppBar(
+       child: Scaffold(
+        bottomNavigationBar: pickerMode && isSelectionMode
+            ? SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  child: FilledButton.icon(
+                    onPressed: selectedCount > 0
+                        ? () {
+                            final paths = ref
+                                .read(explorerControllerProvider)
+                                .selectedPaths;
+                            onPicked?.call(paths);
+                            ref
+                                .read(explorerControllerProvider.notifier)
+                                .exitSelectionMode();
+                            Navigator.of(context).pop(paths);
+                          }
+                        : null,
+                    icon: const Icon(Icons.check_rounded),
+                    label: Text(
+                      selectedCount > 0
+                          ? 'Select ${formatCount(selectedCount)}'
+                          : 'Select items',
+                    ),
+                  ),
+                ),
+              )
+            : null,
+         appBar: AppBar(
           leading: isSelectionMode
               ? IconButton(
                   tooltip: 'Exit selection',
@@ -127,7 +169,9 @@ class ExplorerScreen extends ConsumerWidget {
                   : null,
           title: isSelectionMode
               ? Text('${formatCount(selectedCount)} selected')
-              : const SizedBox.shrink(),
+              : pickerMode
+                  ? Text(pickerTitle ?? 'Select items')
+                  : const SizedBox.shrink(),
           actions: [
             if (isSelectionMode) ...[
               IconButton(
@@ -160,10 +204,52 @@ class ExplorerScreen extends ConsumerWidget {
                 },
                 child: const Text('Cancel'),
               ),
+              if (pickerMode)
+                FilledButton.tonalIcon(
+                  onPressed: selectedCount > 0
+                      ? () {
+                          final paths = ref
+                              .read(explorerControllerProvider)
+                              .selectedPaths;
+                          onPicked?.call(paths);
+                          ref
+                              .read(explorerControllerProvider.notifier)
+                              .exitSelectionMode();
+                          Navigator.of(context).pop(paths);
+                        }
+                      : null,
+                  icon: const Icon(Icons.check_rounded),
+                  label: const Text('Select'),
+                ),
             ] else ...[
+              if (pickerMode) ...[
+                TextButton(
+                  onPressed: () {
+                    final folder = explorerState.currentPath;
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .exitSelectionMode();
+                    Navigator.of(context).pop([folder]);
+                  },
+                  child: const Text('Select folder'),
+                ),
+                IconButton(
+                  tooltip: 'Select all',
+                  onPressed: () {
+                    final entries =
+                        listing.value?.entries.map((e) => e.path).toList() ??
+                            [];
+                    ref
+                        .read(explorerControllerProvider.notifier)
+                        .selectAll(entries);
+                  },
+                  icon: const Icon(Icons.select_all_rounded),
+                ),
+              ],
               if (filterType != null)
                 IconButton(
                   tooltip: 'Clear filter',
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                   onPressed: () {
                     ref.read(explorerFilterTypeProvider.notifier).state = null;
                   },
@@ -171,11 +257,13 @@ class ExplorerScreen extends ConsumerWidget {
                 ),
               IconButton(
                 tooltip: 'Search',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: () => context.go(AppRoutes.search),
                 icon: const Icon(Icons.search_rounded),
               ),
               IconButton(
                 tooltip: isFavorite ? 'Remove favorite' : 'Add favorite',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: () {
                   ref.read(favoritesControllerProvider.notifier).toggleFavorite(
                         path: explorerState.currentPath,
@@ -183,11 +271,14 @@ class ExplorerScreen extends ConsumerWidget {
                       );
                 },
                 icon: Icon(
-                  isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                  isFavorite
+                      ? Icons.star_rounded
+                      : Icons.star_border_rounded,
                 ),
               ),
               IconButton(
                 tooltip: 'Refresh',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: () {
                   ref.read(explorerControllerProvider.notifier).refresh();
                 },
@@ -197,6 +288,7 @@ class ExplorerScreen extends ConsumerWidget {
                 tooltip: viewMode == ExplorerViewMode.list
                     ? 'Grid view'
                     : 'List view',
+                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
                 onPressed: () {
                   ref.read(explorerViewModeProvider.notifier).state =
                       viewMode == ExplorerViewMode.list
@@ -226,14 +318,6 @@ class ExplorerScreen extends ConsumerWidget {
                       break;
                     case _MoreMenuAction.newFile:
                       _showNewFileMenuSheet(context, ref);
-                      break;
-                    case _MoreMenuAction.switchToList:
-                      ref.read(explorerViewModeProvider.notifier).state =
-                          ExplorerViewMode.list;
-                      break;
-                    case _MoreMenuAction.switchToGrid:
-                      ref.read(explorerViewModeProvider.notifier).state =
-                          ExplorerViewMode.grid;
                       break;
                     case _MoreMenuAction.sortNameAsc:
                       ref.read(explorerSortOptionProvider.notifier).state =
@@ -285,32 +369,6 @@ class ExplorerScreen extends ConsumerWidget {
                         Text('New file'),
                         Spacer(),
                         Icon(Icons.chevron_right_rounded, size: 18),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuDivider(height: 8),
-                  PopupMenuItem(
-                    value: viewMode == ExplorerViewMode.list
-                        ? _MoreMenuAction.switchToGrid
-                        : _MoreMenuAction.switchToList,
-                    child: Row(
-                      children: [
-                        Icon(
-                          viewMode == ExplorerViewMode.list
-                              ? Icons.grid_view_rounded
-                              : Icons.view_list_rounded,
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          viewMode == ExplorerViewMode.list
-                              ? 'Switch to grid view'
-                              : 'Switch to list view',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.primary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ],
                     ),
                   ),

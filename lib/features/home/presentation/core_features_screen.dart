@@ -91,7 +91,13 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: _toggle,
+        onTap: () {
+          if (widget.feature.route != null) {
+            context.go(widget.feature.route!);
+          } else {
+            _toggle();
+          }
+        },
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
@@ -129,25 +135,6 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
                                   ?.copyWith(fontWeight: FontWeight.w700),
                             ),
                           ),
-                          if (feature.comingSoon) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: colorScheme.secondaryContainer,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                'Coming soon',
-                                style: TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: colorScheme.onSecondaryContainer,
-                                ),
-                              ),
-                            ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -185,14 +172,14 @@ class _CoreFeature {
     required this.title,
     required this.description,
     required this.color,
-    this.comingSoon = false,
+    this.route,
   });
 
   final IconData icon;
   final String title;
   final String description;
   final Color color;
-  final bool comingSoon;
+  final String? route;
 }
 
 const _coreFeatures = [
@@ -280,11 +267,11 @@ const _coreFeatures = [
   ),
   _CoreFeature(
     icon: Icons.wifi_tethering_rounded,
-    title: 'Nearby sharing',
+    title: 'Share',
     description:
-        'Transfer files directly between devices on the same network, ShareIt/Xender style.',
+        'Send and receive files directly between devices on the same Wi-Fi, ShareIt/Xender style: scan for a peer, share a code, and transfer with live progress.',
     color: Color(0xFF1E88E5),
-    comingSoon: true,
+    route: AppRoutes.nearbyShare,
   ),
   _CoreFeature(
     icon: Icons.auto_awesome_mosaic_rounded,

@@ -444,14 +444,20 @@ class _ToolsSection extends ConsumerWidget {
         color: const Color(0xFF00897B),
         onTap: () => context.push(AppRoutes.qrScanner),
       ),
+      _Tool(
+        icon: Icons.wifi_rounded,
+        label: 'Share',
+        color: const Color(0xFF1E88E5),
+        onTap: () => context.push(AppRoutes.nearbyShare),
+      ),
     ];
 
     return NeumorphicCard(
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final tileWidth = (constraints.maxWidth - 24) / 3;
+          final tileWidth = ((constraints.maxWidth - 40) / 4).floorToDouble();
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
             child: Wrap(
               alignment: WrapAlignment.center,
               spacing: 8,
@@ -483,13 +489,14 @@ class _ToolTile extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(tool.icon, size: 26, color: tool.color),
+            Icon(tool.icon, size: 22, color: tool.color),
             const SizedBox(height: 6),
             Text(
               tool.label,
-              maxLines: 1,
+              maxLines: 2,
+              textAlign: TextAlign.center,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge,
+              style: Theme.of(context).textTheme.labelMedium,
             ),
           ],
         ),

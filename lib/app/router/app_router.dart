@@ -8,6 +8,7 @@ import 'package:file_explorer/features/media/presentation/media_folder_screen.da
 import 'package:file_explorer/features/media/presentation/media_library_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
+import 'package:file_explorer/features/nearby_sharing/presentation/nearby_share_screen.dart';
 import 'package:file_explorer/features/search/presentation/search_screen.dart';
 import 'package:file_explorer/features/analyzer/presentation/storage_analyzer_screen.dart';
 import 'package:file_explorer/features/recycle_bin/presentation/recycle_bin_screen.dart';
@@ -118,6 +119,14 @@ List<RouteBase> buildAppRoutes() {
             path: AppRoutes.settings,
             builder: (context, state) => const SettingsScreen(),
           ),
+          GoRoute(
+            path: AppRoutes.nearbyShare,
+            builder: (context, state) {
+              final extra = state.extra;
+              final paths = extra is List<String> ? extra : const <String>[];
+              return NearbyShareScreen(initialPaths: paths);
+            },
+          ),
         ],
       ),
       GoRoute(
@@ -203,6 +212,7 @@ class AppRoutes {
   static const encryptor = '/encryptor';
   static const qrScanner = '/qr-scanner';
   static const downloaderBrowse = '/downloader/browse';
+  static const nearbyShare = '/nearby';
 
   static String media(MediaLibraryKind kind) {
     return '/media/${kind.routeSegment}';
@@ -390,14 +400,7 @@ class AppShell extends ConsumerWidget {
     ref.read(windowManagerProvider.notifier).openSwitcher();
   }
 
-  Widget _withWindowControls(Widget child) {
-    return Stack(
-      children: [
-        child,
-        const Positioned(top: 0, right: 0, child: WindowControlsOverlay()),
-      ],
-    );
-  }
+  Widget _withWindowControls(Widget child) => child;
 }
 
 class _TransferTabIcon extends StatelessWidget {

@@ -295,6 +295,15 @@ void _showMoreOptions(
               },
             ),
             ListTile(
+              leading: const Icon(Icons.near_me_rounded),
+              title: const Text('Send nearby'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                context.go(AppRoutes.nearbyShare, extra: selectedPaths);
+                onExitSelection();
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.inventory_2_rounded),
               title: const Text('Compress'),
               onTap: () async {

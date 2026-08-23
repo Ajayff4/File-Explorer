@@ -122,7 +122,7 @@ feature below works end to end on a real device over wireless ADB.
 ### 🪟 Multi-window
 
 - ✅ Open multiple independent windows, each keeping its own folder, view mode, and back stack.
-- ✅ Switch via the **Windows** nav destination or the top-right overlay (new window / windows / close).
+- ✅ Switch via the **Windows** nav destination, which opens a live-thumbnail switcher (tap a thumbnail to switch, `×` to close, FAB to open a new window).
 - ✅ Switcher is a live-thumbnail grid (snapshots of each window) styled with neumorphic surfaces; tap to switch, `×` to close, FAB to open a new window at the current location.
 - ✅ Settings and theme are shared across windows; per-window Explorer state is isolated.
 
@@ -139,9 +139,7 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Settings screen (Explorer, Transfers, Search toggles).
 - ✅ Drift + build_runner codegen.
 
-### 🚧 Upcoming
-
-- Nearby sharing — direct device-to-device transfer on the same network (ShareIt/Xender style).
+- ✅ Share — direct device-to-device transfer on the same network (ShareIt/Xender style): pick files from Explorer, auto-discover peers over the LAN, and receive into a shared **File Explorer/Share** folder.
 
 ---
 

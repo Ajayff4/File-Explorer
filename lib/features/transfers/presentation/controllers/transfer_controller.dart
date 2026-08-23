@@ -122,6 +122,66 @@ class TransferController extends StateNotifier<TransferState> {
     return task;
   }
 
+  /// Queue a nearby (receive/send) transfer. Unlike [queueOperation], the task
+  /// starts in [TransferTaskStatus.running] and is driven externally by the
+  /// nearby-sharing service via [reportNearbyProgress] / [finishNearby] rather
+  /// than the internal executor.
+  TransferTask queueNearby({
+    required TransferOperation operation,
+    required String displayName,
+    required String destinationPath,
+    List<String> sourcePaths = const [],
+    int? totalBytes,
+  }) {
+    final now = DateTime.now();
+    final task = TransferTask(
+      id: 'nearby-${now.microsecondsSinceEpoch}-${_nextSequence++}',
+      operation: operation,
+      sourcePaths: List.unmodifiable(sourcePaths),
+      displayName: displayName,
+      destinationPath: destinationPath,
+      status: TransferTaskStatus.running,
+      createdAt: now,
+      updatedAt: now,
+      progress: TransferProgress(totalBytes: totalBytes),
+    );
+    state = state.copyWith(tasks: [task, ...state.tasks]);
+    _saveTask(task);
+    return task;
+  }
+
+  /// Feed live progress from the nearby-sharing service into an existing
+  /// nearby task.
+  void reportNearbyProgress({
+    required String taskId,
+    required int transferredBytes,
+    required int totalBytes,
+  }) {
+    updateProgress(
+      taskId: taskId,
+      transferredBytes: transferredBytes,
+      totalBytes: totalBytes,
+    );
+  }
+
+  /// Mark a nearby task finished (success or failure).
+  void finishNearby({
+    required String taskId,
+    required bool success,
+    String? message,
+    TransferFailureCode code = TransferFailureCode.unknown,
+  }) {
+    if (success) {
+      complete(taskId);
+    } else {
+      fail(
+        taskId: taskId,
+        message: message ?? 'Nearby transfer failed',
+        code: code,
+      );
+    }
+  }
+
   Future<void> loadPersistedTasks() async {
     final persistedTasks = await _taskStore?.loadTasks() ?? const [];
     if (persistedTasks.isEmpty || !mounted) {

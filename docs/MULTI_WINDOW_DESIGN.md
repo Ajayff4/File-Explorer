@@ -110,11 +110,12 @@ to the active window's `GoRouter` automatically.
 
 ## Switcher UI
 
-- **New window** action (top-right overlay): opens a fresh `WindowSession`
+- **New window** action (FAB inside the switcher): opens a fresh `WindowSession`
   (default Files). Cap at ~4–5 windows to bound resources.
-- **Window switcher**: a recents-style modal showing each window's label +
-  current screen + a close (×) button; tap a card to switch, × to close.
-  Triggered by a "windows" icon in the overlay.
+- **Window switcher**: a recents-style modal (opened from the **Windows** nav
+  destination) showing each window's label + current screen + a close (×)
+  button; tap a card to switch, × to close. A FAB opens a new window at the
+  current location.
 - Labels are derived from each session's `currentLocation` (e.g.
   "Explorer · Download", "Home", "Transfers").
 

@@ -87,6 +87,12 @@ class LocalTransferExecutor implements TransferExecutor {
 
     for (final sourcePath in sources) {
       switch (task.operation) {
+        case TransferOperation.receive:
+        case TransferOperation.send:
+          throw TransferExecutionException(
+            code: TransferFailureCode.unknown,
+            message: 'Nearby transfer operations are not run by the executor',
+          );
         case TransferOperation.copy:
           final destinationRoot = _requireDestination(task);
           await _copyPath(
