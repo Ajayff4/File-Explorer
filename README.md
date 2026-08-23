@@ -119,6 +119,13 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Download generates into the public **Downloads/QRCodes** folder (MediaStore)
   with an Open action; collapsible color pickers with a custom HSV color dialog.
 
+### 🪟 Multi-window
+
+- ✅ Open multiple independent windows, each keeping its own folder, view mode, and back stack.
+- ✅ Switch via the **Windows** nav destination or the top-right overlay (new window / windows / close).
+- ✅ Switcher is a live-thumbnail grid (snapshots of each window) styled with neumorphic surfaces; tap to switch, `×` to close, FAB to open a new window at the current location.
+- ✅ Settings and theme are shared across windows; per-window Explorer state is isolated.
+
 ### 🔎 Search
 
 - ✅ Scope (folder/storage), type filters, type-only discovery.
@@ -135,7 +142,6 @@ feature below works end to end on a real device over wireless ADB.
 ### 🚧 Upcoming
 
 - Nearby sharing — direct device-to-device transfer on the same network (ShareIt/Xender style).
-- Multi-window — multiple independent windows that stay on any screen.
 
 ---
 
@@ -397,3 +403,6 @@ settings, and future tools can grow without turning `lib/` into one large shared
 - `ROADMAP.md` — planned work and status per feature.
 - `docs/ROUTING.md` — navigation model (added on real-device routing work).
 - `docs/DOWNLOADER.md` — Universal Downloader architecture (Chaquopy + yt-dlp).
+- `docs/MULTI_WINDOW_DESIGN.md` — in-app multi-window design (per-window `GoRouter` + `ProviderContainer`, `WindowHost`, thumbnail switcher).
+- `docs/MEDIA_STORE_IMPLEMENTATION.md` — MediaStore integration strategy across the app.
+- `docs/NATIVE_ARCHIVES.md` — native archive handling.

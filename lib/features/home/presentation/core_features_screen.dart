@@ -275,9 +275,8 @@ const _coreFeatures = [
     icon: Icons.qr_code_scanner_rounded,
     title: 'QR scanner',
     description:
-        'Scan QR codes with the camera, keep a history of past scans, and generate QR codes from text.',
+        'Scan QR codes with the camera and keep a history of past scans, or generate customizable QR codes (solid/gradient colors, module styles, center logo) from text or links and save them to Downloads.',
     color: Color(0xFF00897B),
-    comingSoon: true,
   ),
   _CoreFeature(
     icon: Icons.wifi_tethering_rounded,
@@ -291,8 +290,7 @@ const _coreFeatures = [
     icon: Icons.auto_awesome_mosaic_rounded,
     title: 'Multi-window',
     description:
-        'Open multiple independent windows that stay on any screen.',
+        'Open multiple independent windows, each keeping its own folder, view mode, and back stack, and switch between them from the Windows button with live thumbnails.',
     color: Color(0xFF8E24AA),
-    comingSoon: true,
   ),
 ];

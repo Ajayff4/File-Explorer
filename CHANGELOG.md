@@ -44,6 +44,24 @@ Progress log for the Flutter application.
     action icons and was unreadable); the breadcrumb already shows the location.
   - `flutter analyze` clean; debug APK verified on device.
 
+- **Multi-window** (in-app window manager, reachable from the **Windows** nav
+  destination / top-right overlay):
+  - Each window is an independent navigation session with its own `GoRouter`
+    (own back stack) and its own nested `ProviderContainer` (child of root)
+    overriding per-window `explorerControllerProvider`,
+    `explorerViewModeProvider`, and `fileSearchControllerProvider`, so folder,
+    view mode, and search state are isolated between windows.
+  - `WindowHost` renders the active window through a `MaterialApp.router`
+    driven by that window's router, wrapped in a `RepaintBoundary` so its screen
+    can be snapshotted.
+  - The switcher is a **thumbnail grid** — live `RepaintBoundary` PNG captures
+    stored per window — rendered as an overlay *outside* the boundary so the
+    switcher UI itself is never captured. Tap a thumbnail to switch, `×` to
+    close, and a FAB to open a new window at the current location. Styled with
+    the app's neumorphic (`NeumorphicCard`) surfaces.
+  - Settings/theme stay global; media-library local providers are shared.
+  - `flutter analyze` clean; debug APK verified on device (RMX3031).
+
 ## 2026-08-22
 
 ### Completed

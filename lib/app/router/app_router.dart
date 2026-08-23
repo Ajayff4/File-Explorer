@@ -14,24 +14,29 @@ import 'package:file_explorer/features/recycle_bin/presentation/recycle_bin_scre
 import 'package:file_explorer/features/encryption/presentation/encryptor_screen.dart';
 import 'package:file_explorer/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
+import 'package:file_explorer/app/window/window_manager.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/download_browse_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_screen.dart';
-import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Root router provider (used by tests). The running app uses [WindowHost]
+/// which builds its own per-window routers via [buildAppRoutes].
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final refresh = ValueNotifier(0);
-  ref.listen(settingsControllerProvider, (_, __) => refresh.value++);
-  final router = GoRouter(
-    refreshListenable: refresh,
+  return GoRouter(
     initialLocation: AppRoutes.home,
-    routes: [
+    routes: buildAppRoutes(),
+  );
+});
+
+List<RouteBase> buildAppRoutes() {
+  return [
       ShellRoute(
         builder: (context, state, child) {
           return AppShell(location: state.uri.path, child: child);
@@ -174,11 +179,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           return const DownloaderScreen();
         },
       ),
-    ],
-  );
-  ref.onDispose(router.dispose);
-  return router;
-});
+    ];
+}
 
 class AppRoutes {
   const AppRoutes._();
@@ -269,17 +271,22 @@ class AppShell extends ConsumerWidget {
                   selectedIcon: Icon(Icons.tune_rounded),
                   label: Text('Settings'),
                 ),
+                const NavigationRailDestination(
+                  icon: Icon(Icons.window_rounded),
+                  selectedIcon: Icon(Icons.window_rounded),
+                  label: Text('Windows'),
+                ),
               ],
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: child),
+            Expanded(child: _withWindowControls(child)),
           ],
         ),
       );
     }
 
     return Scaffold(
-      body: child,
+      body: _withWindowControls(child),
       bottomNavigationBar: isSelectionMode
           ? SelectionBottomBar(
               selectedPaths: selectedPaths,
@@ -319,6 +326,11 @@ class AppShell extends ConsumerWidget {
                   selectedIcon: Icon(Icons.tune_rounded),
                   label: 'Settings',
                 ),
+                const NavigationDestination(
+                  icon: Icon(Icons.window_rounded),
+                  selectedIcon: Icon(Icons.window_rounded),
+                  label: 'Windows',
+                ),
               ],
             ),
     );
@@ -356,6 +368,11 @@ class AppShell extends ConsumerWidget {
   }
 
   void _go(BuildContext context, WidgetRef ref, int index) {
+    if (index == 4) {
+      _openWindows(context, ref);
+      return;
+    }
+
     if (index == 1) {
       ref.read(explorerViewModeProvider.notifier).state = ExplorerViewMode.grid;
     }
@@ -367,6 +384,19 @@ class AppShell extends ConsumerWidget {
       _ => AppRoutes.home,
     };
     context.go(route);
+  }
+
+  void _openWindows(BuildContext context, WidgetRef ref) {
+    ref.read(windowManagerProvider.notifier).openSwitcher();
+  }
+
+  Widget _withWindowControls(Widget child) {
+    return Stack(
+      children: [
+        child,
+        const Positioned(top: 0, right: 0, child: WindowControlsOverlay()),
+      ],
+    );
   }
 }
 

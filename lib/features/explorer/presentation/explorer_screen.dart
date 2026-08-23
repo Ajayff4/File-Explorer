@@ -24,9 +24,7 @@ import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
-final explorerViewModeProvider = StateProvider<ExplorerViewMode>((ref) {
-  return ExplorerViewMode.grid;
-});
+import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.dart';
 
 final explorerSortOptionProvider = StateProvider<ExplorerSortOption>((ref) {
   return ExplorerSortOption.nameAscending;
@@ -35,8 +33,6 @@ final explorerSortOptionProvider = StateProvider<ExplorerSortOption>((ref) {
 final explorerFilterTypeProvider = StateProvider<FileSystemEntryType?>((ref) {
   return null;
 });
-
-enum ExplorerViewMode { list, grid }
 
 enum _MoreMenuAction {
   newFolder,

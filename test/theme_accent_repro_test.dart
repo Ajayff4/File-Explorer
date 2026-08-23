@@ -39,7 +39,7 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    final app = tester.widget<MaterialApp>(find.byType(MaterialApp));
+    final app = tester.widget<MaterialApp>(find.byType(MaterialApp).first);
     final expectedAccent = app.darkTheme!.colorScheme.primary;
     expect(
       iconColor(),
