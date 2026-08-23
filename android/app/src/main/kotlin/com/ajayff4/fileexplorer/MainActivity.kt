@@ -11,6 +11,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.content.ContentValues
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
@@ -28,6 +29,7 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.IOException
 import com.chaquo.python.Python
 import com.chaquo.python.PyObject
 import com.chaquo.python.android.AndroidPlatform
@@ -243,6 +245,32 @@ class MainActivity: FlutterActivity() {
                                     null,
                                 )
                             }
+                        }
+                    }
+                    "saveQrToDownloads" -> {
+                        val bytes = call.argument<ByteArray>("bytes")
+                        val fileName =
+                            call.argument<String>("fileName")
+                                ?: "qr_${System.currentTimeMillis()}.png"
+                        if (bytes == null) {
+                            result.error("missing_bytes", "Image bytes are required", null)
+                        } else {
+                            Thread {
+                                try {
+                                    val savedPath = saveImageToDownloads(bytes, fileName)
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(savedPath)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "save_failed",
+                                            error.message ?: "Could not save QR image",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
                         }
                     }
                     else -> result.notImplemented()
@@ -998,6 +1026,41 @@ class MainActivity: FlutterActivity() {
             )
         } else {
             packageManager.getPackageArchiveInfo(path, 0)
+        }
+    }
+
+    /// Saves a PNG into the public Downloads/QRCodes collection so it is visible
+    /// in the system Downloads app and gallery (MediaStore on API 29+, public
+    /// Downloads directory on older versions).
+    private fun saveImageToDownloads(bytes: ByteArray, fileName: String): String {
+        val resolver = contentResolver
+        val relativeDir = "Download/QRCodes"
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val values = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                put(MediaStore.MediaColumns.RELATIVE_PATH, relativeDir)
+                put(MediaStore.MediaColumns.IS_PENDING, 1)
+            }
+            val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
+            val uri = resolver.insert(collection, values)
+                ?: throw IOException("Could not create MediaStore entry")
+            resolver.openOutputStream(uri)?.use { stream ->
+                stream.write(bytes)
+            } ?: throw IOException("Could not open output stream")
+            values.clear()
+            values.put(MediaStore.MediaColumns.IS_PENDING, 0)
+            resolver.update(uri, values, null, null)
+            return "${Environment.getExternalStorageDirectory().absolutePath}/$relativeDir/$fileName"
+        } else {
+            val dir = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS,
+            )
+            val target = File(dir, "QRCodes")
+            if (!target.exists()) target.mkdirs()
+            val file = File(target, fileName)
+            file.writeBytes(bytes)
+            return file.absolutePath
         }
     }
 

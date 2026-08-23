@@ -263,26 +263,17 @@ class _CategoryCard extends StatelessWidget {
           children: [
             Text('Storage by type',
                 style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Center(child: _DonutChart(segments: segments, total: total)),
             const SizedBox(height: 16),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _DonutChart(segments: segments, total: total),
-                const SizedBox(width: 20),
-                Expanded(
-                  child: Column(
-                    children: [
-                      for (final category in categories)
-                        _LegendRow(
-                          category: category.category,
-                          bytes: category.bytes,
-                          total: total,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+            for (final category in categories) ...[
+              _LegendRow(
+                category: category.category,
+                bytes: category.bytes,
+                total: total,
+              ),
+              const SizedBox(height: 12),
+            ],
           ],
         ),
       ),
@@ -380,46 +371,60 @@ class _LegendRow extends StatelessWidget {
     final color = _categoryColor(category);
     final percent = total == 0 ? 0.0 : bytes / total * 100;
     final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        children: [
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              color: color,
-              shape: BoxShape.circle,
-            ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              _categoryLabel(category),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                formatBytes(bytes),
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
+                _categoryLabel(category),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
                     ),
               ),
-              Text(
-                '${percent.toStringAsFixed(1)}%',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: percent / 100,
+                  minHeight: 6,
+                  backgroundColor: colors.surfaceContainerHighest,
+                  valueColor: AlwaysStoppedAnimation<Color>(color),
+                ),
               ),
             ],
           ),
-        ],
-      ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              formatBytes(bytes),
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            Text(
+              '${percent.toStringAsFixed(percent < 10 ? 1 : 0)}%',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

@@ -32,7 +32,9 @@ feature below works end to end on a real device over wireless ADB.
 ### 📂 Explorer
 
 - ✅ Live local/Android browsing where permissions allow.
-- ✅ List/grid toggle, breadcrumbs, storage selector, refresh, folder navigation.
+- ✅ List/grid toggle, breadcrumbs (synthetic `/`, `storage`, `emulated` roots
+  hidden — the trail starts at the volume), storage selector, refresh, folder
+  navigation.
 - ✅ Sorting — Name (A–Z / Z–A), Modified, Size, Type.
 - ✅ Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move.
 - ✅ "New Folder" / "New File" actions.
@@ -54,7 +56,8 @@ feature below works end to end on a real device over wireless ADB.
 
 - ✅ Home → Tools → Analyzer scans a volume on an isolate and reports total,
   per-category, and per-folder usage.
-- ✅ Animated donut chart with size/percent legend; largest folders (tap →
+- ✅ Animated donut chart (centered, with the size/percent legend spanning the
+  full card width) plus a per-category **usage bar**; largest folders (tap →
   Explorer) and largest files.
 - ✅ Skips inaccessible directories (`/Android/data`) instead of aborting the scan.
 
@@ -104,6 +107,18 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Finished files expose Move-to (transfer-backed), Open folder, and Browse.
 - See `docs/DOWNLOADER.md` for the architecture.
 
+### 🔳 QR Scanner & Generator
+
+- ✅ Live camera scan (QR-only, torch, permission recovery) with copy / open-URL /
+  scan-again sheet.
+- ✅ Gallery image scan and a Drift-persisted history (scan + generate, per-item
+  delete, clear-all, tap-to-copy/open).
+- ✅ Generate customizable QR PNGs: solid or gradient colors (direction
+  selectable), transparent background, Square / Rounded / **Dots** (default)
+  module styles, and a center logo with auto High error correction.
+- ✅ Download generates into the public **Downloads/QRCodes** folder (MediaStore)
+  with an Open action; collapsible color pickers with a custom HSV color dialog.
+
 ### 🔎 Search
 
 - ✅ Scope (folder/storage), type filters, type-only discovery.
@@ -119,7 +134,6 @@ feature below works end to end on a real device over wireless ADB.
 
 ### 🚧 Upcoming
 
-- QR scanner — scan QR codes with the camera, keep a scan history, generate QR codes from text, and scan codes from gallery images.
 - Nearby sharing — direct device-to-device transfer on the same network (ShareIt/Xender style).
 - Multi-window — multiple independent windows that stay on any screen.
 

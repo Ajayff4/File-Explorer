@@ -131,7 +131,7 @@ class ExplorerScreen extends ConsumerWidget {
                   : null,
           title: isSelectionMode
               ? Text('${formatCount(selectedCount)} selected')
-              : Text(p.basename(explorerState.currentPath)),
+              : const SizedBox.shrink(),
           actions: [
             if (isSelectionMode) ...[
               IconButton(
@@ -706,8 +706,18 @@ class _BreadcrumbBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final segments =
+    final allSegments =
         path.split('/').where((segment) => segment.isNotEmpty).toList();
+
+    // Hide synthetic, non-accessible root segments so the trail starts at the
+    // actual volume (e.g. "0" for internal, or the SD card label).
+    const hiddenPrefix = {'storage', 'emulated'};
+    var start = 0;
+    while (
+        start < allSegments.length && hiddenPrefix.contains(allSegments[start])) {
+      start++;
+    }
+    final segments = allSegments.sublist(start);
 
     return Material(
       color: Theme.of(context).colorScheme.surface,
@@ -721,23 +731,11 @@ class _BreadcrumbBar extends ConsumerWidget {
                 reverse: true,
                 child: Row(
                   children: [
-                    _ArrowBreadcrumb(
-                      label: '/',
-                      onTap: () {
-                        ref
-                            .read(explorerControllerProvider.notifier)
-                            .openDirectory('/');
-                      },
-                      isLast: segments.isEmpty,
-                    ),
                     if (segments.isEmpty)
-                      Transform.translate(
-                        offset: const Offset(-12, 0),
-                        child: _ArrowBreadcrumb(
-                          label: path,
-                          onTap: null,
-                          isLast: true,
-                        ),
+                      _ArrowBreadcrumb(
+                        label: path,
+                        onTap: null,
+                        isLast: true,
                       )
                     else
                       ...segments.asMap().entries.map((entry) {
@@ -745,7 +743,7 @@ class _BreadcrumbBar extends ConsumerWidget {
                         final segment = entry.value;
                         final isLast = index == segments.length - 1;
                         final segmentPath =
-                            '/${segments.sublist(0, index + 1).join('/')}';
+                            '/${allSegments.sublist(0, start + index + 1).join('/')}';
 
                         return Transform.translate(
                           offset: const Offset(-12, 0),

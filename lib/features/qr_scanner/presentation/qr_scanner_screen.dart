@@ -1,11 +1,19 @@
+import 'dart:async';
+import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/qr_scanner/domain/entities/qr_scan.dart';
 import 'package:file_explorer/features/qr_scanner/presentation/controllers/qr_scanner_controller.dart';
+import 'package:file_explorer/features/qr_scanner/presentation/qr_image_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -358,13 +366,66 @@ class _GenerateTab extends ConsumerStatefulWidget {
 }
 
 class _GenerateTabState extends ConsumerState<_GenerateTab> {
+  static const _mediaStoreChannel =
+      MethodChannel('com.ajayff4.fileexplorer/media_store');
+
   final TextEditingController _textController = TextEditingController();
   String _data = '';
+  Uint8List? _qrBytes;
+  bool _building = false;
+
+  // Customization options.
+  bool _useGradient = false;
+  Color _foregroundColor = Colors.black;
+  Color _gradientStart = Colors.deepPurple;
+  Color _gradientEnd = Colors.blue;
+  QrGradientDirection _gradientDirection = QrGradientDirection.diagonal;
+  Color? _backgroundColor = Colors.white;
+  bool _transparentBackground = false;
+  QrTileStyle _tileStyle = QrTileStyle.dot;
+  int _errorCorrection = QrErrorCorrectLevel.M;
+  ui.Image? _logo;
+  Uint8List? _logoBytes;
+  double _logoFraction = 0.22;
+  bool _pickingLogo = false;
+
+  static const List<Color> _palette = [
+    Colors.black,
+    Colors.white,
+    Colors.red,
+    Colors.pink,
+    Colors.purple,
+    Colors.deepPurple,
+    Colors.indigo,
+    Colors.blue,
+    Colors.lightBlue,
+    Colors.cyan,
+    Colors.teal,
+    Colors.green,
+    Colors.lightGreen,
+    Colors.amber,
+    Colors.orange,
+    Colors.brown,
+    Colors.blueGrey,
+  ];
 
   @override
   void dispose() {
     _textController.dispose();
+    _logo?.dispose();
     super.dispose();
+  }
+
+  void _set(VoidCallback fn) {
+    setState(fn);
+    if (_data.isNotEmpty) unawaited(_buildQr());
+  }
+
+  int _highestErrorCorrection({
+    required int base,
+    required bool needsRobust,
+  }) {
+    return needsRobust ? math.max(base, QrErrorCorrectLevel.H) : base;
   }
 
   void _generate() {
@@ -372,11 +433,131 @@ class _GenerateTabState extends ConsumerState<_GenerateTab> {
     if (text.isEmpty) return;
     if (text == _data) return;
     setState(() => _data = text);
+    unawaited(_buildQr());
     ref.read(qrScannerControllerProvider.notifier).addScan(
           content: text,
           format: 'QR code',
           type: QrScanType.generated,
         );
+  }
+
+  Future<void> _buildQr() async {
+    if (_data.isEmpty) return;
+    setState(() => _building = true);
+    try {
+      final effectiveEc = _highestErrorCorrection(
+        base: _errorCorrection,
+        needsRobust: _logo != null || _tileStyle == QrTileStyle.dot,
+      );
+      final bytes = await generateQrPng(
+        data: _data,
+        size: 1024,
+        useGradient: _useGradient,
+        foregroundColor: _foregroundColor,
+        gradientStart: _gradientStart,
+        gradientEnd: _gradientEnd,
+        gradientDirection: _gradientDirection,
+        backgroundColor:
+            _transparentBackground ? null : (_backgroundColor ?? Colors.white),
+        tileStyle: _tileStyle,
+        logo: _logo,
+        logoFraction: _logoFraction,
+        errorCorrectionLevel: effectiveEc,
+      );
+      if (mounted) setState(() => _qrBytes = bytes);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text('Could not generate QR: $e')),
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _building = false);
+    }
+  }
+
+  Future<void> _pickLogo() async {
+    if (_pickingLogo) return;
+    setState(() => _pickingLogo = true);
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 90,
+      );
+      if (picked == null) return;
+      final bytes = await picked.readAsBytes();
+      final codec = await ui.instantiateImageCodec(bytes);
+      final image = (await codec.getNextFrame()).image;
+      _logo?.dispose();
+      setState(() {
+        _logo = image;
+        _logoBytes = bytes;
+      });
+      if (_data.isNotEmpty) unawaited(_buildQr());
+    } finally {
+      if (mounted) setState(() => _pickingLogo = false);
+    }
+  }
+
+  void _removeLogo() {
+    _logo?.dispose();
+    setState(() {
+      _logo = null;
+      _logoBytes = null;
+    });
+    if (_data.isNotEmpty) unawaited(_buildQr());
+  }
+
+  Future<void> _saveQr() async {
+    if (_qrBytes == null) return;
+    try {
+      final fileName = 'qr_${DateTime.now().millisecondsSinceEpoch}.png';
+      final path = await _mediaStoreChannel.invokeMethod<String>(
+        'saveQrToDownloads',
+        {'bytes': _qrBytes, 'fileName': fileName},
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: const Text('QR saved to Downloads'),
+            action: path != null
+                ? SnackBarAction(
+                    label: 'Open',
+                    onPressed: () =>
+                        unawaited(openLocalFileWithSystem(path)),
+                  )
+                : null,
+          ),
+        );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Save failed: $e')));
+    }
+  }
+
+  Future<void> _shareQr() async {
+    if (_qrBytes == null) return;
+    try {
+      final dir = await getTemporaryDirectory();
+      final file = File(
+        '${dir.path}/qr_share_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      await file.writeAsBytes(_qrBytes!);
+      await shareLocalFile(file.path);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Share failed: $e')));
+    }
   }
 
   Future<void> _copy() async {
@@ -390,6 +571,7 @@ class _GenerateTabState extends ConsumerState<_GenerateTab> {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
+    final hasQr = _qrBytes != null;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -410,45 +592,471 @@ class _GenerateTabState extends ConsumerState<_GenerateTab> {
           icon: const Icon(Icons.qr_code_2_rounded),
           label: const Text('Generate QR code'),
         ),
-        if (_data.isNotEmpty) ...[
+        if (hasQr) ...[
           const SizedBox(height: 24),
           Center(
             child: Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: _transparentBackground
+                    ? scheme.surfaceContainerHighest
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: QrImageView(
-                data: _data,
-                size: 240,
-                backgroundColor: Colors.white,
-              ),
+              child: _building
+                  ? const SizedBox(
+                      width: 240,
+                      height: 240,
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  : Image.memory(_qrBytes!, width: 240, height: 240),
             ),
-          ),
-          const SizedBox(height: 16),
-          Center(
-            child: TextButton.icon(
-              onPressed: _copy,
-              icon: const Icon(Icons.copy_rounded),
-              label: const Text('Copy text'),
-            ),
-          ),
-        ] else ...[
-          const SizedBox(height: 48),
-          Icon(
-            Icons.qr_code_2_rounded,
-            size: 64,
-            color: scheme.onSurfaceVariant,
           ),
           const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              FilledButton.icon(
+                onPressed: _saveQr,
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Download'),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                onPressed: _shareQr,
+                tooltip: 'Share',
+                icon: const Icon(Icons.share_rounded),
+              ),
+              const SizedBox(width: 8),
+              IconButton.filledTonal(
+                onPressed: _copy,
+                tooltip: 'Copy text',
+                icon: const Icon(Icons.copy_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(),
+        ],
+        _buildOptions(),
+        if (!hasQr) ...[
+          const SizedBox(height: 24),
           Center(
             child: Text(
-              'Enter text to generate a QR code',
+              'Generate a QR code to preview and download it',
               style: TextStyle(color: scheme.onSurfaceVariant),
             ),
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildOptions() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Colors', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        SegmentedButton<bool>(
+          segments: const [
+            ButtonSegment(
+              value: false,
+              label: Text('Solid'),
+              icon: Icon(Icons.square_rounded),
+            ),
+            ButtonSegment(
+              value: true,
+              label: Text('Gradient'),
+              icon: Icon(Icons.gradient_rounded),
+            ),
+          ],
+          selected: {_useGradient},
+          onSelectionChanged: (selection) =>
+              _set(() => _useGradient = selection.first),
+        ),
+        const SizedBox(height: 12),
+        if (_useGradient) ...[
+          Text('Gradient colors', style: Theme.of(context).textTheme.labelMedium),
+          const SizedBox(height: 6),
+          _ColorTile(
+            label: 'Start',
+            selected: _gradientStart,
+            palette: _palette,
+            onChanged: (c) => _set(() => _gradientStart = c),
+          ),
+          const SizedBox(height: 6),
+          _ColorTile(
+            label: 'End',
+            selected: _gradientEnd,
+            palette: _palette,
+            onChanged: (c) => _set(() => _gradientEnd = c),
+          ),
+          const SizedBox(height: 10),
+          DropdownButtonFormField<QrGradientDirection>(
+            initialValue: _gradientDirection,
+            decoration: const InputDecoration(
+              labelText: 'Direction',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+            items: const [
+              DropdownMenuItem(
+                value: QrGradientDirection.horizontal,
+                child: Text('Horizontal'),
+              ),
+              DropdownMenuItem(
+                value: QrGradientDirection.vertical,
+                child: Text('Vertical'),
+              ),
+              DropdownMenuItem(
+                value: QrGradientDirection.diagonal,
+                child: Text('Diagonal'),
+              ),
+            ],
+            onChanged: (value) => _set(() => _gradientDirection = value!),
+          ),
+        ] else ...[
+          _ColorTile(
+            label: 'Foreground',
+            selected: _foregroundColor,
+            palette: _palette,
+            onChanged: (c) => _set(() => _foregroundColor = c),
+          ),
+        ],
+        const SizedBox(height: 12),
+        _ColorTile(
+          label: 'Background',
+          selected: _backgroundColor ?? Colors.white,
+          palette: _palette,
+          onChanged: (c) => _set(() {
+            _backgroundColor = c;
+            _transparentBackground = false;
+          }),
+        ),
+        SwitchListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Transparent background'),
+          value: _transparentBackground,
+          onChanged: (value) => _set(() => _transparentBackground = value),
+        ),
+        const Divider(),
+        Text('Module style', style: Theme.of(context).textTheme.labelMedium),
+        const SizedBox(height: 6),
+        SegmentedButton<QrTileStyle>(
+          segments: const [
+            ButtonSegment(
+              value: QrTileStyle.square,
+              label: Text('Square'),
+              icon: Icon(Icons.grid_4x4_rounded),
+            ),
+            ButtonSegment(
+              value: QrTileStyle.rounded,
+              label: Text('Rounded'),
+              icon: Icon(Icons.rounded_corner_rounded),
+            ),
+            ButtonSegment(
+              value: QrTileStyle.dot,
+              label: Text('Dots'),
+              icon: Icon(Icons.circle_rounded),
+            ),
+          ],
+          selected: {_tileStyle},
+          onSelectionChanged: (selection) =>
+              _set(() => _tileStyle = selection.first),
+        ),
+        ListTile(
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Error correction'),
+          subtitle: const Text('Higher helps when using a logo'),
+          trailing: DropdownButton<int>(
+            value: _errorCorrection,
+            items: const [
+              DropdownMenuItem(
+                value: QrErrorCorrectLevel.L,
+                child: Text('Low'),
+              ),
+              DropdownMenuItem(
+                value: QrErrorCorrectLevel.M,
+                child: Text('Medium'),
+              ),
+              DropdownMenuItem(
+                value: QrErrorCorrectLevel.Q,
+                child: Text('Quartile'),
+              ),
+              DropdownMenuItem(
+                value: QrErrorCorrectLevel.H,
+                child: Text('High'),
+              ),
+            ],
+            onChanged: (value) => _set(() => _errorCorrection = value!),
+          ),
+        ),
+        const Divider(),
+        Text('Center logo', style: Theme.of(context).textTheme.titleSmall),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            SizedBox(
+              width: 48,
+              height: 48,
+              child: _logoBytes != null
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.memory(_logoBytes!, fit: BoxFit.cover),
+                    )
+                  : const Icon(Icons.image_rounded),
+            ),
+            const SizedBox(width: 12),
+            FilledButton.tonalIcon(
+              onPressed: _pickingLogo ? null : _pickLogo,
+              icon: const Icon(Icons.add_photo_alternate_rounded),
+              label: const Text('Add logo'),
+            ),
+            if (_logoBytes != null) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: _removeLogo,
+                child: const Text('Remove'),
+              ),
+            ],
+          ],
+        ),
+          if (_logo != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: Row(
+              children: [
+                const Icon(Icons.crop_rounded, size: 18),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Slider(
+                    label: 'Logo size',
+                    value: _logoFraction,
+                    min: 0.12,
+                    max: 0.35,
+                    divisions: 23,
+                    onChanged: (value) => _set(() => _logoFraction = value),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// A compact, collapsible color selector. Shows only the chosen color chip
+/// until tapped; tapping reveals the fixed [palette] plus a custom entry that
+/// opens a lightweight HSV picker. The panel collapses after a choice is made.
+class _ColorTile extends StatefulWidget {
+  const _ColorTile({
+    required this.label,
+    required this.selected,
+    required this.palette,
+    required this.onChanged,
+  });
+
+  final String label;
+  final Color selected;
+  final List<Color> palette;
+  final ValueChanged<Color> onChanged;
+
+  @override
+  State<_ColorTile> createState() => _ColorTileState();
+}
+
+class _ColorTileState extends State<_ColorTile> {
+  bool _expanded = false;
+
+  Widget _swatch(Color color, bool active) {
+    final scheme = Theme.of(context).colorScheme;
+    return InkWell(
+      onTap: () {
+        widget.onChanged(color);
+        setState(() => _expanded = false);
+      },
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: color,
+          border: Border.all(
+            color: active ? scheme.primary : Colors.grey.withValues(alpha: 0.6),
+            width: active ? 3 : 1,
+          ),
+          borderRadius: BorderRadius.circular(6),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          onTap: () => setState(() => _expanded = !_expanded),
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Row(
+              children: [
+                Container(
+                  width: 26,
+                  height: 26,
+                  decoration: BoxDecoration(
+                    color: widget.selected,
+                    border: Border.all(color: scheme.outline),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(child: Text(widget.label)),
+                Icon(
+                  _expanded ? Icons.expand_less : Icons.expand_more,
+                  color: scheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+        if (_expanded)
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final color in widget.palette)
+                  _swatch(color, color == widget.selected),
+                InkWell(
+                  onTap: () async {
+                    final picked = await showDialog<Color>(
+                      context: context,
+                      builder: (_) => _CustomColorDialog(
+                        initial: widget.selected,
+                      ),
+                    );
+                    if (picked != null) {
+                      widget.onChanged(picked);
+                      setState(() => _expanded = false);
+                    }
+                  },
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: scheme.outline),
+                      borderRadius: BorderRadius.circular(6),
+                      gradient: const LinearGradient(
+                        colors: [
+                          Colors.red,
+                          Colors.yellow,
+                          Colors.green,
+                          Colors.blue,
+                          Colors.purple,
+                        ],
+                      ),
+                    ),
+                    child: const Icon(Icons.add, size: 18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// Minimal HSV color picker dialog (no external dependency).
+class _CustomColorDialog extends StatefulWidget {
+  const _CustomColorDialog({required this.initial});
+
+  final Color initial;
+
+  @override
+  State<_CustomColorDialog> createState() => _CustomColorDialogState();
+}
+
+class _CustomColorDialogState extends State<_CustomColorDialog> {
+  late double _h;
+  late double _s;
+  late double _v;
+
+  @override
+  void initState() {
+    super.initState();
+    final hsv = HSVColor.fromColor(widget.initial);
+    _h = hsv.hue;
+    _s = hsv.saturation;
+    _v = hsv.value;
+  }
+
+  Color get _color =>
+      HSVColor.fromAHSV(1, _h, _s, _v).toColor();
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return AlertDialog(
+      title: const Text('Custom color'),
+      content: SizedBox(
+        width: 280,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              height: 48,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: _color,
+                border: Border.all(color: scheme.outline),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _hueSlider('Hue', _h, 0, 360, (value) => setState(() => _h = value)),
+            _hueSlider('Saturation', _s, 0, 1, (value) => setState(() => _s = value)),
+            _hueSlider('Brightness', _v, 0, 1, (value) => setState(() => _v = value)),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_color),
+          child: const Text('Select'),
+        ),
+      ],
+    );
+  }
+
+  Widget _hueSlider(
+    String label,
+    double value,
+    double min,
+    double max,
+    ValueChanged<double> onChanged,
+  ) {
+    return Row(
+      children: [
+        SizedBox(width: 80, child: Text(label)),
+        Expanded(
+          child: Slider(
+            value: value,
+            min: min,
+            max: max,
+            onChanged: onChanged,
+          ),
+        ),
       ],
     );
   }

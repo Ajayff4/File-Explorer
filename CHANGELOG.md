@@ -2,6 +2,48 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-23
+
+### Completed
+
+- **QR generator overhaul** (Generate tab, Home → Tools → QR scanner):
+  - Customizable QR codes saved as PNG: **solid or gradient** colors (gradient
+    direction: horizontal/vertical/diagonal), **transparent** background option,
+    and **module styles** Square / Rounded / Dots (custom matrix renderer since
+    `qr_flutter` only ships square/circle modules).
+  - **Center logo** picker (gallery image, size slider) with a white backing for
+    scannability; error correction auto-raises to High when a logo or Dots style
+    is used. **Dots is now the default** module style.
+  - **Download** writes the PNG into the public **Downloads/QRCodes** folder via a
+    new Kotlin `saveQrToDownloads` MediaStore channel (API 29+ MediaStore, public
+    Downloads on older versions) so generated codes are visible in the system
+    Downloads app and gallery; the success SnackBar has an **Open** action.
+    (Replaces the previous app-private, hard-to-find save path.)
+  - **Collapsible color pickers** — the per-color selectors are compact chips
+    that expand on tap to reveal fixed swatches plus a **custom HSV color dialog**
+    (no new dependency); the panel collapses after a choice. Applied to
+    Foreground, Background, and both Gradient colors.
+  - New `qr_image_builder.dart` renders the QR matrix manually (gradient via a
+    white-mask `dstIn` shader, rounded/dot modules, finder-eye drawing) and
+    composes the logo + background color. `flutter analyze` clean; debug APK
+    verified on device (RMX3031).
+
+- **Storage Analyzer breakdown redesign** (`storage_analyzer_screen.dart`):
+  - The donut chart is now centered on top and the category legend spans the full
+    card width (previously the donut sat beside the legend and squeezed the
+    labels into `…`).
+  - Each category row now shows a thin colored **usage bar** under the label with
+    right-aligned size + percent, so proportions are readable at a glance.
+  - `flutter analyze` clean; debug APK verified on device.
+
+- **Explorer navigation polish** (`explorer_screen.dart`):
+  - Breadcrumbs now hide the synthetic, non-accessible root segments (`/`,
+    `storage`, `emulated`) and start the trail at the real volume (`0` for
+    internal, or the SD card label). Navigation paths still resolve correctly.
+  - Removed the redundant AppBar **current-folder title** (it competed with the
+    action icons and was unreadable); the breadcrumb already shows the location.
+  - `flutter analyze` clean; debug APK verified on device.
+
 ## 2026-08-22
 
 ### Completed
