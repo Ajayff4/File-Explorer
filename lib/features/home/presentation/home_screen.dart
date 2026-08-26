@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/downloader/presentation/controllers/downloader_controller.dart';
+import 'package:file_explorer/features/wallpaper/data/wallpaper_service.dart';
 import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
@@ -13,6 +16,7 @@ import 'package:file_explorer/features/settings/presentation/controllers/setting
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
@@ -402,6 +406,48 @@ class _ShortcutGrid extends StatelessWidget {
   }
 }
 
+/// Saves the device's current home and lock wallpapers into
+/// `File Explorer/Wallpaper` and reports the result via a SnackBar.
+Future<void> _saveCurrentWallpaper(BuildContext context, WidgetRef ref) async {
+  final messenger = ScaffoldMessenger.of(context);
+  try {
+    final saved = await saveCurrentWallpapers();
+    final kinds = <String>[];
+    if (saved.homePath != null) kinds.add('Home');
+    if (saved.lockPath != null) kinds.add('Lock');
+    if (kinds.isEmpty) {
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Could not read wallpaper. Grant all-files access and retry.',
+          ),
+        ),
+      );
+      return;
+    }
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          'Saved ${kinds.join(' + ')} wallpaper to File Explorer/Wallpaper',
+        ),
+        action: SnackBarAction(
+          label: 'Open',
+          onPressed: () {
+            ref
+                .read(explorerControllerProvider.notifier)
+                .openDirectory(saved.directory);
+            context.go(AppRoutes.explorer);
+          },
+        ),
+      ),
+    );
+  } on PlatformException catch (error) {
+    messenger.showSnackBar(
+      SnackBar(content: Text('Save wallpaper failed: ${error.message}')),
+    );
+  }
+}
+
 class _ToolsSection extends ConsumerWidget {
   const _ToolsSection();
 
@@ -453,6 +499,12 @@ class _ToolsSection extends ConsumerWidget {
         label: 'Share',
         color: const Color(0xFF1E88E5),
         onTap: () => context.push(AppRoutes.nearbyShare),
+      ),
+      _Tool(
+        icon: Icons.wallpaper_rounded,
+        label: 'Save Wallpaper',
+        color: const Color(0xFF7E57C2),
+        onTap: () => _saveCurrentWallpaper(context, ref),
       ),
     ];
 

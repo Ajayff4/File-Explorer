@@ -15,8 +15,23 @@ Progress log for the Flutter application.
   `src/standard` = no-op) invoked from `MainActivity.maybeSetupDownloaderBridge`.
 - Gradle `flavorDimensions "store"` plus `universal`/`standard` product flavors;
   Chaquopy / Python / `ffmpeg` assets are applied only for `universal`.
-- `download_task_rows` Drift table extracted into a feature-local
-  `DownloaderDatabase` (tree-shaken out of `standard`). See `docs/PLAY_STORE_FLAVORS.md`.
+  - `download_task_rows` Drift table extracted into a feature-local
+   `DownloaderDatabase` (tree-shaken out of `standard`). See `docs/PLAY_STORE_FLAVORS.md`.
+
+- **Save Current Wallpaper tool** (Home → Tools → Save Wallpaper):
+  - Copies the device's current **home** and **lock** screen wallpapers into
+    `File Explorer/Wallpaper` (creates the folder if needed).
+  - **Quality preserved** — the real wallpaper files are copied **byte-for-byte**
+    (original format, zero re-encode). When the OS blocks reading the file
+    (common on OEM ROMs), the home screen falls back to the drawable encoded as a
+    **lossless PNG**.
+  - Shows a SnackBar with an **Open** action that navigates straight into the
+    saved folder via the Explorer controller (the `explorer` route ignores
+    `extra`, so the controller is opened first, then `context.go`).
+  - New `lib/features/wallpaper/data/wallpaper_service.dart` (`saveCurrentWallpapers`
+    + `SavedWallpaper`) and a `saveWallpaper` handler on the existing `wallpaper`
+    MethodChannel in `MainActivity.kt` (`saveCurrentWallpapers` / `copyWallpaper`).
+  - Present in **both** flavors — not downloader-gated.
 
 ### Changed
 - Moved `android/app/src/main/{python,assets/ffmpeg}` → `android/app/src/universal/`
@@ -32,6 +47,17 @@ Progress log for the Flutter application.
 - `DownloaderController._startIfReady` now marks a task `running` and starts the
   engine synchronously, so `enqueue` reflects `running` immediately (pause/cancel
   work right after enqueue). Downloader controller tests are green.
+
+### Fixed
+- **Stale image thumbnails for directly-written files** (e.g. saved wallpapers):
+  files written straight to disk were served a **stale/wrong MediaStore
+  thumbnail** because the OS does not re-index an overwritten path, so
+  `home_wallpaper.*` / `lock_wallpaper.*` in `File Explorer/Wallpaper` showed the
+  same image. Native `getThumbnail` now **decodes the real image file**
+  (`BitmapFactory` with `inSampleSize` downscaling) instead of
+  `ContentResolver.loadThumbnail`, and the Dart disk-cache key now includes the
+  file's **size + last-modified time** so an overwrite invalidates the cache.
+  This also hardens thumbnails app-wide against MediaStore staleness.
 
 ## 2026-08-24
 

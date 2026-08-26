@@ -87,7 +87,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | Media folder view and Explorer type-filter counts use MediaStore fast paths (`queryFiles`/`countMedia`) with filesystem fallback. |
 | ✅ | Media | MediaStore index kept fresh: completed transfers re-scan their paths via `MediaScannerConnection.scanFile`. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
-| ✅ | Media | Hybrid thumbnail caching: native MediaStore thumbnail first, persistent disk cache, decode fallback (2026-08-22). |
+| ✅ | Media | Hybrid thumbnail caching: native now **decodes the real image file** (BitmapFactory, downscaled) instead of relying on MediaStore (which serves stale thumbnails for overwritten/disk-written files); persistent disk cache keyed by path + size + mtime; videos still use MediaStore; decode fallback (2026-08-27 fix). |
 | ✅ | Analyzer | Storage Analyzer: isolate scan, donut chart, largest folders/files (2026-08-22). |
 | ✅ | Recycle bin | Delete redirects to `.recycle_bin` (moveToTrash) instead of permanent erase, per-volume trash with `.meta.json` sidecars (2026-08-22). |
 | ✅ | Recycle bin | Restore (parent dir recreated, collision rename), delete permanently, empty trash (2026-08-22). |
@@ -95,6 +95,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Encryption | `.ff4` AES-256-GCM encryption: encrypt/decrypt single files, folders (recursive), and multi-selects in place (2026-08-22). |
 | ✅ | Encryption | Optional file-name hiding (random id), lock icon in Explorer, and the `Encryptor` tool listing all `.ff4` files flat with list/grid + select-all (2026-08-22). |
 | ✅ | Encryption | Encrypt/decrypt run through the Transfer Station as queueable tasks with progress (2026-08-22). |
+| ✅ | Tools | **Save Current Wallpaper** (Home → Tools) copies the device's current home + lock screen wallpapers into `File Explorer/Wallpaper` (byte-for-byte, lossless PNG fallback), with an **Open** action that jumps into Explorer (2026-08-27). |
 | ✅ | Media | Image and video thumbnails in media/explorer rows with icon fallback. |
 | ✅ | Media | Media folder view groups files by parent folder with counts and kind-specific names. |
 | ✅ | Media | Media folder view long-press opens Explorer with matching type filter. |
@@ -154,7 +155,7 @@ flutter analyze
 # passed
 
 flutter test
-# passed — 142/142 (encryption service/repository tests added 2026-08-22; recycle bin repository tests added 2026-08-22; stale Home/media widget expectations fixed 2026-08-20; theme-accent regression test added 2026-08-20)
+# passed — 160/160 (encryption 142 + downloader fix tests from the 2026-08-27 flavor slice; wallpaper feature adds no new tests but `flutter analyze` is clean and the universal APK was verified on device 2026-08-27)
 
 flutter build apk --debug
 # passed after native media_store channel changes
@@ -193,7 +194,9 @@ Last full check on 2026-08-13 after the Universal Downloader (Chaquopy + yt-dlp)
 On 2026-08-27 the app was split into `universal`/`standard` flavors (see
 `docs/PLAY_STORE_FLAVORS.md`). The `standard` release APK was built and scanned:
 it contains zero `download_task_rows` / `yt-dlp` / `ffmpeg` / `libchaquopy` /
-`…/downloader` channel traces, confirming the Play Store build is downloader-free.
+  `…/downloader` channel traces, confirming the Play Store build is downloader-free.
+
+Update 2026-08-27 (2nd): **Save Current Wallpaper tool landed** — Home → Tools → Save Wallpaper copies the device's current home + lock screen wallpapers into `File Explorer/Wallpaper` (byte-for-byte, original format; home falls back to a lossless PNG when the OS blocks reading the file). A SnackBar **Open** action navigates into the saved folder via the Explorer controller. New `lib/features/wallpaper/data/wallpaper_service.dart` + a `saveWallpaper` handler on the `wallpaper` MethodChannel. Present in both `universal` and `standard` flavors (not downloader-gated). Also fixed stale image thumbnails for directly-written files: native `getThumbnail` now decodes the real image file (BitmapFactory downscaled) instead of `MediaStore.loadThumbnail`, and the Dart disk-cache key includes size + last-modified so overwrites invalidate it. `flutter analyze` clean; universal APK built + installed on the device (RMX3031) and verified — both wallpapers save and thumbnails render correctly.
 
 Update 2026-08-14: `flutter analyze` clean, downloader controller tests 15/15 passing, and a live YouTube download was confirmed end-to-end on a real device (wireless debug). Pause/resume, copy-error, kebab-menu, browse-view, and datetime polish landed.
 

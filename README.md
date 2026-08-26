@@ -121,7 +121,18 @@ feature below works end to end on a real device over wireless ADB.
   selectable), transparent background, Square / Rounded / **Dots** (default)
   module styles, and a center logo with auto High error correction.
 - ✅ Download generates into the public **Downloads/QRCodes** folder (MediaStore)
-  with an Open action; collapsible color pickers with a custom HSV color dialog.
+   with an Open action; collapsible color pickers with a custom HSV color dialog.
+
+### 🖼️ Save Current Wallpaper
+
+- ✅ **Home → Tools → Save Wallpaper** copies the device's current **home** and
+  **lock** screen wallpapers into `File Explorer/Wallpaper`.
+- ✅ **Quality preserved** — the real wallpaper files are copied **byte-for-byte**
+  (original format, no re-encode); the home screen falls back to a **lossless PNG**
+  when the OS blocks reading the file.
+- ✅ Shows a SnackBar with an **Open** action that jumps straight into the saved
+  folder in Explorer.
+- ✅ Available in both `universal` and `standard` flavors (not downloader-gated).
 
 ### 🪟 Multi-window
 

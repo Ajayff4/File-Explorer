@@ -18,6 +18,8 @@ import android.os.Build
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.ParcelFileDescriptor
+import android.util.Log
 import android.os.StatFs
 import android.provider.MediaStore
 import android.provider.Settings
@@ -29,6 +31,8 @@ import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 import java.io.IOException
 
 class MainActivity: FlutterActivity() {
@@ -100,6 +104,25 @@ class MainActivity: FlutterActivity() {
                                 "wallpaper_failed",
                                 "Could not set wallpaper",
                                 null,
+                            )
+                        }
+                    }
+                    "saveWallpaper" -> {
+                        try {
+                            val res = saveCurrentWallpapers()
+                            Log.i(
+                                "SaveWallpaper",
+                                "result home=${res["home"]} lock=${res["lock"]} dir=${res["directory"]}",
+                            )
+                            result.success(res)
+                        } catch (error: Exception) {
+                            Log.e("SaveWallpaper", "saveCurrentWallpapers threw", error)
+                            result.success(
+                                mapOf(
+                                    "directory" to null,
+                                    "home" to null,
+                                    "lock" to null,
+                                ),
                             )
                         }
                     }
@@ -583,15 +606,16 @@ class MainActivity: FlutterActivity() {
     @Suppress("DEPRECATION")
     private fun getThumbnail(path: String, maxWidth: Int): ByteArray? {
         return try {
-            val uri = mediaStoreContentUriFor(path) ?: return null
-            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                contentResolver.loadThumbnail(
-                    uri,
-                    android.util.Size(maxWidth, maxWidth),
-                    null,
-                )
-            } else {
-                if (isVideoExtension(extensionOf(path))) {
+            if (isVideoExtension(extensionOf(path))) {
+                // Videos still need MediaStore / the video thumbnail APIs.
+                val uri = mediaStoreContentUriFor(path) ?: return null
+                val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentResolver.loadThumbnail(
+                        uri,
+                        android.util.Size(maxWidth, maxWidth),
+                        null,
+                    )
+                } else {
                     @Suppress("DEPRECATION")
                     MediaStore.Video.Thumbnails.getThumbnail(
                         contentResolver,
@@ -599,14 +623,29 @@ class MainActivity: FlutterActivity() {
                         MediaStore.Video.Thumbnails.MINI_KIND,
                         null,
                     )
-                } else {
-                    null
+                } ?: return null
+                ByteArrayOutputStream().use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                    stream.toByteArray()
                 }
-            } ?: return null
-
-            ByteArrayOutputStream().use { stream ->
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
-                stream.toByteArray()
+            } else {
+                // Decode the real file directly. Files written straight to disk
+                // (e.g. saved wallpapers) are not re-indexed by MediaStore, so
+                // its cached thumbnail can be stale/wrong. Reading the bytes
+                // ourselves always reflects the current file content.
+                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                BitmapFactory.decodeFile(path, bounds)
+                val rawW = bounds.outWidth
+                val rawH = bounds.outHeight
+                if (rawW <= 0 || rawH <= 0) return null
+                val larger = if (rawW > rawH) rawW else rawH
+                val scale = if (larger > maxWidth) larger / maxWidth else 1
+                val decode = BitmapFactory.Options().apply { inSampleSize = scale }
+                val bitmap = BitmapFactory.decodeFile(path, decode) ?: return null
+                ByteArrayOutputStream().use { stream ->
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 85, stream)
+                    stream.toByteArray()
+                }
             }
         } catch (error: Exception) {
             null
@@ -668,6 +707,126 @@ class MainActivity: FlutterActivity() {
         } catch (error: Exception) {
             false
         }
+    }
+
+    /// Copies the current home and lock wallpapers into `File Explorer/Wallpaper`,
+    /// preserving the original image bytes (no re-encoding). Returns a map with
+    /// `directory`, `home`, and `lock` saved paths (null when unavailable).
+    private fun saveCurrentWallpapers(): Map<String, Any?> {
+        val wm = WallpaperManager.getInstance(this)
+        val dir = File(Environment.getExternalStorageDirectory(), "File Explorer/Wallpaper")
+        dir.mkdirs()
+        val result = mutableMapOf<String, Any?>()
+        result["directory"] = dir.absolutePath
+        result["home"] = copyWallpaper(wm, WallpaperManager.FLAG_SYSTEM, dir, "home")
+        result["lock"] = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            copyWallpaper(wm, WallpaperManager.FLAG_LOCK, dir, "lock")
+        } else {
+            null
+        }
+        return result
+    }
+
+    /// Saves the wallpaper for [which] (FLAG_SYSTEM / FLAG_LOCK) into [dir] as
+    /// `<prefix>_wallpaper.<ext>`. On API 24+ it first tries to copy the real
+    /// wallpaper file byte-for-byte (zero quality loss); if that is unavailable
+    /// or blocked, the home screen falls back to the drawable encoded as a
+    /// lossless PNG.
+    private fun copyWallpaper(
+        wm: WallpaperManager,
+        which: Int,
+        dir: File,
+        prefix: String,
+    ): String? {
+        var path: String? = null
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            val obj = try {
+                wm.getWallpaperFile(which)
+            } catch (error: Exception) {
+                Log.e("SaveWallpaper", "getWallpaperFile threw which=$which", error)
+                null
+            }
+            val input = when {
+                obj is java.io.File -> try {
+                    FileInputStream(obj)
+                } catch (error: Exception) {
+                    Log.e("SaveWallpaper", "open file failed which=$which", error)
+                    null
+                }
+                obj is ParcelFileDescriptor -> try {
+                    FileInputStream(obj.fileDescriptor)
+                } catch (error: Exception) {
+                    Log.e("SaveWallpaper", "open pfd failed which=$which", error)
+                    null
+                }
+                else -> null
+            }
+            if (input != null) {
+                try {
+                    val header = ByteArray(8)
+                    val n = input.read(header)
+                    val ext = when {
+                        n >= 3 && header[0] == 0xFF.toByte() && header[1] == 0xD8.toByte() && header[2] == 0xFF.toByte() -> "jpg"
+                        n >= 4 && header[0] == 0x89.toByte() && header[1] == 0x50.toByte() && header[2] == 0x4E.toByte() && header[3] == 0x47.toByte() -> "png"
+                        else -> "png"
+                    }
+                    val dest = File(dir, "${prefix}_wallpaper.$ext")
+                    val output = FileOutputStream(dest)
+                    try {
+                        if (n > 0) output.write(header, 0, n)
+                        val buffer = ByteArray(8192)
+                        var read = input.read(buffer)
+                        while (read >= 0) {
+                            output.write(buffer, 0, read)
+                            read = input.read(buffer)
+                        }
+                    } finally {
+                        try {
+                            input.close()
+                        } catch (_: Exception) {
+                        }
+                        try {
+                            output.close()
+                        } catch (_: Exception) {
+                        }
+                    }
+                    path = dest.absolutePath
+                    Log.i("SaveWallpaper", "saved (file) which=$which -> $path")
+                } catch (error: Exception) {
+                    Log.e("SaveWallpaper", "copy failed which=$which", error)
+                }
+            } else {
+                Log.d("SaveWallpaper", "getWallpaperFile null/unreadable which=$which")
+            }
+        }
+        // Home fallback: drawable -> lossless PNG (works even when the file is blocked).
+        if (path == null && which == WallpaperManager.FLAG_SYSTEM) {
+            try {
+                val drawable = wm.getDrawable() ?: run {
+                    Log.d("SaveWallpaper", "getDrawable() returned null (likely live wallpaper)")
+                    return null
+                }
+                val bitmap = (drawable as? BitmapDrawable)?.bitmap ?: run {
+                    Log.d("SaveWallpaper", "drawable not a BitmapDrawable")
+                    return null
+                }
+                val dest = File(dir, "${prefix}_wallpaper.png")
+                val output = FileOutputStream(dest)
+                try {
+                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+                } finally {
+                    try {
+                        output.close()
+                    } catch (_: Exception) {
+                    }
+                }
+                path = dest.absolutePath
+                Log.i("SaveWallpaper", "saved (drawable) which=$which -> $path")
+            } catch (error: Exception) {
+                Log.e("SaveWallpaper", "drawable fallback failed", error)
+            }
+        }
+        return path
     }
 
     private fun shareFile(path: String, mimeType: String): Boolean {

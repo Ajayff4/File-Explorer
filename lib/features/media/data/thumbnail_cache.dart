@@ -23,8 +23,18 @@ Future<Directory> _ensureCacheDir() async {
   return dir;
 }
 
-String _key(String path, int maxWidth) =>
-    '${maxWidth}_${path.hashCode}_${path.length}';
+String _key(String path, int maxWidth) {
+  var size = 0;
+  var modified = 0;
+  try {
+    final file = File(path);
+    if (file.existsSync()) {
+      size = file.lengthSync();
+      modified = file.lastModifiedSync().millisecondsSinceEpoch;
+    }
+  } catch (_) {}
+  return '${maxWidth}_${size}_${modified}_${path.hashCode}_${path.length}';
+}
 
 Future<Uint8List?> _readDisk(String key) async {
   try {
