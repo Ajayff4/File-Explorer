@@ -1,5 +1,6 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -182,14 +183,15 @@ class _CoreFeature {
   final String? route;
 }
 
-const _coreFeatures = [
-  _CoreFeature(
-    icon: Icons.download_rounded,
-    title: 'Universal Downloader',
-    description:
-        'Paste a YouTube, Instagram, Twitter, or other media link and download it as video or audio with yt-dlp, queue, progress/speed, retry, and concurrent download limits.',
-    color: Color(0xFFD81B60),
-  ),
+final _coreFeatures = [
+  if (enableDownloader)
+    _CoreFeature(
+      icon: Icons.download_rounded,
+      title: 'Universal Downloader',
+      description:
+          'Paste a YouTube, Instagram, Twitter, or other media link and download it as video or audio with yt-dlp, queue, progress/speed, retry, and concurrent download limits.',
+      color: Color(0xFFD81B60),
+    ),
   _CoreFeature(
     icon: Icons.folder_open_rounded,
     title: 'Storage browser',

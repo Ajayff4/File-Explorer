@@ -325,7 +325,6 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     }
 
     _runningTaskIds.add(taskId);
-    await _ensureOutputDirectory(task.outputDirectory);
     _replaceTask(
       taskId,
       (task, now) => task.copyWith(
@@ -349,6 +348,8 @@ class DownloaderController extends StateNotifier<DownloaderState> {
         _markFailed(taskId, error.toString());
       }),
     );
+
+    await _ensureOutputDirectory(task.outputDirectory);
   }
 
   void _onEvent(DownloaderEvent event) {

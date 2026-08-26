@@ -106,6 +106,10 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Persistent history and download settings via Drift.
 - ✅ Finished files expose Move-to (transfer-backed), Open folder, and Browse.
 - See `docs/DOWNLOADER.md` for the architecture.
+- ⚠️ **Flavor gated:** built only into the `universal` flavor. The `standard`
+  (Google Play) flavor omits it entirely — no `yt-dlp`/Python/`ffmpeg`/libchaquopy,
+  no `download_task_rows` table, no `…/downloader` channel. See
+  [Build commands](#-build-commands).
 
 ### 🔳 QR Scanner & Generator
 
@@ -321,6 +325,30 @@ considered functional.
 ---
 
 ## 🔨 Build commands
+
+The app ships two Android **flavors** so the Universal Downloader (Chaquopy/Python/
+`ffmpeg`/`yt-dlp`) can be excluded from the Google Play build:
+
+| Flavor | Target | Universal Downloader |
+| --- | --- | --- |
+| `universal` | Sideload / F-Droid / GitHub | ✅ included |
+| `standard` | Google Play | ❌ omitted (100% downloader-free) |
+
+```bash
+# Full app (downloader included)
+flutter build apk --flavor universal --dart-define=ENABLE_DOWNLOADER=true
+
+# Play Store build (no downloader)
+flutter build apk --flavor standard --dart-define=ENABLE_DOWNLOADER=false
+
+# App bundle for Play
+flutter build appbundle --flavor standard --dart-define=ENABLE_DOWNLOADER=false
+```
+
+> The `ENABLE_DOWNLOADER` flag is compile-time (`const bool.fromEnvironment`), so the
+> downloader graph is tree-shaken out of `standard`. Chaquopy is applied to the Gradle
+> build only for `universal`. See `docs/PLAY_STORE_FLAVORS.md` for the full rationale
+> and the trace-verification steps.
 
 - **Android debug APK** — `flutter build apk --debug`
 - **Android release APK** — `flutter build apk --release`

@@ -2,6 +2,37 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-27
+
+### Added
+- **Two Android build flavors** for Google Play compliance:
+  - `universal` — full app including the Universal Downloader (Chaquopy + yt-dlp + ffmpeg).
+  - `standard` — Google Play build with the downloader fully excluded at every layer.
+- Compile-time `enableDownloader` flag (`lib/shared/config/flavor_config.dart`,
+  `const bool.fromEnvironment('ENABLE_DOWNLOADER', defaultValue: true)`) so the
+  downloader graph is tree-shaken out of `standard`.
+- Per-flavor `DownloaderBridge` Kotlin source sets (`src/universal` = real bridge,
+  `src/standard` = no-op) invoked from `MainActivity.maybeSetupDownloaderBridge`.
+- Gradle `flavorDimensions "store"` plus `universal`/`standard` product flavors;
+  Chaquopy / Python / `ffmpeg` assets are applied only for `universal`.
+- `download_task_rows` Drift table extracted into a feature-local
+  `DownloaderDatabase` (tree-shaken out of `standard`). See `docs/PLAY_STORE_FLAVORS.md`.
+
+### Changed
+- Moved `android/app/src/main/{python,assets/ffmpeg}` → `android/app/src/universal/`
+  so downloader-only assets no longer ship in `standard`.
+- `app_database.dart` no longer owns the `DownloadTaskRows` table.
+- Build commands:
+  `flutter build apk --flavor universal --dart-define=ENABLE_DOWNLOADER=true` and
+  `flutter build apk --flavor standard --dart-define=ENABLE_DOWNLOADER=false`.
+
+### Fixed
+- `MainActivity.openFileWithSystem`: `Intent(Intent.ACTION.VIEW)` (invalid dot) →
+  `Intent.ACTION_VIEW` (correct underscore).
+- `DownloaderController._startIfReady` now marks a task `running` and starts the
+  engine synchronously, so `enqueue` reflects `running` immediately (pause/cancel
+  work right after enqueue). Downloader controller tests are green.
+
 ## 2026-08-24
 
 ### Completed

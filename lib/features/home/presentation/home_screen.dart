@@ -1,5 +1,6 @@
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/downloader/presentation/controllers/downloader_controller.dart';
+import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
@@ -27,7 +28,8 @@ class HomeScreen extends ConsumerWidget {
     final recentsState = ref.watch(recentsControllerProvider);
     final settings = ref.watch(settingsControllerProvider).settings;
     final transferState = ref.watch(transferControllerProvider);
-    final downloaderState = ref.watch(downloaderControllerProvider);
+    final downloaderState =
+        enableDownloader ? ref.watch(downloaderControllerProvider) : null;
     final summary = explorerState.summary.value;
     final visibleRecents = settings.showFoldersOnlyInHistory
         ? recentsState.locations.where((recent) => recent.isFolder).toList()
@@ -72,14 +74,15 @@ class HomeScreen extends ConsumerWidget {
                               context.go(AppRoutes.transfers);
                             },
                           ),
-                          ListTile(
-                            leading: const Icon(Icons.download_rounded),
-                            title: const Text('Universal Downloader'),
-                            onTap: () {
-                              Navigator.of(sheetContext).pop();
-                              context.go(AppRoutes.downloader);
-                            },
-                          ),
+                          if (enableDownloader)
+                            ListTile(
+                              leading: const Icon(Icons.download_rounded),
+                              title: const Text('Universal Downloader'),
+                              onTap: () {
+                                Navigator.of(sheetContext).pop();
+                                context.go('/downloader');
+                              },
+                            ),
                           ListTile(
                             leading: const Icon(Icons.hexagon_rounded),
                             title: const Text('Core Features'),
@@ -117,7 +120,7 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(height: 16),
               const _CoreFeaturesTile(),
               const SizedBox(height: 16),
-              _DownloaderTile(state: downloaderState),
+              if (enableDownloader) _DownloaderTile(state: downloaderState!),
               if (settings.showTransferStation) ...[
                 const SizedBox(height: 16),
                 _TransferStationTile(state: transferState),
@@ -203,7 +206,7 @@ class _DownloaderTile extends StatelessWidget {
         title: const Text('Universal Downloader'),
         subtitle: Text(summary),
         trailing: const Icon(Icons.chevron_right_rounded),
-        onTap: () => context.go(AppRoutes.downloader),
+        onTap: () => context.go('/downloader'),
       ),
     );
   }
@@ -414,12 +417,13 @@ class _ToolsSection extends ConsumerWidget {
         color: const Color(0xFF8D6E63),
         onTap: () => context.push(AppRoutes.media(MediaLibraryKind.archives)),
       ),
-      _Tool(
-        icon: Icons.download_rounded,
-        label: 'Downloader',
-        color: const Color(0xFFD81B60),
-        onTap: () => context.push(AppRoutes.downloader),
-      ),
+      if (enableDownloader)
+        _Tool(
+          icon: Icons.download_rounded,
+          label: 'Downloader',
+          color: const Color(0xFFD81B60),
+          onTap: () => context.push('/downloader'),
+        ),
       _Tool(
         icon: Icons.pie_chart_rounded,
         label: 'Analyzer',

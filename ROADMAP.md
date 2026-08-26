@@ -12,6 +12,9 @@ The app is an early but usable file-manager vertical slice.
 - Source logo: `assets/brand/logo.png`.
 - Architecture: feature-first Flutter modules with Riverpod controllers, GoRouter navigation, Drift persistence, and repository boundaries.
 - Android phones are the product target.
+- Two Android build flavors ship from one codebase:
+  - `universal` — full app including the Universal Downloader (Chaquopy + yt-dlp + ffmpeg); for sideload / F-Droid / GitHub.
+  - `standard` — Google Play build with the downloader fully excluded (no `yt-dlp`/Python/`ffmpeg`/libchaquopy, no `download_task_rows` table, no `…/downloader` channel). Gated by the compile-time `enableDownloader` flag.
 - Fake/in-memory fallbacks exist only for development and automated tests.
 
 ## What Works Now
@@ -125,7 +128,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Windows | Multi-window — open multiple independent windows, each with its own folder, view mode, and back stack; switch via the **Windows** nav destination, which opens a live-thumbnail switcher (2026-08-23). |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
-| ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. |
+| ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. **Built only into the `universal` flavor — the `standard` (Play Store) flavor omits it entirely.** |
 | ✅ | Downloader | Pause/resume (in-place blocking hook; resume continues the same connection), cancel-of-paused, and paused-task restore. |
 | ✅ | Downloader | Completed tasks: copy-error action, completion datetime, and a polished kebab menu (Move to / Open folder / Browse). |
 | ✅ | Downloader | Browse/open-folder open a dedicated pushed view (`/downloader/browse`) so back returns to the downloader, not Explorer. |
@@ -186,6 +189,11 @@ build/app/outputs/flutter-apk/app-debug.apk
 ```
 
 Last full check on 2026-08-13 after the Universal Downloader (Chaquopy + yt-dlp) landed: `flutter analyze` clean, `flutter test` all passing, `flutter build apk --debug` succeeds with yt-dlp bundled. A live end-to-end download on a real device is still unverified.
+
+On 2026-08-27 the app was split into `universal`/`standard` flavors (see
+`docs/PLAY_STORE_FLAVORS.md`). The `standard` release APK was built and scanned:
+it contains zero `download_task_rows` / `yt-dlp` / `ffmpeg` / `libchaquopy` /
+`…/downloader` channel traces, confirming the Play Store build is downloader-free.
 
 Update 2026-08-14: `flutter analyze` clean, downloader controller tests 15/15 passing, and a live YouTube download was confirmed end-to-end on a real device (wireless debug). Pause/resume, copy-error, kebab-menu, browse-view, and datetime polish landed.
 

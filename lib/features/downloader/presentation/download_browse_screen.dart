@@ -1,4 +1,3 @@
-import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/downloader/presentation/download_entry_grid.dart';
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
@@ -100,7 +99,7 @@ class _DownloadBrowseScreenState extends ConsumerState<DownloadBrowseScreen> {
             if (context.canPop()) {
               context.pop();
             } else {
-              context.go(AppRoutes.downloader);
+              context.go('/downloader');
             }
           },
         ),

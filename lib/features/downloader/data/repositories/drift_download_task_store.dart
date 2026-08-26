@@ -1,12 +1,12 @@
 import 'package:drift/drift.dart';
+import 'package:file_explorer/features/downloader/data/downloader_database.dart';
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/downloader/domain/repositories/download_task_store.dart';
-import 'package:file_explorer/shared/database/app_database.dart';
 
 class DriftDownloadTaskStore implements DownloadTaskStore {
   const DriftDownloadTaskStore(this._database);
 
-  final AppDatabase _database;
+  final DownloaderDatabase _database;
 
   @override
   Future<List<DownloadTask>> loadTasks() async {

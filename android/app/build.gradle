@@ -3,13 +3,32 @@ plugins {
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
-    id "com.chaquo.python"
+}
+
+// Apply Chaquopy — which bundles CPython + yt-dlp into the APK — ONLY for the
+// `universal` flavor. The `standard` (Play Store) flavor must not ship any
+// Python runtime, any yt-dlp wheel, or the downloader MethodChannel, so the
+// plugin is never applied (and the chaquopy {} block below is never evaluated)
+// for it. This is what keeps `standard` 100% free of downloader traces.
+def isUniversal = gradle.startParameter.taskNames.any { it ==~ /(?i).*universal.*/ }
+if (isUniversal) {
+    apply plugin: 'com.chaquo.python'
 }
 
 android {
     namespace = "com.ajayff4.fileexplorer"
     compileSdk = 37
     ndkVersion = flutter.ndkVersion
+
+    flavorDimensions "store"
+    productFlavors {
+        universal {
+            dimension "store"
+        }
+        standard {
+            dimension "store"
+        }
+    }
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
@@ -44,19 +63,21 @@ android {
     }
 }
 
-chaquopy {
-    defaultConfig {
-        version = "3.12"
-        // yt-dlp discovers plugins by scanning sys.path for a physical
-        // `yt_dlp_plugins/extractor` directory, so the vendored Threads plugin
-        // must exist as real files rather than Chaquopy's in-APK virtual FS.
-        extractPackages("yt_dlp_plugins")
-        pip {
-            install "yt-dlp"
-            // Threads has no upstream yt-dlp extractor; the community plugin
-            // is vendored in src/main/python/yt_dlp_plugins (with __init__.py
-            // files) because Chaquopy cannot import the upstream package, which
-            // is a PEP 420 namespace package with no __init__.py.
+if (isUniversal) {
+    chaquopy {
+        defaultConfig {
+            version = "3.12"
+            // yt-dlp discovers plugins by scanning sys.path for a physical
+            // `yt_dlp_plugins/extractor` directory, so the vendored Threads plugin
+            // must exist as real files rather than Chaquopy's in-APK virtual FS.
+            extractPackages("yt_dlp_plugins")
+            pip {
+                install "yt-dlp"
+                // Threads has no upstream yt-dlp extractor; the community plugin
+                // is vendored in src/universal/python/yt_dlp_plugins (with __init__.py
+                // files) because Chaquopy cannot import the upstream package, which
+                // is a PEP 420 namespace package with no __init__.py.
+            }
         }
     }
 }

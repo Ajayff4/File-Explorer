@@ -1,4 +1,3 @@
-import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/downloader/data/repositories/download_engine_provider.dart';
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/downloader/domain/repositories/download_engine.dart';
@@ -908,10 +907,10 @@ class _CompletedTaskMenu extends ConsumerWidget {
                   );
             }
           case _CompletedAction.openFolder:
-            context.push(AppRoutes.downloaderBrowse,
+            context.push('/downloader/browse',
                 extra: task.outputDirectory);
           case _CompletedAction.browse:
-            context.push(AppRoutes.downloaderBrowse,
+            context.push('/downloader/browse',
                 extra: task.outputDirectory);
           case _CompletedAction.copyUrl:
             _copyTaskUrl(context, task);

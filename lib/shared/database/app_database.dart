@@ -1,5 +1,4 @@
 import 'package:drift/drift.dart';
-import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 
@@ -82,29 +81,6 @@ class QrScanRows extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-class DownloadTaskRows extends Table {
-  TextColumn get id => text()();
-  TextColumn get url => text()();
-  IntColumn get mediaType => intEnum<DownloadMediaType>()();
-  IntColumn get quality => intEnum<DownloadQuality>().nullable()();
-  IntColumn get audioFormat =>
-      intEnum<DownloadAudioFormat>().withDefault(const Constant(0))();
-  BoolColumn get playlist => boolean().withDefault(const Constant(false))();
-  TextColumn get title => text().nullable()();
-  IntColumn get status => intEnum<DownloadTaskStatus>()();
-  DateTimeColumn get createdAt => dateTime()();
-  DateTimeColumn get updatedAt => dateTime()();
-  TextColumn get outputDirectory => text()();
-  IntColumn get transferredBytes => integer().withDefault(const Constant(0))();
-  IntColumn get totalBytes => integer().nullable()();
-  RealColumn get speedBytesPerSecond => real().withDefault(const Constant(0))();
-  TextColumn get fileName => text().nullable()();
-  TextColumn get failureMessage => text().nullable()();
-
-  @override
-  Set<Column<Object>> get primaryKey => {id};
-}
-
 @DriftDatabase(
   tables: [
     TransferTaskRows,
@@ -112,7 +88,6 @@ class DownloadTaskRows extends Table {
     RecentLocationRows,
     SearchIndexEntryRows,
     SettingRows,
-    DownloadTaskRows,
     QrScanRows,
   ],
 )
@@ -183,25 +158,6 @@ class AppDatabase extends _$AppDatabase {
           // Rebuild with a composite (rootPath, path) primary key.
           await customStatement('DROP TABLE IF EXISTS search_index_entry_rows');
           await migrator.createTable(searchIndexEntryRows);
-        }
-        if (from < 8 && !await tableExists('download_task_rows')) {
-          await migrator.createTable(downloadTaskRows);
-        }
-        if (from < 9) {
-          // v9 added the nullable `quality` column; pre-v9 DBs upgrading after
-          // the column was already materialized crashed with `duplicate column
-          // name: quality`. Guarded via pragma_table_info.
-          await addColumnIfMissing(downloadTaskRows, downloadTaskRows.quality);
-        }
-        if (from < 10) {
-          await addColumnIfMissing(
-            downloadTaskRows,
-            downloadTaskRows.audioFormat,
-          );
-          await addColumnIfMissing(
-            downloadTaskRows,
-            downloadTaskRows.playlist,
-          );
         }
         if (from < 11 && !await tableExists('qr_scan_rows')) {
           await migrator.createTable(qrScanRows);

@@ -23,6 +23,7 @@ import 'package:file_explorer/features/archive/presentation/archive_file_preview
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/download_browse_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_screen.dart';
+import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -85,10 +86,11 @@ List<RouteBase> buildAppRoutes() {
             path: AppRoutes.transfers,
             builder: (context, state) => const TransferManagerScreen(),
           ),
-          GoRoute(
-            path: AppRoutes.downloader,
-            builder: (context, state) => const DownloaderScreen(),
-          ),
+          if (enableDownloader)
+            GoRoute(
+              path: '/downloader',
+              builder: (context, state) => const DownloaderScreen(),
+            ),
           GoRoute(
             path: AppRoutes.analyzer,
             builder: (context, state) {
@@ -178,16 +180,17 @@ List<RouteBase> buildAppRoutes() {
           return const MissingMediaViewerScreen();
         },
       ),
-      GoRoute(
-        path: AppRoutes.downloaderBrowse,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is String && extra.isNotEmpty) {
-            return DownloadBrowseScreen(startPath: extra);
-          }
-          return const DownloaderScreen();
-        },
-      ),
+      if (enableDownloader)
+        GoRoute(
+          path: '/downloader/browse',
+          builder: (context, state) {
+            final extra = state.extra;
+            if (extra is String && extra.isNotEmpty) {
+              return DownloadBrowseScreen(startPath: extra);
+            }
+            return const DownloaderScreen();
+          },
+        ),
     ];
 }
 
@@ -206,12 +209,10 @@ class AppRoutes {
   static const archiveFilePreview = '/zip-preview';
   static const transfers = '/transfers';
   static const settings = '/settings';
-  static const downloader = '/downloader';
   static const analyzer = '/analyzer';
   static const recycleBin = '/recycle-bin';
   static const encryptor = '/encryptor';
   static const qrScanner = '/qr-scanner';
-  static const downloaderBrowse = '/downloader/browse';
   static const nearbyShare = '/nearby';
 
   static String media(MediaLibraryKind kind) {

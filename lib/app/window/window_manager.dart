@@ -2,6 +2,7 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/app/theme/app_theme.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
@@ -314,7 +315,9 @@ IconData iconForLocation(String path) {
   if (path.startsWith('/media')) return Icons.photo_library_outlined;
   if (path.startsWith(AppRoutes.transfers)) return Icons.swap_horiz_rounded;
   if (path.startsWith(AppRoutes.settings)) return Icons.settings;
-  if (path.startsWith(AppRoutes.downloader)) return Icons.download_rounded;
+  if (enableDownloader && path.startsWith('/downloader')) {
+    return Icons.download_rounded;
+  }
   if (path.startsWith(AppRoutes.analyzer)) return Icons.pie_chart_rounded;
   if (path.startsWith(AppRoutes.recycleBin)) return Icons.delete_outline;
   if (path.startsWith(AppRoutes.encryptor)) return Icons.lock_outline;
