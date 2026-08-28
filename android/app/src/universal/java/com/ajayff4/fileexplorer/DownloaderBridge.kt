@@ -251,7 +251,7 @@ private fun startDownloaderPolling(events: EventChannel.EventSink?) {
                 val list = drained.asList()
                 android.util.Log.d("DownloaderDebug", "drain returned ${list.size} events")
                 for (item in list) {
-                    val map = item.asMap()
+                    val map: Map<*, *> = item.asMap()
                     val payload = HashMap<String, Any?>()
                     for ((key, value) in map) {
                         payload[key.toString()] = unbox(value)

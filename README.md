@@ -155,6 +155,9 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Drift + build_runner codegen.
 
 - ✅ Share — direct device-to-device transfer on the same network (ShareIt/Xender style): pick files from Explorer, auto-discover peers over the LAN, and receive into a shared **File Explorer/Share** folder.
+  - ⚠️ **Known limitation:** both phones must already be on the **same Wi-Fi** (or one phone's hotspot). Unlike ShareIt/Xender, the app does **not** yet create its own hotspot and auto-join the other device — if the two phones aren't on the same network, discovery silently finds nothing. The UI shows a "connect both phones to the same Wi-Fi" hint.
+  - 🔜 **Planned (Phase 2):** Wi-Fi Direct / automatic hotspot creation (auto-tethering) so sharing works with zero prior network setup, matching the Xender/ShareIt flow. See `docs/NEARBY_SHARING_DESIGN.md` → *Risks / notes* + *Out of scope for MVP*.
+- ✅ **Open with / share target** — the app registers as a handler for `ACTION_VIEW` (images, audio, video, text, PDF, archives, APKs) and `ACTION_SEND` / `SEND_MULTIPLE`, so it shows up in other file managers' "Open with" lists and in the system share sheet. Opening a file launches the built-in viewer (media/text/archive) instead of a 3rd-party app.
 
 ---
 
@@ -185,7 +188,7 @@ Operate on the project folder (`project/`) first — it is its own Flutter packa
 | Android Gradle Plugin | `android/settings.gradle` | `9.0.1` |
 | Kotlin | `android/settings.gradle` | `2.3.20` |
 | Chaquopy | `android/settings.gradle` | `17.0.0` (Python 3.12, bundles `yt-dlp`) |
-| Gradle | `android/gradle/wrapper/gradle-wrapper.properties` | `9.1.0` |
+| Gradle | `android/gradle/wrapper/gradle-wrapper.properties` | `9.2.1` |
 | Java toolchain | `android/app/build.gradle` | 17 |
 
 - **Pub packages** (`lib`, `third_party/`) are pinned in `pubspec.yaml`/`pubspec.lock`.
@@ -358,8 +361,10 @@ flutter build appbundle --flavor standard --dart-define=ENABLE_DOWNLOADER=false
 
 > The `ENABLE_DOWNLOADER` flag is compile-time (`const bool.fromEnvironment`), so the
 > downloader graph is tree-shaken out of `standard`. Chaquopy is applied to the Gradle
-> build only for `universal`. See `docs/PLAY_STORE_FLAVORS.md` for the full rationale
-> and the trace-verification steps.
+> build for **all** flavors, but only the `universal` flavor configures a Python version
+> + `pip install yt-dlp` (via `productFlavors.universal`), so the `standard` APK still
+> ships with no Python/yt-dlp/libchaquopy. See `docs/PLAY_STORE_FLAVORS.md` for the full
+> rationale and the trace-verification steps.
 
 - **Android debug APK** — `flutter build apk --debug`
 - **Android release APK** — `flutter build apk --release`

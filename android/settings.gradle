@@ -12,6 +12,9 @@ pluginManagement {
     repositories {
         google()
         mavenCentral()
+        // Chaquopy publishes its Gradle plugin + Python runtime artifacts here
+        // (the `com.chaquo.python:target` runtime used by the universal flavor).
+        maven { url "https://chaquo.com/maven" }
         gradlePluginPortal()
     }
 }

@@ -139,6 +139,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Downloader | **Threads video downloads** via a vendored yt-dlp extractor plugin that bypasses the login wall; auto re-registered after each in-app yt-dlp update (verified: resolves `threads.com` share + `@user/post` links). |
 | ⚠️ | Downloader | Site support limited to what `yt-dlp` (plus the vendored Threads plugin) can resolve; no DRM/login-gated content. See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
+| ✅ | Share / Open-with | App registers as `ACTION_VIEW` / `ACTION_SEND` / `SEND_MULTIPLE` target (images, audio, video, text, PDF, archives, APKs); opening a file from another manager (e.g. ES File Explorer) launches the built-in viewer instead of a 3rd-party app (2026-08-28). |
 
 ## Last Verified
 
@@ -146,7 +147,10 @@ Current local check status:
 
 ```bash
 git status --short
-# clean after downloader mp3/playlist + test-fix slice (uncommitted)
+# 2026-08-28 slice (uncommitted before this commit): gradle-wrapper.properties,
+#   gradle.properties, settings.gradle, android/build.gradle, AndroidManifest.xml,
+#   MainActivity.kt, app_router.dart, window_manager.dart, incoming_intent_handler.dart,
+#   + docs/TELEGRAM_BOT.md, lib/features/sharing/
 
 dart format lib
 # passed
@@ -155,7 +159,9 @@ flutter analyze
 # passed
 
 flutter test
-# passed — 160/160 (encryption 142 + downloader fix tests from the 2026-08-27 flavor slice; wallpaper feature adds no new tests but `flutter analyze` is clean and the universal APK was verified on device 2026-08-27)
+# 160/161 (1 pre-existing failure in nearby_share_screen_test.dart, unrelated to this
+#   slice); `flutter analyze` clean; both universal + standard APKs build and were
+#   verified on device 2026-08-28
 
 flutter build apk --debug
 # passed after native media_store channel changes
@@ -197,6 +203,8 @@ it contains zero `download_task_rows` / `yt-dlp` / `ffmpeg` / `libchaquopy` /
   `…/downloader` channel traces, confirming the Play Store build is downloader-free.
 
 Update 2026-08-27 (2nd): **Save Current Wallpaper tool landed** — Home → Tools → Save Wallpaper copies the device's current home + lock screen wallpapers into `File Explorer/Wallpaper` (byte-for-byte, original format; home falls back to a lossless PNG when the OS blocks reading the file). A SnackBar **Open** action navigates into the saved folder via the Explorer controller. New `lib/features/wallpaper/data/wallpaper_service.dart` + a `saveWallpaper` handler on the `wallpaper` MethodChannel. Present in both `universal` and `standard` flavors (not downloader-gated). Also fixed stale image thumbnails for directly-written files: native `getThumbnail` now decodes the real image file (BitmapFactory downscaled) instead of `MediaStore.loadThumbnail`, and the Dart disk-cache key includes size + last-modified so overwrites invalidate it. `flutter analyze` clean; universal APK built + installed on the device (RMX3031) and verified — both wallpapers save and thumbnails render correctly.
+
+Update 2026-08-28: **Universal build fixed + Open-with/share-target working.** The `universal` flavor stopped building because Gradle 9.1.0 broke Chaquopy 17.0.0's variant wiring (chaquopy issue #1441) — bumped Gradle to `9.2.1` (`gradle-wrapper.properties`); AGP stays 9.0.1. Pinned JDK 17 in `gradle.properties` (system java-21 is a JRE with no `javac`). Added the Chaquopy Maven repo to `settings.gradle` + `android/build.gradle`. Replaced the `isUniversal` taskNames hack with a per-flavor `chaquopy { productFlavors { universal { ... pip install yt-dlp } } }`, plugin applied unconditionally (the `standard` flavor configures no Python, stays downloader-free). Both `assembleUniversalDebug` and `assembleStandardDebug` now BUILD SUCCESSFUL. **Open-with**: ES File Explorer now opens images/videos in the built-in viewer — fixed a GoRouter redirect that treated the launch `content://` URI as a route, a native/Dart race (added `getPending` pull in `initState`), a null `GoRouter.of(context)` because `IncomingIntentHandler` wrapped `MaterialApp.router` (now passes `router: active.router`), and an ES content-URI real-path fallback in `resolveContentPath`. `flutter analyze` clean; APKs verified on device (RMX3031).
 
 Update 2026-08-14: `flutter analyze` clean, downloader controller tests 15/15 passing, and a live YouTube download was confirmed end-to-end on a real device (wireless debug). Pause/resume, copy-error, kebab-menu, browse-view, and datetime polish landed.
 

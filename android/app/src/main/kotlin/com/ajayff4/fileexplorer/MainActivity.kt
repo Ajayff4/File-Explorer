@@ -11,13 +11,16 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.content.ClipData
 import android.content.ContentValues
 import android.media.MediaScannerConnection
 import android.net.Uri
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.os.Handler
 import android.os.Looper
+import android.os.Parcelable
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.os.StatFs
@@ -44,9 +47,133 @@ class MainActivity: FlutterActivity() {
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
     private val mediaStoreChannel = "com.ajayff4.fileexplorer/media_store"
     private val wakelockChannel = "com.ajayff4.fileexplorer/wakelock"
+    private val incomingChannel = "com.ajayff4.fileexplorer/incoming"
+    private var incomingMethodChannel: MethodChannel? = null
+    private var pendingIncomingPaths: List<String>? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Surface a file opened via "Open with" / a share-into before the
+        // Flutter engine is ready; handled once the channel exists.
+        handleIntent(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleIntent(intent)
+    }
+
+    /// Routes ACTION_VIEW / ACTION_SEND / ACTION_SEND_MULTIPLE intents to Flutter
+    /// so the built-in viewers can open the file(s) instead of a 3rd-party app.
+    private fun handleIntent(intent: Intent?) {
+        if (intent == null) return
+        val uris = when (intent.action) {
+            Intent.ACTION_VIEW -> intent.data?.let { listOf(it) } ?: emptyList()
+            Intent.ACTION_SEND -> {
+                val extra = intent.getParcelableExtra<Parcelable>(Intent.EXTRA_STREAM)
+                (extra as? Uri)?.let { listOf(it) } ?: emptyList()
+            }
+            Intent.ACTION_SEND_MULTIPLE -> collectClipUris(intent)
+            else -> emptyList()
+        }
+        val paths = uris.mapNotNull { resolvePath(it) }
+        if (paths.isNotEmpty()) forwardIncomingFiles(paths)
+    }
+
+    private fun collectClipUris(intent: Intent): List<Uri> {
+        val uris = mutableListOf<Uri>()
+        intent.clipData?.let { clip ->
+            for (i in 0 until clip.itemCount) uris.add(clip.getItemAt(i).uri)
+        }
+        if (uris.isEmpty()) {
+            intent.getParcelableArrayListExtra<Parcelable>(Intent.EXTRA_STREAM)
+                ?.forEach { (it as? Uri)?.let { u -> uris.add(u) } }
+        }
+        return uris
+    }
+
+    /// Resolves an incoming URI to a filesystem path. Content URIs are resolved
+    /// via MediaStore when possible, otherwise copied into the app cache.
+    private fun resolvePath(uri: Uri): String? {
+        return try {
+            when (uri.scheme) {
+                "file" -> uri.path
+                "content" -> resolveContentPath(uri)
+                else -> null
+            }
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun resolveContentPath(uri: Uri): String? {
+        // 1) MediaStore-backed URIs (image/video/audio/Downloads collections).
+        try {
+            val proj = arrayOf(MediaStore.MediaColumns.DATA)
+            contentResolver.query(uri, proj, null, null, null)?.use { c ->
+                if (c.moveToFirst()) {
+                    val idx = c.getColumnIndex(MediaStore.MediaColumns.DATA)
+                    if (idx >= 0) {
+                        val p = c.getString(idx)
+                        if (!p.isNullOrEmpty()) return p
+                    }
+                }
+            }
+        } catch (_: Exception) {
+        }
+        // 2) File-manager providers (e.g. ES File Explorer) often embed the real
+        //    filesystem path in the URI, e.g.
+        //    content://com.estrongs.files/storage/emulated/0/Download/x.jpg
+        //    -> /storage/emulated/0/Download/x.jpg
+        val rawPath = uri.path
+        if (!rawPath.isNullOrEmpty() && rawPath.startsWith("/")) {
+            val f = File(rawPath)
+            if (f.canRead()) return rawPath
+        }
+        // 3) Fallback: copy the stream into our cache (needs the sending app to
+        //    have granted read access to the URI).
+        return try {
+            val name = (uri.lastPathSegment?.substringAfterLast('/')
+                ?.takeIf { it.isNotEmpty() } ?: "shared_${System.currentTimeMillis()}")
+            val cacheFile = File(cacheDir, "incoming_$name")
+            contentResolver.openInputStream(uri)?.use { input ->
+                cacheFile.outputStream().use { out -> input.copyTo(out) }
+            }
+            if (cacheFile.length() > 0) cacheFile.absolutePath else null
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun forwardIncomingFiles(paths: List<String>) {
+        if (incomingMethodChannel != null) {
+            incomingMethodChannel?.invokeMethod("onFiles", paths)
+        } else {
+            pendingIncomingPaths = paths
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+
+        // Incoming "Open with" / share intents are forwarded to Dart through
+        // this channel. A cold-start intent is queued in `pendingIncomingPaths`;
+        // instead of pushing it here (the Dart handler may not be registered
+        // yet), we expose it via `getPending` so Dart can pull it once ready.
+        incomingMethodChannel = MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            incomingChannel,
+        )
+        incomingMethodChannel?.setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getPending" -> {
+                    result.success(pendingIncomingPaths)
+                    pendingIncomingPaths = null
+                }
+                else -> result.notImplemented()
+            }
+        }
 
         // Downloader (Chaquopy/Python/yt-dlp) is wired only in the `universal`
         // flavor; the `standard` flavor compiles a no-op of this same function,

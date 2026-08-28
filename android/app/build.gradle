@@ -5,15 +5,19 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// Apply Chaquopy — which bundles CPython + yt-dlp into the APK — ONLY for the
-// `universal` flavor. The `standard` (Play Store) flavor must not ship any
-// Python runtime, any yt-dlp wheel, or the downloader MethodChannel, so the
-// plugin is never applied (and the chaquopy {} block below is never evaluated)
-// for it. This is what keeps `standard` 100% free of downloader traces.
-def isUniversal = gradle.startParameter.taskNames.any { it ==~ /(?i).*universal.*/ }
-if (isUniversal) {
-    apply plugin: 'com.chaquo.python'
-}
+// Apply Chaquopy — which bundles CPython + yt-dlp into the APK. The plugin is
+// applied unconditionally, but the Python config is scoped to the `universal`
+// flavor (see the `chaquopy { productFlavors { universal { ... } } }` block
+// below), so the `standard` (Play Store) flavor stays 100% free of any Python
+// runtime, yt-dlp wheel, or downloader MethodChannel.
+//
+// The config used to be gated behind a task-name check for `*universal*`, but
+// `flutter build apk --debug` runs `assembleDebug`, which aggregates EVERY
+// flavor, so that check was false and Chaquopy never got configured — leaving
+// the `universal` Kotlin sources (DownloaderBridge.kt) unable to resolve
+// `com.chaquo.python.*`. Scoping by flavor instead fixes it for all build
+// invocations.
+apply plugin: 'com.chaquo.python'
 
 android {
     namespace = "com.ajayff4.fileexplorer"
@@ -63,10 +67,14 @@ android {
     }
 }
 
-if (isUniversal) {
-    chaquopy {
-        defaultConfig {
-            version = "3.12"
+chaquopy {
+    // Scope the Python runtime/yt-dlp to the `universal` flavor only, so the
+    // `standard` flavor never ships any Python code. Chaquopy adds the
+    // `com.chaquo.python:target` dependency and packages Python solely for the
+    // variants whose flavor is configured here.
+    productFlavors {
+        universal {
+            version "3.12"
             // yt-dlp discovers plugins by scanning sys.path for a physical
             // `yt_dlp_plugins/extractor` directory, so the vendored Threads plugin
             // must exist as real files rather than Chaquopy's in-APK virtual FS.

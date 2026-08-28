@@ -2,6 +2,49 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-28
+
+### Fixed
+- **Universal flavor failed to build** (Gradle 9.1.0 + Chaquopy 17.0.0):
+  - **Root cause** — Gradle 9.1.0 broke Chaquopy 17.0.0's `onVariant` dependency
+    injection (chaquopy issue #1441); the Python assets and `PyProject` task were
+    never wired, so `assembleUniversalDebug` failed. 17.0.0 is the latest Chaquopy,
+    so a version bump there was not possible.
+  - **Fix** — bumped Gradle `9.1.0` → `9.2.1`
+    (`android/gradle/wrapper/gradle-wrapper.properties`); AGP stays 9.0.1.
+  - Pinned the build JDK to 17 (`org.gradle.java.home=/usr/lib/jvm/
+    java-17-openjdk-amd64` in `gradle.properties`) because the system
+    `java-21-openjdk-amd64` is a JRE without `javac`.
+  - Added the Chaquopy Maven repo (`https://chaquo.com/maven`) to `settings.gradle`
+    (pluginManagement) and `android/build.gradle` (allprojects).
+  - Replaced the brittle `isUniversal` taskNames hack with a per-flavor Chaquopy
+    config: `chaquopy { productFlavors { universal { version "3.12";
+    extractPackages("yt_dlp_plugins"); pip { install "yt-dlp" } } } }`; the plugin
+    is now applied unconditionally, and the `standard` flavor simply has no
+    `productFlavors.universal` block, so it bundles no Python/yt-dlp.
+  - **Verified** — `assembleUniversalDebug` BUILD SUCCESSFUL + installed on device;
+    `assembleStandardDebug` BUILD SUCCESSFUL; both flavors share `applicationId` and
+    install over each other.
+
+### Fixed
+- **"Open with" / share target now opens files in-app** (verified on device via
+  ES File Explorer — image + video open in the built-in viewer):
+  - GoRouter treated the launch `content://`/`file://` intent URI as a route
+    (logged "no routes for location"). Added a top-level `appRouteRedirect`
+    (`lib/app/router/app_router.dart`) that sends those schemes home; applied in
+    `appRouterProvider` and `WindowHost.addWindow`.
+  - Race condition — native flushed pending paths during `configureFlutterEngine`
+    before the Dart handler registered, so shared files were lost. Native now
+    exposes them via a `getPending` MethodCallHandler (`MainActivity.kt`); Dart
+    pulls `getPending` in `initState` (`incoming_intent_handler.dart`).
+  - `IncomingIntentHandler` wraps `MaterialApp.router`, so `GoRouter.of(context)`
+    (ancestor search) returned null and `push` silently failed. It now receives
+    `router: active.router` and uses `widget.router.routerDelegate.navigatorKey
+    .currentContext` for the SnackBar.
+  - ES File Explorer sends a `content://com.estrongs.files/...` URI that embeds the
+    real path; `resolveContentPath` (`MainActivity.kt`) now falls back to that real
+    path when MediaStore yields nothing.
+
 ## 2026-08-27
 
 ### Added

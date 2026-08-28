@@ -28,12 +28,29 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+/// Redirects non-app routes to [AppRoutes.home].
+///
+/// When the app is launched via "Open with" / a share intent (ACTION_VIEW /
+/// ACTION_SEND with a `content://` or `file://` URI), Android hands that URI to
+/// Flutter as the initial route. It is not a navigation route — the file is
+/// actually opened by [IncomingIntentHandler] through the incoming-intent
+/// MethodChannel — so we must not try to navigate to it. Redirect such URIs to
+/// home; the channel push then opens the viewer on top.
+String? appRouteRedirect(BuildContext context, GoRouterState state) {
+  final scheme = state.uri.scheme;
+  if (scheme == 'content' || scheme == 'file') {
+    return AppRoutes.home;
+  }
+  return null;
+}
+
 /// Root router provider (used by tests). The running app uses [WindowHost]
 /// which builds its own per-window routers via [buildAppRoutes].
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: AppRoutes.home,
     routes: buildAppRoutes(),
+    redirect: appRouteRedirect,
   );
 });
 

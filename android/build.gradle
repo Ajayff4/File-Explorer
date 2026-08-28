@@ -2,6 +2,10 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+        // Chaquopy Python runtime artifacts (`com.chaquo.python:target`) used by
+        // the universal flavor's downloader. Required for the plugin to resolve
+        // and inject its dependency into the compile classpath.
+        maven { url "https://chaquo.com/maven" }
     }
 }
 

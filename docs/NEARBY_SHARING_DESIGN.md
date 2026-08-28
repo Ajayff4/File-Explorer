@@ -288,3 +288,95 @@ older Android. Phase 2 may switch to NSD (`NsdManager`) which only needs
   files to bound resources.
 - **File collisions on receive:** reuse the existing `ConflictPolicy`
   (overwrite / skip / rename) when the destination already has a same-named file.
+
+## Phase 2 — auto-hotspot / Wi-Fi Direct (Xender-style, zero pre-networking)
+
+Goal: make sharing work with **no prior Wi-Fi setup** — one phone spins up a
+network, the other joins automatically, exactly like ShareIt/Xender. The existing
+LAN protocol (UDP beacon + TCP) stays; Phase 2 only adds *network bootstrap* so
+both devices end up on the same subnet. Two Android-native options, researched
+against the current platform APIs:
+
+### Option A — `LocalOnlyHotspot` (recommended; closest to Xender/ShareIt today)
+
+One phone becomes the **access point**; the other connects to it over normal
+Wi-Fi, then the existing UDP discovery + TCP transfer runs unchanged.
+
+- API: `WifiManager.startLocalOnlyHotspot(callback, handler)`
+  (`android.net.wifi.WifiManager`). Callback `onStarted(reservation)` returns a
+  `LocalOnlyHotspotReservation` carrying the live `SoftApConfiguration` (SSID +
+  pre-shared key + gateway IP). Call `reservation.close()` to tear down.
+- Permissions: `NEARBY_WIFI_DEVICES` (API 33+) or `ACCESS_FINE_LOCATION` (≤32)
+  to *start* the hotspot. Already in the manifest plan (see *Permissions*).
+  `CHANGE_WIFI_STATE` / `ACCESS_WIFI_STATE` also needed.
+- **SSID/password are random and non-configurable** via the public API. To set a
+  known SSID/PSK you must call the hidden overload
+  `startLocalOnlyHotspot(SoftApConfiguration, Executor, callback)` via reflection
+  (works Android 13+ with `NEARBY_WIFI_DEVICES`; the config is ignored / throws
+  `SecurityException` on ≤12 unless system-signed). For a clean UX, prefer the
+  random config and just **display the SSID + password** (or a QR encoding
+  `WIFI:S:<ssid>;T:WPA;P:<pass>;`) so the receiver phone joins — matching
+  `qr-local-file-share`'s two-QR flow.
+- The hotspot has **no internet uplink** (local-only) — fine for file transfer.
+  The AP phone keeps its cellular/other uplink.
+- Recommended flow:
+  1. Sender taps "Share without Wi-Fi" → `startLocalOnlyHotspot`.
+  2. On `onStarted`, show the SSID/PSK (and a join-QR) in the UI; sender also
+     starts the normal `startHost` TCP+UDP server.
+  3. Receiver taps "Join hotspot" → Android Wi-Fi picker pre-filled, or scans the
+     QR to connect; once on the network, normal `discover()` finds the sender.
+  4. Transfer runs over the existing protocol. On finish/leave, `close()` the
+     reservation.
+- Reference: Android *Local-only Wi-Fi hotspot* guide; `qr-local-file-share`
+  (Kotlin `HotspotManager` + NanoHTTPD) for the lifecycle pattern.
+
+### Option B — Wi-Fi Direct (`WifiP2pManager`)
+
+True P2P: devices connect directly, no hotspot/AP concept, no SSID to join.
+
+- API: `WifiP2pManager.initialize()` → `discoverPeers()` → `connect(config)`
+  → on `WIFI_P2P_CONNECTION_CHANGED_ACTION`, `requestConnectionInfo()` to learn
+  the **group owner IP**. Then open the existing `ServerSocket`/`Socket` TCP pair
+  on that IP.
+- The group owner (GO) is one device; the other is the client. Set
+  `WifiP2pConfig` with `wps.setup = WpsInfo.PBC`. A device can also
+  `createGroup()` to force GO role for legacy peers.
+- Requires a `BroadcastReceiver` for `WIFI_P2P_PEERS_CHANGED_ACTION`,
+  `WIFI_P2P_CONNECTION_CHANGED_ACTION`, `WIFI_P2P_THIS_DEVICE_CHANGED_ACTION`.
+- **Caveats:** Wi-Fi Direct is increasingly unreliable on newer Android (some
+  vendors disable/limit it; behaves oddly next to a normal Wi-Fi connection);
+  the GO IP is only known after connection, so the UDP beacon discovery must be
+  replaced/augmented by the P2P connection-info handshake. Heavier rework of the
+  discovery layer than Option A.
+- Reference: Android *Wi-Fi Direct* guides + `WiFiDirectDemo` sample; Kotlin
+  `WiFiDirectFileTransfer` for a socket-transfer pattern.
+
+### Plugin alternative (lower-control, faster to ship)
+
+`flutter_p2p_connection` (pub.dev) wraps Wi-Fi Direct + BLE: `FlutterP2pHost`
+(`createGroup`, `broadcastFile`) and `FlutterP2pClient` (`startScan`,
+`connectWithCredentials`, `downloadFile`). Pros: built-in permission handling,
+progress streams, resumable downloads. Cons: replaces our raw `dart:io` socket
+protocol with its own transfer API, so it conflicts with the current
+protocol/Transfer-Station integration — only worth it if we abandon the custom
+protocol for Phase 2. **Not recommended** while the LAN protocol is the source
+of truth; prefer Option A and keep `dart:io`.
+
+### Decision guidance
+
+- **Default to Option A (`LocalOnlyHotspot`).** It reuses 100% of the existing
+  UDP-discovery + TCP-transfer code; only a native hotspot orchestration layer
+  (Kotlin `HotspotManager` behind a new MethodChannel, e.g.
+  `nearby_sharing/hotspot`) plus a "join hotspot" UI is added. Minimal blast
+  radius, matches Xender/ShareIt today.
+- Keep the **manual same-Wi-Fi path** as a fallback (current MVP) for when both
+  phones are already on a network.
+- Add a foreground service + `WakeLock` for the hotspot host so the AP phone
+  doesn't sleep mid-transfer (ties into the existing mid-transfer disruption
+  note above).
+- Phase 2 testing needs **two physical devices** (one to host, one to join) —
+  loopback/emu cannot exercise `LocalOnlyHotspot`. (Current dev has only one
+  device; implement behind a feature flag and verify on-device once a second
+  phone is available.)
+- Document the SSID/PSK display (or join-QR) in the UI; never log the PSK.
+

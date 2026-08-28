@@ -13,6 +13,7 @@ import 'package:file_explorer/features/search/presentation/controllers/file_sear
 import 'package:file_explorer/features/explorer/data/repositories/storage_repository_provider.dart';
 import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:file_explorer/features/sharing/incoming_intent_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -139,6 +140,7 @@ class WindowManager extends Notifier<WindowManagerState> {
       navigatorKey: GlobalKey<NavigatorState>(),
       initialLocation: startLocation ?? AppRoutes.explorer,
       routes: buildAppRoutes(),
+      redirect: appRouteRedirect,
     );
 
     _counter++;
@@ -265,7 +267,9 @@ class _WindowHostState extends ConsumerState<WindowHost> {
     }
 
     final active = wm.active;
-    return UncontrolledProviderScope(
+    return IncomingIntentHandler(
+      router: active.router,
+      child: UncontrolledProviderScope(
       container: active.scope,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -304,6 +308,7 @@ class _WindowHostState extends ConsumerState<WindowHost> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
