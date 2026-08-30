@@ -2,6 +2,46 @@
 
 Progress log for the Flutter application.
 
+## 2026-08-30
+
+### Added
+- **Cookies support for the Universal Downloader** (unblocks Instagram and other
+  login-walled sites):
+  - **Root cause** — Instagram downloads failed with `Instagram sent an empty
+    media response`. Instagram now blocks anonymous API requests that lack a
+    browser fingerprint (yt-dlp issue #17074), and the downloader never passed a
+    cookies file to yt-dlp, so every request was anonymous.
+  - **Updating yt-dlp was not the fix** — the bundled `2026.8.19` was already the
+    latest release on PyPI and already carried the Instagram extractor rework
+    (#17075, #17126, #17278). The missing piece was cookies.
+  - **Python** (`android/app/src/universal/python/downloader.py`) — new
+    `_cookies_path()` / `_cookie_opts()` pass `cookiefile` to yt-dlp whenever an
+    imported cookies file exists, applied in both `_base_opts` (downloads) and
+    `resolve` (URL paste). `_friendly_error` now turns the raw Instagram text into
+    an actionable "import a cookies file" message instead of the truncated
+    `--cookies-f…`.
+  - **Kotlin** (`src/universal/.../DownloaderBridge.kt`) — `import_cookies`,
+    `clear_cookies`, and `has_cookies` MethodChannel handlers. Cookies live in
+    app-private storage (`filesDir/cookies.txt`), the same directory Python's
+    `_app_files_dir()` reads, matching how `ffmpeg` is already handled. Written
+    via temp-file + rename so an in-flight download never reads a partial file.
+  - **Dart** — `DownloadEngine` gained `hasCookies()` / `importCookies()` /
+    `clearCookies()`, implemented in `ChaquopyDownloadEngine` (MethodChannel) and
+    `FakeDownloadEngine`; `DownloaderState.hasCookies` plus `importCookies()` /
+    `clearCookies()` on `DownloaderController`, seeded during `initialize()`.
+  - **UI** — a "Cookies" row in the Downloader's **Download settings** card
+    (Import / Clear). Import uses a new shared `FilePickerSheet`
+    (`lib/shared/widgets/file_picker_sheet.dart`), modelled on the existing
+    `FolderPickerSheet` and reusing `storageRepository`, so **no new
+    dependency** was added.
+  - **Verified** — `flutter analyze` clean; downloader controller tests 16/16;
+    universal APK built and installed on device (RMX3031), and an Instagram
+    download completed successfully with imported cookies.
+  - **Caveat** — Instagram invalidates sessions aggressively (yt-dlp #17126 added
+    detection for exactly this), so a stale `cookies.txt` must be re-exported and
+    re-imported. Sites requiring request impersonation (`curl_cffi`, not bundled)
+    still fail without cookies.
+
 ## 2026-08-28
 
 ### Fixed

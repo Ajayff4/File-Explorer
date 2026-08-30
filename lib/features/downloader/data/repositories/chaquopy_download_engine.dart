@@ -90,6 +90,23 @@ class ChaquopyDownloadEngine implements DownloadEngine {
   }
 
   @override
+  Future<bool> hasCookies() async {
+    return await _methodChannel.invokeMethod<bool>('has_cookies') ?? false;
+  }
+
+  @override
+  Future<void> importCookies(String content) async {
+    await _methodChannel.invokeMethod<void>('import_cookies', {
+      'content': content,
+    });
+  }
+
+  @override
+  Future<void> clearCookies() async {
+    await _methodChannel.invokeMethod<void>('clear_cookies');
+  }
+
+  @override
   Future<YtDlpUpdateInfo> checkUpdate() async {
     final payload = await _methodChannel.invokeMapMethod<Object?, Object?>(
           'check_update',

@@ -102,6 +102,15 @@ abstract interface class DownloadEngine {
   /// Resumes a previously paused download.
   Future<void> resume(String taskId);
 
+  /// Whether a user-imported cookies file is currently stored.
+  Future<bool> hasCookies();
+
+  /// Stores [content] (Netscape cookies.txt format) for use by the engine.
+  Future<void> importCookies(String content);
+
+  /// Deletes the stored cookies file, restoring anonymous downloads.
+  Future<void> clearCookies();
+
   /// Checks PyPI for a newer yt-dlp release than the one bundled in the app.
   Future<YtDlpUpdateInfo> checkUpdate();
 

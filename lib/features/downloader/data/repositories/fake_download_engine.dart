@@ -119,6 +119,23 @@ class FakeDownloadEngine implements DownloadEngine {
     resumedTaskIds.add(taskId);
   }
 
+  String? storedCookies;
+
+  @override
+  Future<bool> hasCookies() async {
+    return storedCookies != null && storedCookies!.isNotEmpty;
+  }
+
+  @override
+  Future<void> importCookies(String content) async {
+    storedCookies = content;
+  }
+
+  @override
+  Future<void> clearCookies() async {
+    storedCookies = null;
+  }
+
   @override
   Future<YtDlpUpdateInfo> checkUpdate() async {
     return const YtDlpUpdateInfo(

@@ -336,9 +336,24 @@ class _HoldingDownloadEngine implements DownloadEngine {
   final pausedTaskIds = <String>[];
   final resumedTaskIds = <String>[];
   final _completed = <String>{};
+  String? storedCookies;
 
   @override
   Stream<DownloaderEvent> events() => _controller.stream;
+
+  @override
+  Future<bool> hasCookies() async =>
+      storedCookies != null && storedCookies!.isNotEmpty;
+
+  @override
+  Future<void> importCookies(String content) async {
+    storedCookies = content;
+  }
+
+  @override
+  Future<void> clearCookies() async {
+    storedCookies = null;
+  }
 
   @override
   Future<MediaInfo> resolve({

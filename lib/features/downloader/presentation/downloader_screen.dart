@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:file_explorer/features/downloader/data/repositories/download_engine_provider.dart';
 import 'package:file_explorer/features/downloader/domain/entities/download_task.dart';
 import 'package:file_explorer/features/downloader/domain/repositories/download_engine.dart';
@@ -7,6 +9,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/shared/widgets/file_picker_sheet.dart';
 import 'package:file_explorer/shared/widgets/folder_picker_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -377,10 +380,64 @@ class _DownloaderSettingsCard extends ConsumerWidget {
                 child: const Text('Change'),
               ),
             ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              dense: true,
+              leading: const Icon(Icons.cookie_rounded),
+              title: const Text('Cookies'),
+              subtitle: Text(
+                state.hasCookies
+                    ? 'Using imported cookies'
+                    : 'Needed for login-walled sites (e.g. Instagram)',
+              ),
+              trailing: state.hasCookies
+                  ? TextButton(
+                      onPressed: () => controller.clearCookies(),
+                      child: const Text('Clear'),
+                    )
+                  : TextButton(
+                      onPressed: () => _importCookies(context, ref),
+                      child: const Text('Import'),
+                    ),
+            ),
           ],
         ),
       ),
     );
+  }
+
+  /// Picks a Netscape cookies.txt and hands its contents to the engine.
+  Future<void> _importCookies(BuildContext context, WidgetRef ref) async {
+    final path = await pickFile(
+      context,
+      ref,
+      startPath: state.settings.outputDirectory,
+      extensions: const ['txt'],
+    );
+    if (path == null || !context.mounted) return;
+
+    String content;
+    try {
+      content = await File(path).readAsString();
+    } catch (_) {
+      if (context.mounted) {
+        _showMessage(context, 'Could not read that file');
+      }
+      return;
+    }
+
+    final imported = await controller.importCookies(content);
+    if (!context.mounted) return;
+    _showMessage(
+      context,
+      imported ? 'Cookies imported' : 'That file is empty or invalid',
+    );
+  }
+
+  void _showMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

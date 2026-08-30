@@ -170,6 +170,39 @@ private fun setupDownloaderChannels(activity: MainActivity, flutterEngine: Flutt
                         )
                     }
                 }
+                "import_cookies" -> {
+                    val content = call.argument<String>("content")
+                    if (content.isNullOrBlank()) {
+                        result.error("missing_content", "content is required", null)
+                    } else {
+                        try {
+                            writeCookiesFile(activity, content)
+                            result.success(null)
+                        } catch (error: Exception) {
+                            result.error(
+                                "import_cookies_failed",
+                                error.message ?: "Failed to save cookies",
+                                null,
+                            )
+                        }
+                    }
+                }
+                "clear_cookies" -> {
+                    try {
+                        cookiesFile(activity).delete()
+                        result.success(null)
+                    } catch (error: Exception) {
+                        result.error(
+                            "clear_cookies_failed",
+                            error.message ?: "Failed to clear cookies",
+                            null,
+                        )
+                    }
+                }
+                "has_cookies" -> {
+                    val file = cookiesFile(activity)
+                    result.success(file.isFile && file.length() > 0)
+                }
                 else -> result.notImplemented()
             }
         }
@@ -219,6 +252,25 @@ private fun extractFfmpeg(activity: MainActivity) {
         target.setExecutable(true, false)
     } catch (_: Exception) {
         // Downloader still works without ffmpeg (progressive formats only).
+    }
+}
+
+/// The imported Netscape cookies file, kept in app-private storage.
+/// downloader.py reads this same location through its `_app_files_dir()`
+/// helper and passes the path to yt-dlp as `cookiefile`, which is what lets
+/// login-walled sites (Instagram and friends) return real media.
+private fun cookiesFile(activity: MainActivity): File =
+    File(activity.filesDir, "cookies.txt")
+
+/// Replaces the stored cookies file. Written via a temp file and rename so a
+/// download already in flight never reads a half-written cookies file.
+private fun writeCookiesFile(activity: MainActivity, content: String) {
+    val target = cookiesFile(activity)
+    val temp = File(activity.filesDir, "cookies.txt.tmp")
+    temp.writeText(content, Charsets.UTF_8)
+    if (!temp.renameTo(target)) {
+        temp.copyTo(target, overwrite = true)
+        temp.delete()
     }
 }
 

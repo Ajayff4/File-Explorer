@@ -105,6 +105,10 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Queue with live progress/speed, retry, cancel, and a concurrent-download limit.
 - ✅ Persistent history and download settings via Drift.
 - ✅ Finished files expose Move-to (transfer-backed), Open folder, and Browse.
+- ✅ Cookies import for login-walled sites (e.g. Instagram) — import a Netscape
+  `cookies.txt` in the Download settings card; it is stored app-private and
+  passed to yt-dlp. Sites that need a login session must be re-exported when
+  the session goes stale.
 - See `docs/DOWNLOADER.md` for the architecture.
 - ⚠️ **Flavor gated:** built only into the `universal` flavor. The `standard`
   (Google Play) flavor omits it entirely — no `yt-dlp`/Python/`ffmpeg`/libchaquopy,

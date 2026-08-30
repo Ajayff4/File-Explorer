@@ -29,11 +29,15 @@ class DownloaderState {
     this.tasks = const [],
     this.settings = const DownloaderSettings(),
     this.isLoading = true,
+    this.hasCookies = false,
   });
 
   final List<DownloadTask> tasks;
   final DownloaderSettings settings;
   final bool isLoading;
+
+  /// Whether a cookies file is stored, enabling login-walled sites.
+  final bool hasCookies;
 
   List<DownloadTask> get activeTasks =>
       tasks.where((task) => !task.isFinished).toList();
@@ -80,11 +84,13 @@ class DownloaderState {
     List<DownloadTask>? tasks,
     DownloaderSettings? settings,
     bool? isLoading,
+    bool? hasCookies,
   }) {
     return DownloaderState(
       tasks: tasks ?? this.tasks,
       settings: settings ?? this.settings,
       isLoading: isLoading ?? this.isLoading,
+      hasCookies: hasCookies ?? this.hasCookies,
     );
   }
 }
@@ -126,10 +132,20 @@ class DownloaderController extends StateNotifier<DownloaderState> {
       );
       await _settingsStore?.save(settings);
     }
+    var hasCookies = false;
+    try {
+      hasCookies = await _engine.hasCookies();
+    } catch (_) {
+      // Cookies are optional; a failing probe must not block initialization.
+    }
     if (!mounted) {
       return;
     }
-    state = state.copyWith(settings: settings, isLoading: false);
+    state = state.copyWith(
+      settings: settings,
+      isLoading: false,
+      hasCookies: hasCookies,
+    );
 
     var persistedTasks = const <DownloadTask>[];
     try {
@@ -196,6 +212,37 @@ class DownloaderController extends StateNotifier<DownloaderState> {
     final updated = state.settings.copyWith(outputDirectory: directory);
     state = state.copyWith(settings: updated);
     unawaited(_settingsStore?.save(updated) ?? Future.value());
+  }
+
+  /// Stores a Netscape-format cookies file so login-walled sites resolve.
+  /// Returns false when the content is empty or the engine rejected it.
+  Future<bool> importCookies(String content) async {
+    final trimmed = content.trim();
+    if (trimmed.isEmpty) {
+      return false;
+    }
+    try {
+      await _engine.importCookies(trimmed);
+    } catch (_) {
+      return false;
+    }
+    if (!mounted) {
+      return true;
+    }
+    state = state.copyWith(hasCookies: true);
+    return true;
+  }
+
+  Future<void> clearCookies() async {
+    try {
+      await _engine.clearCookies();
+    } catch (_) {
+      return;
+    }
+    if (!mounted) {
+      return;
+    }
+    state = state.copyWith(hasCookies: false);
   }
 
   DownloadTask enqueue({

@@ -155,6 +155,23 @@ def _ffmpeg_location():
         return None
 
 
+def _cookies_path():
+    """Location of the user-imported Netscape cookies file in app storage."""
+    return os.path.join(_app_files_dir(), "cookies.txt")
+
+
+def _cookie_opts():
+    """yt-dlp options enabling the imported cookies file, or {} when absent.
+
+    Sites such as Instagram answer anonymous requests with an empty media
+    response, so a logged-in session cookie is the only way to reach them.
+    """
+    path = _cookies_path()
+    if os.path.isfile(path) and os.path.getsize(path) > 0:
+        return {"cookiefile": path}
+    return {}
+
+
 def _base_opts(task_id, url, media_type, output_dir, quality="auto",
                audio_format="original", playlist=False):
     opts = {
@@ -169,6 +186,7 @@ def _base_opts(task_id, url, media_type, output_dir, quality="auto",
         "socket_timeout": 30,
         "progress_hooks": [_progress_hook(task_id)],
     }
+    opts.update(_cookie_opts())
     if media_type == "audio" and audio_format == "mp3":
         opts["postprocessors"] = [{
             "key": "FFmpegExtractAudio",
@@ -371,6 +389,7 @@ def resolve(url, media_type):
             "skip_download": True,
 "extractor_args": {"youtube": {"player_client": ["android"]}},
         }
+        opts.update(_cookie_opts())
         with yt_dlp.YoutubeDL(opts) as ydl:
             info = ydl.extract_info(url, download=False) or {}
             if info.get("_type") == "playlist":
@@ -414,6 +433,11 @@ def _friendly_error(error, url):
         return "This video is private"
     if "inappropriate content" in text.lower():
         return "This video is age-restricted and cannot be downloaded"
+    if "empty media response" in text.lower() or "use --cookies" in text.lower():
+        return (
+            "%s needs a logged-in session. Import a cookies file in Downloader "
+            "settings, then retry." % _host(url)
+        )
     if len(text) > 180:
         text = text[:180] + "..."
     return text
