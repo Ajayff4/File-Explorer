@@ -157,6 +157,7 @@ feature below works end to end on a real device over wireless ADB.
 
 - ✅ Persistent favorites, recents, transfer queue/history.
 - ✅ Settings screen (Explorer, Transfers, Search toggles).
+- ✅ History backup — auto-snapshots all history into hidden **File Explorer/.history** (survives uninstall; restores automatically on reinstall, manual Back up now in Settings; delete the folder for a fresh start).
 - ✅ Drift + build_runner codegen.
 
 - ✅ Share — direct device-to-device transfer on the same network (ShareIt/Xender style): pick files from Explorer, auto-discover peers over the LAN, and receive into a shared **File Explorer/Share** folder.

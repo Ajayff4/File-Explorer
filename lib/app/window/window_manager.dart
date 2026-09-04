@@ -1,4 +1,4 @@
-import 'dart:typed_data';
+import 'dart:async';
 import 'dart:ui' as ui;
 
 import 'package:file_explorer/app/router/app_router.dart';
@@ -6,6 +6,7 @@ import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/app/theme/app_theme.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/history_backup/presentation/history_backup_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_factory_io.dart';
 import 'package:file_explorer/features/search/data/repositories/search_index_store_provider.dart';
@@ -16,6 +17,7 @@ import 'package:file_explorer/features/settings/presentation/controllers/setting
 import 'package:file_explorer/features/sharing/incoming_intent_handler.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart';
 import 'package:go_router/go_router.dart';
@@ -267,17 +269,96 @@ class WindowHost extends ConsumerStatefulWidget {
   ConsumerState<WindowHost> createState() => _WindowHostState();
 }
 
-class _WindowHostState extends ConsumerState<WindowHost> {
+class _WindowHostState extends ConsumerState<WindowHost>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final root = ProviderScope.containerOf(context, listen: false);
     ref.read(windowManagerProvider.notifier).initRoot(root);
     // Defer window creation until after the first frame so we don't modify
     // provider state while the widget tree is still building.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(windowManagerProvider.notifier).ensureDefaultWindow();
+      // Refresh the history snapshot once data has had a chance to load.
+      ref.read(historyBackupControllerProvider.notifier).exportIfDue();
+      // Offer a post-permission restore: the pre-startup import cannot read
+      // the backup folder until storage access is granted, which typically
+      // happens after the first launch.
+      unawaited(_maybeOfferRestore());
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Back up before the app can be killed or uninstalled.
+    if (state == AppLifecycleState.hidden) {
+      ref.read(historyBackupControllerProvider.notifier).exportIfDue();
+    }
+    // Re-check on return: storage permission (and therefore backup
+    // readability) is typically granted mid-session via the permission card.
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_maybeOfferRestore());
+    }
+  }
+
+  bool _restorePromptVisible = false;
+
+  /// Shows the restore prompt when this install holds no real history but a
+  /// usable snapshot exists. Restoring replaces the open databases on disk,
+  /// so the app closes afterwards and the user simply reopens it.
+  Future<void> _maybeOfferRestore() async {
+    if (_restorePromptVisible) return;
+    final controller = ref.read(historyBackupControllerProvider.notifier);
+    if (!await controller.checkPendingRestore()) return;
+    if (!mounted) return;
+    _restorePromptVisible = true;
+    try {
+      final restore = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Restore history?'),
+          content: const Text(
+            'A history backup from a previous install was found in '
+            'File Explorer/.history. Restore it now? The app will close — '
+            'just reopen it to continue with your restored history.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Not now'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Restore'),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (restore == true) {
+        final ok = await controller.restoreNow();
+        if (!mounted) return;
+        if (ok) {
+          SystemNavigator.pop();
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Restore failed — starting fresh')),
+          );
+        }
+      } else {
+        await controller.dismissRestore();
+      }
+    } finally {
+      _restorePromptVisible = false;
+    }
   }
 
   @override

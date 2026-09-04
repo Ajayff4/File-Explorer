@@ -2,6 +2,40 @@
 
 Progress log for the Flutter application.
 
+## 2026-09-05
+
+### Added
+- **History backup — reinstalls no longer wipe history** (transfer/download/QR
+  histories, recents, favorites, and settings survive an uninstall):
+  - **Design** (`lib/features/history_backup/`) — full snapshots of the app
+    databases (`file_explorer.sqlite`, plus `downloader.sqlite` in the
+    universal flavor) into the hidden public folder
+    `<primary volume>/File Explorer/.history` (dot prefix keeps it out of
+    sight; deleting its contents means "start fresh"). Export uses SQLite
+    `VACUUM INTO` (consistent snapshot of a live DB, no close needed) plus a
+    `history_meta.json` sidecar (schema versions, export time).
+  - **Export triggers** — automatic on startup and on app-background
+    (throttled, `WindowHost` lifecycle hook), plus a manual **Back up now**
+    button with last-backup status in a new Settings → History backup card
+    (`history_backup_controller.dart` + `HistoryBackupCard`).
+  - **Restore** — automatic pre-startup import in `main()` (before any DB is
+    opened) when local is missing/empty; plus a runtime **"Restore history?"**
+    prompt (close + reopen) for the common case where storage permission —
+    and therefore backup readability — is only granted after first launch.
+    Never overwrites local history; skips snapshots from a newer schema
+    (downgrade guard); "Not now" is remembered per snapshot.
+  - **Bugs found by device testing** — `VACUUM INTO` refuses to overwrite, so
+    only the first export ever worked (now stages to `.tmp` + rename, keeping
+    the previous snapshot on failure); derived tables (36k search-index rows,
+    eagerly-written settings defaults, auto-recorded recents) poisoned the
+    empty/fresh guards, permanently blocking restores (guards now ignore
+    them — snapshot content is still complete).
+  - **Verified** — `flutter analyze` clean; 9 new backup unit tests pass
+    (export-skip, snapshot+meta, restore, no-overwrite, schema guard,
+    derived-only, dismissal); full suite 168 + 1 pre-existing unrelated
+    failure (`nearby_share_screen_test`); uninstall/reinstall restore
+    verified on device (RMX3031) with transfer + QR history intact.
+
 ## 2026-09-04
 
 ### Added

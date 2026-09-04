@@ -62,6 +62,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Archives | Files inside ZIP archives preview in-app: images, video, audio, and text. |
 | ✅ | Favorites | Persisted favorite folders, Home list, and Explorer star action. |
 | ✅ | Recents | Persisted recent folders/files and Home recent section setting support. |
+| ✅ | History backup | Auto-snapshots all history (transfers, downloads, QR, recents, favorites, settings) into hidden `File Explorer/.history`; restores automatically on reinstall, manual Back up now in Settings (2026-09-05). |
 | ✅ | Search | Search screen and route. |
 | ✅ | Search | Current-folder vs storage-root scope. |
 | ✅ | Search | File type filters and type-only discovery. |
@@ -167,6 +168,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-09-05: **History backup landed** — reinstalls no longer wipe history. `HistoryBackupService` snapshots the app databases (`file_explorer.sqlite`, plus `downloader.sqlite` in universal) via `VACUUM INTO` into hidden `File Explorer/.history`, with a `history_meta.json` sidecar (schema versions, export time). Auto-export on startup + app-background (throttled) plus manual Back up now in a new Settings card; auto-restore pre-startup in `main()` when local is missing/empty, plus a runtime "Restore history?" prompt (close + reopen) for when storage permission is granted after first launch. Never overwrites local history; downgrade-guarded; deleting the folder means fresh. Device testing caught two real bugs: `VACUUM INTO` won't overwrite (now stages `.tmp` + rename) and derived tables (search index, eager settings defaults, auto recents) poisoned the guards (now ignored). `flutter analyze` clean; 9 new tests pass; uninstall/reinstall restore verified on device (RMX3031).
 
 Update 2026-09-04: **Multi-window swap animation** — switching windows now plays a directional slide (280 ms, `easeOutCubic`): the new window enters from the right going forward and from the left going back, with the old window exiting to the opposite side. `WindowManagerState` tracks `swapDirection`; `WindowHost` animates via `AnimatedSwitcher` with per-window keyed subtrees (each keeping its own scope/router during the transition); swipes pass explicit direction so cyclic wraps animate correctly. `flutter analyze` clean; debug APK verified on device (RMX3031).
 

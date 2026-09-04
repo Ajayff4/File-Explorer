@@ -1,4 +1,5 @@
 import 'package:file_explorer/app/theme/app_theme.dart';
+import 'package:file_explorer/features/history_backup/presentation/history_backup_card.dart';
 import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/app/theme/neumorphic_card.dart';
@@ -101,6 +102,12 @@ class SettingsScreen extends ConsumerWidget {
                   value,
                 ),
               ),
+            ],
+          ),
+          const _SettingsSection(
+            title: 'History backup',
+            children: [
+              HistoryBackupCard(),
             ],
           ),
         ],

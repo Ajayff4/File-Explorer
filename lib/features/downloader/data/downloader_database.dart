@@ -3,6 +3,10 @@ import 'package:file_explorer/features/downloader/domain/entities/download_task.
 
 part 'downloader_database.g.dart';
 
+/// Current schema version, exposed as a const so the history backup can
+/// validate a backup snapshot without opening a database instance.
+const int kDownloaderDatabaseSchemaVersion = 1;
+
 class DownloadTaskRows extends Table {
   TextColumn get id => text()();
   TextColumn get url => text()();
@@ -35,5 +39,5 @@ class DownloaderDatabase extends _$DownloaderDatabase {
   DownloaderDatabase(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => kDownloaderDatabaseSchemaVersion;
 }

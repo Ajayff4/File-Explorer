@@ -4,6 +4,10 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 
 part 'app_database.g.dart';
 
+/// Current schema version, exposed as a const so the history backup can
+/// validate a backup snapshot without opening a database instance.
+const int kAppDatabaseSchemaVersion = 12;
+
 class TransferTaskRows extends Table {
   TextColumn get id => text()();
   IntColumn get operation => intEnum<TransferOperation>()();
@@ -95,7 +99,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => kAppDatabaseSchemaVersion;
 
   @override
   MigrationStrategy get migration {
