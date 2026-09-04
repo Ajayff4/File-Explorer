@@ -171,7 +171,7 @@ class ExplorerScreen extends ConsumerWidget {
               ? Text('${formatCount(selectedCount)} selected')
               : pickerMode
                   ? Text(pickerTitle ?? 'Select items')
-                  : const SizedBox.shrink(),
+                  : const Text('Explorer'),
           actions: [
             if (isSelectionMode) ...[
               IconButton(
