@@ -126,7 +126,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
 | ✅ | UI polish | Settings theme-mode segmented button: icons removed, compact density. |
 | ✅ | UI polish | Home category/shortcut tiles adopt the selected accent instantly at launch (no stale-purple flash); regression-tested (2026-08-20). |
-| ✅ | Windows | Multi-window — open multiple independent windows, each with its own folder, view mode, and back stack; switch via the **Windows** nav destination, which opens a live-thumbnail switcher (2026-08-23). |
+| ✅ | Windows | Multi-window — open multiple independent windows, each with its own folder, view mode, and back stack; switch via the **Windows** nav destination, which opens a live-thumbnail switcher (2026-08-23); swaps animate with a directional slide — forward enters from the right, back from the left (2026-09-04). |
 | ✅ | Settings | Persisted settings store and typed `AppSettings`. |
 | ✅ | Settings | Explorer, Transfers, and Search toggle groups wired into behavior. |
 | ✅ | Downloader | Universal Downloader with yt-dlp bundled via Chaquopy (paste a link, queue, live progress/speed, retry, cancel, concurrency limit). See `docs/DOWNLOADER.md`. **Built only into the `universal` flavor — the `standard` (Play Store) flavor omits it entirely.** |
@@ -167,6 +167,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-09-04: **Multi-window swap animation** — switching windows now plays a directional slide (280 ms, `easeOutCubic`): the new window enters from the right going forward and from the left going back, with the old window exiting to the opposite side. `WindowManagerState` tracks `swapDirection`; `WindowHost` animates via `AnimatedSwitcher` with per-window keyed subtrees (each keeping its own scope/router during the transition); swipes pass explicit direction so cyclic wraps animate correctly. `flutter analyze` clean; debug APK verified on device (RMX3031).
 
 Update 2026-08-24: **Share (device-to-device transfer) landed** — renamed from Nearby; picker-based file selection from Explorer, UDP discovery across subnet broadcasts, shared `File Explorer/Share` save folder, and a dormant `--dart-define=LEGACY_STORAGE=true` for Android 9. Send-tab UX: scrolling file list with a pinned, collapsible "Nearby devices" accordion; discovered peers persist after scanning. Info dialog shows device name (now resolved from `ro.product.device` via `getprop`, no new dependency), LAN IP, and port. Also: redundant floating bottom-right multi-window tray removed (Windows nav destination already opens the switcher). `flutter analyze` clean; debug APK verified on device (RMX3031). Bug fixes: blank Send tab, self-discovery loop, clear-pending-only-on-success, receiver keeps listening across transfers, and reconnect-after-stop (session-scoped handshake code).
 

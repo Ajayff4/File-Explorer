@@ -59,11 +59,18 @@ class WindowManagerState {
     required this.windows,
     required this.activeIndex,
     this.switcherVisible = false,
+    this.swapDirection = 0,
   });
 
   final List<WindowSession> windows;
   final int activeIndex;
   final bool switcherVisible;
+
+  /// Slide direction for the active-window swap animation:
+  /// +1 = new window enters from the right (forward/next),
+  /// -1 = new window enters from the left (backward/prev),
+  /// 0 = no slide (initial or same-window rebuild).
+  final int swapDirection;
 
   WindowSession get active => windows[activeIndex];
 }
@@ -102,6 +109,7 @@ class WindowManager extends Notifier<WindowManagerState> {
         windows: state.windows,
         activeIndex: state.activeIndex,
         switcherVisible: state.switcherVisible,
+        swapDirection: state.swapDirection,
       );
     } catch (_) {
       // Ignore capture failures (e.g. not yet laid out).
@@ -157,10 +165,13 @@ class WindowManager extends Notifier<WindowManagerState> {
       windows: [...state.windows, session],
       activeIndex: state.windows.length,
       switcherVisible: state.switcherVisible,
+      // New window always appends at the end -> enters from the right,
+      // except the very first window which should not slide.
+      swapDirection: state.windows.isEmpty ? 0 : 1,
     );
   }
 
-  Future<void> select(int index) async {
+  Future<void> select(int index, {int? direction}) async {
     if (index < 0 || index >= state.windows.length) return;
     if (index == state.activeIndex) {
       closeSwitcher();
@@ -173,6 +184,10 @@ class WindowManager extends Notifier<WindowManagerState> {
       windows: state.windows,
       activeIndex: index,
       switcherVisible: state.switcherVisible,
+      // Explicit direction wins (e.g. cyclic swipe from last -> first is
+      // still forward). Otherwise infer from index movement.
+      swapDirection:
+          direction ?? (index > state.activeIndex ? 1 : -1),
     );
   }
 
@@ -185,16 +200,24 @@ class WindowManager extends Notifier<WindowManagerState> {
     removed.dispose();
 
     var active = state.activeIndex;
+    var direction = 0;
     if (index < active) {
       active--;
+      // Same logical window stays active, only its index shifted -> no slide.
+      direction = 0;
     } else if (index == active) {
-      active = active >= windows.length ? windows.length - 1 : active;
+      final newLength = windows.length;
+      active = active >= newLength ? newLength - 1 : active;
+      // Active window identity changed: removed last -> slide from left,
+      // otherwise the next window slides in from the right.
+      direction = index >= newLength ? -1 : 1;
     }
 
     state = WindowManagerState(
       windows: windows,
       activeIndex: active < 0 ? 0 : active,
       switcherVisible: state.switcherVisible,
+      swapDirection: direction,
     );
   }
 
@@ -206,6 +229,7 @@ class WindowManager extends Notifier<WindowManagerState> {
       windows: state.windows,
       activeIndex: state.activeIndex,
       switcherVisible: true,
+      swapDirection: state.swapDirection,
     );
   }
 
@@ -214,6 +238,7 @@ class WindowManager extends Notifier<WindowManagerState> {
       windows: state.windows,
       activeIndex: state.activeIndex,
       switcherVisible: false,
+      swapDirection: state.swapDirection,
     );
   }
 
@@ -267,10 +292,10 @@ class _WindowHostState extends ConsumerState<WindowHost> {
     }
 
     final active = wm.active;
+    final activeIdKey = ValueKey(active.id);
+    final direction = wm.swapDirection.clamp(-1, 1);
     return IncomingIntentHandler(
       router: active.router,
-      child: UncontrolledProviderScope(
-      container: active.scope,
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(settings.themeAccent),
@@ -287,28 +312,83 @@ class _WindowHostState extends ConsumerState<WindowHost> {
               ref.read(windowManagerProvider.notifier).closeSwitcher();
             }
           },
-          child: Stack(
-            children: [
-              RepaintBoundary(
-                key: ref.read(windowManagerProvider.notifier).activeBoundaryKey,
-                child: MaterialApp.router(
-                  title: 'File Explorer',
-                  debugShowCheckedModeBanner: false,
-                  theme: AppTheme.light(settings.themeAccent),
-                  darkTheme: AppTheme.dark(settings.themeAccent),
-                  themeMode: switch (settings.themeMode) {
-                    AppThemeMode.system => ThemeMode.system,
-                    AppThemeMode.light => ThemeMode.light,
-                    AppThemeMode.dark => ThemeMode.dark,
-                  },
-                  routerConfig: active.router,
-                ),
+child: Stack(
+                children: [
+                  _SwipeEdgeFeedback(
+                    windowsCount: wm.windows.length,
+                    activeIndex: wm.activeIndex,
+                    child: RepaintBoundary(
+                      key: ref.read(windowManagerProvider.notifier).activeBoundaryKey,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 280),
+                        reverseDuration: const Duration(milliseconds: 280),
+                        layoutBuilder: (currentChild, previousChildren) {
+                          return Stack(
+                            fit: StackFit.expand,
+                            clipBehavior: Clip.hardEdge,
+                            children: [
+                              ...previousChildren,
+                              if (currentChild != null) currentChild,
+                            ],
+                          );
+                        },
+                        transitionBuilder: (child, animation) {
+                          final curved = CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                            reverseCurve: Curves.easeOutCubic,
+                          );
+                          // No directional cue (first window, same-window
+                          // rebuild) -> simple fade.
+                          if (direction == 0) {
+                            return FadeTransition(
+                              opacity: curved,
+                              child: child,
+                            );
+                          }
+                          final isIncoming = child.key == activeIdKey;
+                          // Incoming runs 0->1: off-screen (direction side)
+                          // -> center. Outgoing runs 1->0, so its tween is
+                          // mirrored (center -> opposite side).
+                          final begin = isIncoming
+                              ? Offset(direction.toDouble(), 0)
+                              : Offset(-direction.toDouble(), 0);
+                          return FadeTransition(
+                            opacity: curved,
+                            child: SlideTransition(
+                              position: curved.drive(Tween(
+                                begin: begin,
+                                end: Offset.zero,
+                              )),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: KeyedSubtree(
+                          key: activeIdKey,
+                          child: UncontrolledProviderScope(
+                            container: active.scope,
+                            child: MaterialApp.router(
+                              title: 'File Explorer',
+                              debugShowCheckedModeBanner: false,
+                              theme: AppTheme.light(settings.themeAccent),
+                              darkTheme: AppTheme.dark(settings.themeAccent),
+                              themeMode: switch (settings.themeMode) {
+                                AppThemeMode.system => ThemeMode.system,
+                                AppThemeMode.light => ThemeMode.light,
+                                AppThemeMode.dark => ThemeMode.dark,
+                              },
+                              routerConfig: active.router,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (wm.switcherVisible) const WindowSwitcher(),
+                ],
               ),
-              if (wm.switcherVisible) const WindowSwitcher(),
-            ],
-          ),
         ),
-      ),
       ),
     );
   }
@@ -485,6 +565,48 @@ class WindowSwitcher extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// A widget that handles horizontal swipe gestures for cyclic tab navigation.
+/// Swiping left on the first tab goes to the last tab, and swiping right on
+/// the last tab goes to the first tab.
+class _SwipeEdgeFeedback extends ConsumerWidget {
+  const _SwipeEdgeFeedback({
+    required this.windowsCount,
+    required this.activeIndex,
+    required this.child,
+  });
+
+  final int windowsCount;
+  final int activeIndex;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (windowsCount <= 1) return child;
+
+    return GestureDetector(
+      onHorizontalDragEnd: (details) {
+        final velocity = details.primaryVelocity ?? 0;
+        if (velocity > 300) {
+          // Swipe right (drag left to right) -> previous tab, cyclic.
+          // Explicit -1 so wrapping first -> last still slides from the left.
+          final prevIndex = (activeIndex - 1 + windowsCount) % windowsCount;
+          ref
+              .read(windowManagerProvider.notifier)
+              .select(prevIndex, direction: -1);
+        } else if (velocity < -300) {
+          // Swipe left (drag right to left) -> next tab, cyclic.
+          // Explicit +1 so wrapping last -> first still slides from the right.
+          final nextIndex = (activeIndex + 1) % windowsCount;
+          ref
+              .read(windowManagerProvider.notifier)
+              .select(nextIndex, direction: 1);
+        }
+      },
+child: child,
     );
   }
 }

@@ -2,6 +2,31 @@
 
 Progress log for the Flutter application.
 
+## 2026-09-04
+
+### Added
+- **Directional slide animation for multi-window swaps** (switching windows no
+  longer cuts instantly):
+  - **State** (`lib/app/window/window_manager.dart`) — `WindowManagerState`
+    gained `swapDirection` (`+1` = new window enters from the right,
+    `-1` = from the left, `0` = no slide). Set on `select()` (new optional
+    `direction` param), `addWindow()` (`+1`, `0` for the first window), and
+    `removeAt()` (neighbor-aware; `0` when the same logical window stays
+    active).
+  - **UI** — `WindowHost` now wraps the active window in an `AnimatedSwitcher`
+    (280 ms, `easeOutCubic`) with a Slide + Fade transition. Each animated
+    child is a `KeyedSubtree` (keyed by window id) carrying its own
+    `UncontrolledProviderScope` + `MaterialApp.router`, so the outgoing and
+    incoming windows keep their own scopes/routers alive during the transition.
+    The thumbnail `RepaintBoundary` stays outside the switcher, so there is a
+    single `GlobalKey` and captures stay clean.
+  - **Swipes** — edge swipes pass an explicit direction, so cyclic wraps
+    (last → first via swipe left) still slide in from the correct side instead
+    of flipping.
+  - **Verified** — `flutter analyze` clean; `flutter test` 160/161 (the single
+    failure in `nearby_share_screen_test.dart` is pre-existing on a clean tree);
+    `app-standard-debug.apk` built, installed, and launched on device (RMX3031).
+
 ## 2026-08-30
 
 ### Added

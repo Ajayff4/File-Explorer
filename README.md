@@ -143,6 +143,7 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Open multiple independent windows, each keeping its own folder, view mode, and back stack.
 - ✅ Switch via the **Windows** nav destination, which opens a live-thumbnail switcher (tap a thumbnail to switch, `×` to close, FAB to open a new window).
 - ✅ Switcher is a live-thumbnail grid (snapshots of each window) styled with neumorphic surfaces; tap to switch, `×` to close, FAB to open a new window at the current location.
+- ✅ Swapping windows plays a directional slide animation (new window enters from the right going forward, from the left going back).
 - ✅ Settings and theme are shared across windows; per-window Explorer state is isolated.
 
 ### 🔎 Search
