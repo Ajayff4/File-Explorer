@@ -1,5 +1,5 @@
 import 'package:file_explorer/app/router/app_router.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -88,7 +88,7 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
     final feature = widget.feature;
     final colorScheme = Theme.of(context).colorScheme;
 
-    return NeumorphicCard(
+    return GlassTile(
       margin: EdgeInsets.zero,
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -104,16 +104,7 @@ class _CoreFeatureCardState extends State<_CoreFeatureCard> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              DecoratedBox(
-                decoration: BoxDecoration(
-                  color: feature.color.withValues(alpha: 0.16),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: SizedBox.square(
-                  dimension: 46,
-                  child: Icon(feature.icon, color: feature.color),
-                ),
-              ),
+              Icon(feature.icon, color: feature.color, size: 30),
               const SizedBox(width: 12),
               Expanded(
                 child: AnimatedSize(

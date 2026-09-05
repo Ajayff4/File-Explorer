@@ -15,10 +15,11 @@ library;
 const String kHistoryBackupFolderName = '.history';
 
 /// Snapshot file for the shared [AppDatabase].
+///
+/// (The downloader snapshot filename lives in the downloader feature's
+/// `downloader_history_backup.dart` — shared code must not name it, so the
+/// `standard` binary keeps zero downloader traces.)
 const String kHistoryBackupAppFileName = 'file_explorer.sqlite';
-
-/// Snapshot file for the feature-local downloader database (universal only).
-const String kHistoryBackupDownloaderFileName = 'downloader.sqlite';
 
 /// Sidecar in the backup folder describing the snapshots.
 const String kHistoryBackupMetaFileName = 'history_meta.json';

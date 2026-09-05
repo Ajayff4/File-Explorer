@@ -8,7 +8,7 @@ import 'package:file_explorer/features/downloader/presentation/downloader_visual
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/shared/widgets/file_picker_sheet.dart';
 import 'package:file_explorer/shared/widgets/folder_picker_sheet.dart';
 import 'package:flutter/material.dart';
@@ -183,7 +183,7 @@ class _UrlEntryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCard(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -309,20 +309,20 @@ class _DownloaderSettingsCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = state.settings;
 
-    return NeumorphicCard(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         child: Column(
           children: [
             ListTile(
               contentPadding: EdgeInsets.zero,
-              leading: const Icon(Icons.tune_rounded),
+              leading: GlassIconChip(icon: Icons.tune_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
               title: const Text('Download settings'),
             ),
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: const Icon(Icons.speed_rounded),
+              leading: GlassIconChip(icon: Icons.speed_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
               title: const Text('Concurrent downloads'),
               subtitle: Text(
                 '${settings.maxConcurrentDownloads} '
@@ -353,7 +353,7 @@ class _DownloaderSettingsCard extends ConsumerWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: const Icon(Icons.folder_rounded),
+              leading: GlassIconChip(icon: Icons.folder_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
               title: const Text('Download folder'),
               subtitle: Text(
                 settings.outputDirectory.isEmpty
@@ -383,7 +383,7 @@ class _DownloaderSettingsCard extends ConsumerWidget {
             ListTile(
               contentPadding: EdgeInsets.zero,
               dense: true,
-              leading: const Icon(Icons.cookie_rounded),
+              leading: GlassIconChip(icon: Icons.cookie_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
               title: const Text('Cookies'),
               subtitle: Text(
                 state.hasCookies
@@ -456,7 +456,7 @@ class _DownloaderSummaryCard extends StatelessWidget {
             orElse: () => state.activeTasks.first,
           );
 
-    return NeumorphicCard(
+    return GlassTile(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -464,17 +464,10 @@ class _DownloaderSummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.downloading_rounded,
-                    color: scheme.onPrimaryContainer,
-                  ),
+                GlassIconChip(
+                  icon: Icons.downloading_rounded,
+                  color: scheme.primary,
+                  size: 44,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -654,7 +647,7 @@ class _DownloadTaskCard extends ConsumerWidget {
         task.status == DownloadTaskStatus.queued ||
         task.status == DownloadTaskStatus.paused;
 
-    return NeumorphicCard(
+    return GlassTile(
       margin: const EdgeInsets.only(top: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -663,18 +656,10 @@ class _DownloadTaskCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: colorForDownloadStatus(context, task.status)
-                        .withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    statusIcon(task.status),
-                    color: colorForDownloadStatus(context, task.status),
-                  ),
+                GlassIconChip(
+                  icon: statusIcon(task.status),
+                  color: colorForDownloadStatus(context, task.status),
+                  size: 44,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -1044,18 +1029,10 @@ class _EmptyDownloaderQueue extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.download_rounded,
-              size: 36,
-              color: scheme.onPrimaryContainer,
-            ),
+          GlassIconChip(
+            icon: Icons.download_rounded,
+            color: scheme.primary,
+            size: 76,
           ),
           const SizedBox(height: 16),
           Text(

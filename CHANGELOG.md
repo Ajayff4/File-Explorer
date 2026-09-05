@@ -35,6 +35,39 @@ Progress log for the Flutter application.
     derived-only, dismissal); full suite 168 + 1 pre-existing unrelated
     failure (`nearby_share_screen_test`); uninstall/reinstall restore
     verified on device (RMX3031) with transfer + QR history intact.
+- **Glassmorphism rework — neumorphism fully replaced** (`lib/app/theme/glass.dart`,
+  `NeumorphicCard` deleted, 39 call sites across 14 files migrated):
+  - **Foundation** — `GlassCard` (real `BackdropFilter` frosted panel),
+    `GlassTile` (same language, no blur, for scrolling rows/grids),
+    `GlassBlur` (frosted chrome: bottom nav), `GlassAmbientBackground`
+    (accent-derived gradient blobs mounted once in `AppShell`; all scaffolds,
+    app bars, and nav surfaces transparent), glass tokens in `AppTheme`
+    (translucent sheets/dialogs/snackbars/cards/inputs/switches).
+  - **3D thick-glass pass** — gradient edge-light rims (bright top-left),
+    diagonal specular streaks, lit-top/shaded-base depth, accent outer glow
+    on selected surfaces; refined to neutral smoke + hairline edges after
+    device review (royal-blue tints read as dirt; blue kept for chrome only).
+  - **Glow kit** (from reference screenshots) — `GlassIconChip` (kind-colored
+    glowing leadings on rows, plain glyphs on grids), `GlowButton`
+    (monochrome primary-gradient CTA: New window, Back up now, Restore,
+    permission grant), glowing nav pill, luminous analyzer donut arcs.
+  - **Verified** — `flutter analyze` clean; full suite 169 pass + 1 pre-existing
+    unrelated failure; every screen screenshot-verified on
+    device (RMX3031 + Pixel 6 emulator).
+- **Standard flavor is now truly downloader-free** (`android/app/build.gradle`):
+  per-flavor Chaquopy scoping still packaged the whole Python runtime, so the
+  plugin is now skipped entirely for standard-only builds; release-binary
+  inspection proves zero traces (no `download_task_rows`/yt-dlp/chaquopy
+  strings in `libapp.so`, no Chaquopy classes in DEX, no Python assets/.so;
+  universal still ships the full feature). Release discipline: always build
+  flavors explicitly with `--dart-define=ENABLE_DOWNLOADER=false`.
+- **History backup hardening** — statement-guard references to downloader
+  types pinned the downloader graph in `standard` builds (found by the same
+  string inspection); shared backup code now uses a backend registry with
+  zero static downloader references (feature self-registers from its own
+  provider initializer). Same release verification: zero traces.
+- **Explorer app bar shows a static "Explorer" title** (was empty outside
+  selection/picker modes).
 
 ## 2026-09-04
 

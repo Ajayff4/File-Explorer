@@ -33,7 +33,9 @@ void main() {
     );
 
     Color iconColor() {
-      final icon = tester.widget<Icon>(find.byIcon(Icons.image_outlined));
+      // Storage header chip follows the loaded accent; shortcut tiles use
+      // fixed kind colors by design (immune to stale-theme flash).
+      final icon = tester.widget<Icon>(find.byIcon(Icons.phone_android_rounded));
       return icon.color!;
     }
 
@@ -44,7 +46,7 @@ void main() {
     expect(
       iconColor(),
       expectedAccent,
-      reason: 'shortcut icon color should switch from the default (purple) to '
+      reason: 'accent-driven icons should switch from the default (purple) to '
           'the loaded accent (green) once settings finish loading',
     );
   });

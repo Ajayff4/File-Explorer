@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:file_explorer/app/router/app_router.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/analyzer/domain/entities/storage_analysis.dart';
 import 'package:file_explorer/features/analyzer/presentation/controllers/analyzer_controller.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
@@ -185,7 +185,7 @@ class _SummaryCard extends StatelessWidget {
     final colors = Theme.of(context).colorScheme;
     final summary = volume?.summary;
 
-    return NeumorphicCard(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -193,7 +193,11 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Icon(Icons.donut_large_rounded, color: colors.primary, size: 40),
+                GlassIconChip(
+                  icon: Icons.donut_large_rounded,
+                  color: colors.primary,
+                  size: 56,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -255,7 +259,7 @@ class _CategoryCard extends StatelessWidget {
       ));
     }
 
-    return NeumorphicCard(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -457,8 +461,17 @@ class _DonutPainter extends CustomPainter {
         ..color = segment.color
         ..strokeCap = single ? StrokeCap.butt : StrokeCap.round;
 
+      // Luminous under-pass so each arc glows like the reference rings.
+      final glow = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = stroke
+        ..color = segment.color.withValues(alpha: 0.55)
+        ..strokeCap = single ? StrokeCap.butt : StrokeCap.round
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8);
+
       final drawSweep = math.max(0.0, sweep - gap);
       if (drawSweep > 0) {
+        canvas.drawArc(rect, start + gap / 2, drawSweep, false, glow);
         canvas.drawArc(rect, start + gap / 2, drawSweep, false, paint);
       }
       start += sweep;
@@ -515,14 +528,18 @@ class _FolderRow extends ConsumerWidget {
     final colors = Theme.of(context).colorScheme;
     final fraction = total == 0 ? 0.0 : folder.bytes / total;
 
-    return NeumorphicCard(
+    return GlassTile(
       margin: const EdgeInsets.only(bottom: 8),
       onTap: () {
         ref.read(explorerControllerProvider.notifier).openDirectory(folder.path);
         context.go(AppRoutes.explorer);
       },
       child: ListTile(
-        leading: Icon(Icons.folder_rounded, color: colors.primary),
+        leading: GlassIconChip(
+          icon: Icons.folder_rounded,
+          color: colors.primary,
+          size: 48,
+        ),
         title: Text(
           p.basename(folder.path),
           maxLines: 1,
@@ -564,12 +581,13 @@ class _FileRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCard(
+    return GlassTile(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(
-          iconForFileSystemEntryType(_typeForCategory(file.category)),
+        leading: GlassIconChip(
+          icon: iconForFileSystemEntryType(_typeForCategory(file.category)),
           color: _categoryColor(file.category),
+          size: 48,
         ),
         title: Text(
           p.basename(file.path),
@@ -597,7 +615,7 @@ class _EmptyHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCard(
+    return GlassCard(
       child: ListTile(
         leading: const Icon(Icons.inbox_rounded),
         title: Text(text),

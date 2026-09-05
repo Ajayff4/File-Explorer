@@ -30,8 +30,8 @@ class SelectionBottomBar extends ConsumerWidget {
         selectedCount == 1 ? selectedPaths.first : '$selectedCount items';
 
     return Material(
-      color: Theme.of(context).colorScheme.surface,
-      elevation: 8,
+      color: Colors.transparent,
+      elevation: 0,
       child: SafeArea(
         top: false,
         child: Padding(

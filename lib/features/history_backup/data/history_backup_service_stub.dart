@@ -5,6 +5,18 @@ import 'package:drift/drift.dart';
 /// `history_backup_service.dart` unconditionally.
 Future<void> restoreHistoryBackup() async {}
 
+/// See the IO implementation. Never implemented here by design.
+abstract interface class DownloaderBackupBackend {
+  Future<DateTime?> exportBackend(HistoryBackupService service);
+  Future<bool> importBackend(HistoryBackupService service);
+  Future<void> closeBackend();
+  Future<bool> hasLocalUserData();
+  Future<bool> hasPendingRestore(HistoryBackupService service);
+}
+
+/// Always null on non-IO platforms.
+DownloaderBackupBackend? downloaderBackupBackend;
+
 class HistoryBackupService {
   HistoryBackupService({
     required this.docsPath,

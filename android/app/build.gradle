@@ -5,19 +5,25 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
-// Apply Chaquopy — which bundles CPython + yt-dlp into the APK. The plugin is
-// applied unconditionally, but the Python config is scoped to the `universal`
-// flavor (see the `chaquopy { productFlavors { universal { ... } } }` block
-// below), so the `standard` (Play Store) flavor stays 100% free of any Python
-// runtime, yt-dlp wheel, or downloader MethodChannel.
+// Chaquopy (CPython + yt-dlp) is applied ONLY when a `universal` variant is
+// part of this build. Scoping via `chaquopy { productFlavors { universal } }`
+// alone is NOT enough: the plugin still packages its bootstrap/stdlib/.so
+// and Java API into `standard` APKs (verified by archive inspection).
+// Skipping the plugin entirely for standard-only builds keeps every Python
+// trace out of the Play Store APK.
 //
-// The config used to be gated behind a task-name check for `*universal*`, but
-// `flutter build apk --debug` runs `assembleDebug`, which aggregates EVERY
-// flavor, so that check was false and Chaquopy never got configured — leaving
-// the `universal` Kotlin sources (DownloaderBridge.kt) unable to resolve
-// `com.chaquo.python.*`. Scoping by flavor instead fixes it for all build
-// invocations.
-apply plugin: 'com.chaquo.python'
+// A plain `flutter build` aggregates every flavor under `assembleDebug`,
+// so "standard-only" is defined as: every requested task names the standard
+// flavor and none names universal. Release discipline: always build flavors
+// explicitly, e.g.
+//   flutter build apk --flavor standard --dart-define=ENABLE_DOWNLOADER=false
+def taskNamesLower = gradle.startParameter.taskNames*.toLowerCase()
+def standardOnlyBuild = !taskNamesLower.isEmpty() &&
+    taskNamesLower.every { it.contains('standard') } &&
+    taskNamesLower.every { !it.contains('niversal') }
+if (!standardOnlyBuild) {
+    apply plugin: 'com.chaquo.python'
+}
 
 android {
     namespace = "com.ajayff4.fileexplorer"
@@ -67,11 +73,11 @@ android {
     }
 }
 
+if (!standardOnlyBuild) {
 chaquopy {
-    // Scope the Python runtime/yt-dlp to the `universal` flavor only, so the
-    // `standard` flavor never ships any Python code. Chaquopy adds the
-    // `com.chaquo.python:target` dependency and packages Python solely for the
-    // variants whose flavor is configured here.
+    // Scope the Python runtime/yt-dlp to the `universal` flavor only. Note
+    // this scoping alone does NOT keep the runtime out of `standard` APKs
+    // (see the plugin gate above) — it only configures the universal side.
     productFlavors {
         universal {
             version "3.12"
@@ -88,6 +94,7 @@ chaquopy {
             }
         }
     }
+}
 }
 
 flutter {

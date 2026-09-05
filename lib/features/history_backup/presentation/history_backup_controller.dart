@@ -1,10 +1,7 @@
 import 'dart:async';
 
-import 'package:file_explorer/features/downloader/data/downloader_database.dart';
-import 'package:file_explorer/features/downloader/data/downloader_database_provider.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_constants.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_service.dart';
-import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/shared/database/app_database.dart';
 import 'package:file_explorer/shared/database/app_database_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -100,7 +97,7 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
       }
       final appAt =
           await service.exportAppDatabase(ref.read(appDatabaseProvider));
-      await _exportDownloader(service);
+      await downloaderBackupBackend?.exportBackend(service);
       if (!ref.mounted) return false;
       final ok = appAt != null;
       state = state.copyWith(
@@ -139,7 +136,7 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
         return;
       }
       await service.exportAppDatabase(ref.read(appDatabaseProvider));
-      await _exportDownloader(service);
+      await downloaderBackupBackend?.exportBackend(service);
       if (!ref.mounted) return;
       state = state.copyWith(
         isWorking: false,
@@ -151,38 +148,33 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
     }
   }
 
-  Future<void> _exportDownloader(HistoryBackupService service) async {
-    // The whole downloader graph (including these references) is tree-shaken
-    // out of `standard` builds via the compile-time [enableDownloader] flag.
-    if (!enableDownloader) return;
-    final db = ref.read(downloaderDatabaseProvider);
-    await service.exportDatabase(
-      db,
-      fileName: kHistoryBackupDownloaderFileName,
-      schemaVersion: kDownloaderDatabaseSchemaVersion,
-    );
-  }
-
   /// True when this install holds no real history but the History folder has
   /// a usable snapshot that was never offered (covers the common case where
   /// storage permission — and therefore backup readability — is only granted
   /// after the first launch, when the pre-startup import already ran).
+  /// The downloader side is included when its backend registered itself.
   Future<bool> checkPendingRestore() async {
     try {
       final service = await _service();
       if (!ref.mounted || service == null) return false;
-      if (await HistoryBackupService.hasUserData(
+      var pending = false;
+      if (!await HistoryBackupService.hasUserData(
         ref.read(appDatabaseProvider),
         ignoredTables: HistoryBackupService.appIgnoredTables,
       )) {
-        return false;
+        pending = await service.hasRestorableBackup(
+          fileName: kHistoryBackupAppFileName,
+          schemaVersion: kAppDatabaseSchemaVersion,
+        );
       }
-      if (!await service.hasRestorableBackup(
-        fileName: kHistoryBackupAppFileName,
-        schemaVersion: kAppDatabaseSchemaVersion,
-      )) {
-        return false;
+      final backend = downloaderBackupBackend;
+      if (!pending &&
+          backend != null &&
+          !await backend.hasLocalUserData() &&
+          await backend.hasPendingRestore(service)) {
+        pending = true;
       }
+      if (!pending) return false;
       return !await service.isRestoreDismissed();
     } catch (_) {
       return false;
@@ -198,22 +190,13 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
       try {
         await ref.read(appDatabaseProvider).close();
       } catch (_) {}
-      if (enableDownloader) {
-        try {
-          await ref.read(downloaderDatabaseProvider).close();
-        } catch (_) {}
-      }
+      final backend = downloaderBackupBackend;
+      await backend?.closeBackend();
       final service = await _service();
       if (!ref.mounted || service == null) return false;
       final app = await service.importAppDatabase();
-      var downloader = false;
-      if (enableDownloader) {
-        downloader = await service.importDatabase(
-          fileName: kHistoryBackupDownloaderFileName,
-          schemaVersion: kDownloaderDatabaseSchemaVersion,
-          openProbe: DownloaderDatabase.new,
-        );
-      }
+      final downloader =
+          backend != null && await backend.importBackend(service);
       return app || downloader;
     } catch (_) {
       return false;

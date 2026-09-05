@@ -120,8 +120,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | UI polish | File-type colors centralized while preserving black/purple theme direction. |
 | ✅ | UI polish | CRED-style deep premium accent palette: richer saturated seed colors (`7C3AED` purple, `059669` green, `DB2777` pink, `DC2626` red, `2563EB` royal blue). |
 | ✅ | UI polish | Sixth accent **Mint** (`00B887`) added to the picker (2026-08-22). |
-| ✅ | UI polish | Neumorphic card system (`NeumorphicCard`): soft extruded-plastic surface, dual light/dark shadows derived from the background hue, and press-inset tactile feedback; used across Home, Downloader, Transfers, Media, Search, Settings, Core Features, and the permission card. |
-| ✅ | UI polish | Neumorphic control theming: rounded bottom sheets with drag handle, filled rounded inputs with primary focus border, neumorphic switches, rounded checkboxes, segmented buttons with primary selection. |
+| ✅ | UI polish | Glassmorphism design system (`lib/app/theme/glass.dart`): `GlassCard` frosted panels, blur-free `GlassTile` rows/grids, `GlassBlur` chrome, accent-derived ambient backdrop, gradient edge-light rims, specular streaks, smoky fills, glowing icon chips, gradient glow CTAs, glowing nav pill — neumorphism fully removed (2026-09-05). |
+| ✅ | UI polish | Rounded bottom sheets with drag handle, filled rounded inputs with primary focus border, glass switches, rounded checkboxes, segmented buttons with primary selection. |
 | ✅ | UI polish | Home header is a pinned `SliverAppBar` (denser, always visible). |
 | ✅ | UI polish | Kind-specific folder icon (`KindFolderIcon`): gradient body + darker tab + glow; audio, documents, and archives media folder tiles use it in list and grid views (2026-08-22). |
 | ✅ | UI polish | Pending queue color unified to blue (`1E88E5`) across Transfers and Downloader (was orange). |
@@ -168,6 +168,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-09-05 (2nd): **Glassmorphism rework + true zero-trace standard flavor** — neumorphism fully replaced by a glass system (`GlassCard`/`GlassTile`/`GlassBlur`/ambient backdrop/glow kit: icon chips, gradient CTAs, glowing nav pill, luminous donut) across all screens; 3D treatment refined on-device to neutral smoke + hairlines. Standard flavor now provably downloader-free: Chaquopy plugin skipped for standard-only builds and backup code decoupled via a backend registry (release-binary inspection: zero strings/DEX/assets); universal unaffected. `flutter analyze` clean; full suite 169 + 1 pre-existing unrelated failure; screenshot-verified on device (RMX3031 + Pixel 6 emulator).
 
 Update 2026-09-05: **History backup landed** — reinstalls no longer wipe history. `HistoryBackupService` snapshots the app databases (`file_explorer.sqlite`, plus `downloader.sqlite` in universal) via `VACUUM INTO` into hidden `File Explorer/.history`, with a `history_meta.json` sidecar (schema versions, export time). Auto-export on startup + app-background (throttled) plus manual Back up now in a new Settings card; auto-restore pre-startup in `main()` when local is missing/empty, plus a runtime "Restore history?" prompt (close + reopen) for when storage permission is granted after first launch. Never overwrites local history; downgrade-guarded; deleting the folder means fresh. Device testing caught two real bugs: `VACUUM INTO` won't overwrite (now stages `.tmp` + rename) and derived tables (search index, eager settings defaults, auto recents) poisoned the guards (now ignored). `flutter analyze` clean; 9 new tests pass; uninstall/reinstall restore verified on device (RMX3031).
 

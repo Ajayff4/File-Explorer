@@ -5,6 +5,7 @@ import 'dart:ui' as ui;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
@@ -218,7 +219,7 @@ class _ScanTabState extends ConsumerState<_ScanTab> with WidgetsBindingObserver 
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    NeumorphicIconButton(
+                    GlassIconButton(
                       icon: Icons.photo_library_rounded,
                       tooltip: 'Scan from gallery',
                       onPressed: () {
@@ -226,7 +227,7 @@ class _ScanTabState extends ConsumerState<_ScanTab> with WidgetsBindingObserver 
                       },
                     ),
                     const SizedBox(width: 16),
-                    NeumorphicIconButton(
+                    GlassIconButton(
                       icon: value.torchState == TorchState.on
                           ? Icons.flash_on_rounded
                           : Icons.flash_off_rounded,
@@ -249,7 +250,7 @@ class _ScanTabState extends ConsumerState<_ScanTab> with WidgetsBindingObserver 
           children: [
             scanner,
             Container(
-              color: Theme.of(context).scaffoldBackgroundColor,
+              color: Theme.of(context).colorScheme.surface,
               child: _CameraDeniedView(error: value.error),
             ),
           ],
@@ -1171,11 +1172,12 @@ class _HistoryTile extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: ListTile(
-        leading: Icon(
-          scan.type == QrScanType.generated
+        leading: GlassIconChip(
+          icon: scan.type == QrScanType.generated
               ? Icons.qr_code_2_rounded
               : (isUrl ? Icons.link_rounded : Icons.text_fields_rounded),
           color: scheme.primary,
+          size: 48,
         ),
         title: Text(
           scan.content,
@@ -1322,34 +1324,6 @@ class _CameraDeniedView extends StatelessWidget {
               ),
             ],
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class NeumorphicIconButton extends StatelessWidget {
-  const NeumorphicIconButton({
-    required this.icon,
-    required this.tooltip,
-    required this.onPressed,
-    super.key,
-  });
-
-  final IconData icon;
-  final String tooltip;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        shape: const CircleBorder(),
-        child: IconButton(
-          onPressed: onPressed,
-          icon: Icon(icon),
         ),
       ),
     );

@@ -5,6 +5,7 @@ import 'package:file_explorer/features/downloader/presentation/controllers/downl
 import 'package:file_explorer/features/wallpaper/data/wallpaper_service.dart';
 import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/favorites/domain/entities/favorite_location.dart';
@@ -19,7 +20,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:path/path.dart' as p;
 
 class HomeScreen extends ConsumerWidget {
@@ -71,7 +72,7 @@ class HomeScreen extends ConsumerWidget {
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         children: [
                           ListTile(
-                            leading: const Icon(Icons.sync_alt_rounded),
+                            leading: GlassIconChip(icon: Icons.sync_alt_rounded, color: Theme.of(context).colorScheme.primary, size: 40),
                             title: const Text('Transfer Station'),
                             onTap: () {
                               Navigator.of(sheetContext).pop();
@@ -80,7 +81,7 @@ class HomeScreen extends ConsumerWidget {
                           ),
                           if (enableDownloader)
                             ListTile(
-                              leading: const Icon(Icons.download_rounded),
+                              leading: GlassIconChip(icon: Icons.download_rounded, color: Theme.of(context).colorScheme.primary, size: 40),
                               title: const Text('Universal Downloader'),
                               onTap: () {
                                 Navigator.of(sheetContext).pop();
@@ -88,7 +89,7 @@ class HomeScreen extends ConsumerWidget {
                               },
                             ),
                           ListTile(
-                            leading: const Icon(Icons.hexagon_rounded),
+                            leading: GlassIconChip(icon: Icons.hexagon_rounded, color: Theme.of(context).colorScheme.primary, size: 40),
                             title: const Text('Core Features'),
                             onTap: () {
                               Navigator.of(sheetContext).pop();
@@ -96,7 +97,7 @@ class HomeScreen extends ConsumerWidget {
                             },
                           ),
                           ListTile(
-                            leading: const Icon(Icons.settings_rounded),
+                            leading: GlassIconChip(icon: Icons.settings_rounded, color: Theme.of(context).colorScheme.primary, size: 40),
                             title: const Text('Settings'),
                             onTap: () {
                               Navigator.of(sheetContext).pop();
@@ -184,9 +185,9 @@ class _CoreFeaturesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: const Icon(Icons.auto_awesome_rounded),
+        leading: GlassIconChip(icon: Icons.auto_awesome_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
         title: const Text('What this app can do'),
         subtitle: const Text('Core features built into File Explorer'),
         trailing: const Icon(Icons.chevron_right_rounded),
@@ -204,9 +205,9 @@ class _DownloaderTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final summary = _downloaderSummary(context, state);
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: const Icon(Icons.download_rounded),
+        leading: GlassIconChip(icon: Icons.download_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
         title: const Text('Universal Downloader'),
         subtitle: Text(summary),
         trailing: const Icon(Icons.chevron_right_rounded),
@@ -242,9 +243,9 @@ class _TransferStationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: const Icon(Icons.sync_alt_rounded),
+        leading: GlassIconChip(icon: Icons.sync_alt_rounded, color: Theme.of(context).colorScheme.primary, size: 44),
         title: const Text('Transfer Station'),
         subtitle: Text(
           '${state.pendingCount} pending - ${state.finishedCount} finished - ${state.failedCount} failed',
@@ -268,7 +269,7 @@ class _StoragePanel extends ConsumerWidget {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedVolume = _selectedVolumeFor(explorerState);
 
-    return NeumorphicCard(
+    return GlassCard(
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
@@ -286,7 +287,7 @@ class _StoragePanel extends ConsumerWidget {
             children: [
               Row(
                 children: [
-                  Icon(Icons.phone_android_rounded, color: colors.primary),
+                  GlassIconChip(icon: Icons.phone_android_rounded, color: colors.primary, size: 44),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -343,6 +344,18 @@ StorageVolume? _selectedVolumeFor(ExplorerState state) {
   return volumes.isEmpty ? null : volumes.first;
 }
 
+Color _colorForShortcut(BuildContext context, MediaLibraryKind kind) {
+  return switch (kind.type) {
+    FileSystemEntryType.image => FileEntryColors.image,
+    FileSystemEntryType.video => FileEntryColors.video,
+    FileSystemEntryType.audio => FileEntryColors.audio,
+    FileSystemEntryType.document => FileEntryColors.document,
+    FileSystemEntryType.archive => FileEntryColors.archive,
+    FileSystemEntryType.app => FileEntryColors.app,
+    _ => Theme.of(context).colorScheme.primary,
+  };
+}
+
 class _ShortcutGrid extends StatelessWidget {
   const _ShortcutGrid();
 
@@ -374,8 +387,7 @@ class _ShortcutGrid extends StatelessWidget {
           ),
           itemBuilder: (context, index) {
             final shortcut = shortcuts[index];
-            final colors = Theme.of(context).colorScheme;
-            return NeumorphicCard(
+            return GlassTile(
               child: InkWell(
                 borderRadius: BorderRadius.circular(8),
                 onTap: () {
@@ -386,7 +398,12 @@ class _ShortcutGrid extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(shortcut.icon, size: 26, color: colors.primary),
+                      Icon(
+                        shortcut.icon,
+                        size: 34,
+                        color: _colorForShortcut(
+                            context, shortcut.libraryKind),
+                      ),
                       const SizedBox(height: 6),
                       Text(
                         shortcut.label,
@@ -508,7 +525,7 @@ class _ToolsSection extends ConsumerWidget {
       ),
     ];
 
-    return NeumorphicCard(
+    return GlassCard(
       child: LayoutBuilder(
         builder: (context, constraints) {
           final tileWidth = ((constraints.maxWidth - 40) / 4).floorToDouble();
@@ -545,7 +562,7 @@ class _ToolTile extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(tool.icon, size: 22, color: tool.color),
+            Icon(tool.icon, size: 30, color: tool.color),
             const SizedBox(height: 6),
             Text(
               tool.label,
@@ -605,10 +622,14 @@ class _RecentLocationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: Icon(
-          recent.isFolder ? Icons.folder_open_rounded : Icons.insert_drive_file,
+        leading: GlassIconChip(
+          icon: recent.isFolder
+              ? Icons.folder_open_rounded
+              : Icons.insert_drive_file,
+          color: Theme.of(context).colorScheme.primary,
+          size: 48,
         ),
         title: Text(
           recent.label,
@@ -648,10 +669,14 @@ class _EmptyRecentsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: Icon(Icons.history_rounded),
-        title: Text('No recent folders yet'),
+        leading: GlassIconChip(
+          icon: Icons.history_rounded,
+          color: Theme.of(context).colorScheme.primary,
+          size: 44,
+        ),
+        title: const Text('No recent folders yet'),
       ),
     );
   }
@@ -664,9 +689,9 @@ class _FavoriteLocationTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: const Icon(Icons.star_rounded),
+        leading: const GlassIconChip(icon: Icons.star_rounded, color: Colors.amber, size: 44),
         title: Text(
           favorite.label,
           maxLines: 1,
@@ -702,10 +727,14 @@ class _EmptyFavoritesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const NeumorphicCard(
+    return GlassTile(
       child: ListTile(
-        leading: Icon(Icons.star_border_rounded),
-        title: Text('No favorite folders yet'),
+        leading: GlassIconChip(
+          icon: Icons.star_border_rounded,
+          color: Colors.amber,
+          size: 44,
+        ),
+        title: const Text('No favorite folders yet'),
       ),
     );
   }

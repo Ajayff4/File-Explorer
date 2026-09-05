@@ -1,5 +1,5 @@
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:flutter/material.dart';
 
 class StoragePermissionCard extends StatelessWidget {
@@ -22,7 +22,7 @@ class StoragePermissionCard extends StatelessWidget {
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
-        child: NeumorphicCard(
+        child: GlassCard(
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
@@ -83,10 +83,10 @@ class StoragePermissionCard extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     if (state.canRequestFullAccess)
-                      FilledButton.icon(
+                      GlowButton(
+                        icon: Icons.admin_panel_settings_rounded,
+                        label: _primaryActionLabelFor(state),
                         onPressed: onRequestFullAccess,
-                        icon: const Icon(Icons.admin_panel_settings_rounded),
-                        label: Text(_primaryActionLabelFor(state)),
                       ),
                     OutlinedButton.icon(
                       onPressed: onRetry,

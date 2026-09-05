@@ -142,9 +142,15 @@ feature below works end to end on a real device over wireless ADB.
 
 - ✅ Open multiple independent windows, each keeping its own folder, view mode, and back stack.
 - ✅ Switch via the **Windows** nav destination, which opens a live-thumbnail switcher (tap a thumbnail to switch, `×` to close, FAB to open a new window).
-- ✅ Switcher is a live-thumbnail grid (snapshots of each window) styled with neumorphic surfaces; tap to switch, `×` to close, FAB to open a new window at the current location.
+- ✅ Switcher is a live-thumbnail grid (snapshots of each window) styled with frosted glass surfaces; tap to switch, `×` to close, glow CTA to open a new window at the current location.
 - ✅ Swapping windows plays a directional slide animation (new window enters from the right going forward, from the left going back).
 - ✅ Settings and theme are shared across windows; per-window Explorer state is isolated.
+
+### 💠 Glassmorphism design
+
+- ✅ Frosted-glass surfaces app-wide (blurred panels, blur-free list/grid tiles, frosted nav) over an accent-derived ambient backdrop.
+- ✅ 3D thick-glass cues: edge-light rims, specular streaks, smoky fills, accent glow on selected surfaces.
+- ✅ Glowing kind-colored icon chips on rows, gradient glow CTAs, glowing nav pill, luminous analyzer rings.
 
 ### 🔎 Search
 

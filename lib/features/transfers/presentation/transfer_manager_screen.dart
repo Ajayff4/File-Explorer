@@ -2,7 +2,7 @@ import 'package:file_explorer/features/transfers/domain/entities/transfer_task.d
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_visuals.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -77,7 +77,7 @@ class _TransferSummaryCard extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final activeTask = state.activeTask;
 
-    return NeumorphicCard(
+    return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(18),
         child: Column(
@@ -85,17 +85,10 @@ class _TransferSummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: scheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.sync_alt_rounded,
-                    color: scheme.onPrimaryContainer,
-                  ),
+                GlassIconChip(
+                  icon: Icons.sync_alt_rounded,
+                  color: scheme.primary,
+                  size: 44,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -308,7 +301,7 @@ class _TransferTaskCard extends StatelessWidget {
     final showProgress = task.status == TransferTaskStatus.running ||
         task.status == TransferTaskStatus.queued;
 
-    return NeumorphicCard(
+    return GlassTile(
       margin: const EdgeInsets.only(top: 8),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
@@ -317,19 +310,10 @@ class _TransferTaskCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: colorForTransferOperation(
-                      task.operation,
-                    ).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    iconForTransferOperation(task.operation),
-                    color: colorForTransferOperation(task.operation),
-                  ),
+                GlassIconChip(
+                  icon: iconForTransferOperation(task.operation),
+                  color: colorForTransferOperation(task.operation),
+                  size: 44,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -595,18 +579,10 @@ class _EmptyTransferQueue extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 48),
       child: Column(
         children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: scheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.inbox_rounded,
-              size: 36,
-              color: scheme.onPrimaryContainer,
-            ),
+          GlassIconChip(
+            icon: Icons.inbox_rounded,
+            color: scheme.primary,
+            size: 76,
           ),
           const SizedBox(height: 16),
           Text(

@@ -4,7 +4,7 @@ import 'dart:ui' as ui;
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/app/theme/app_theme.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/history_backup/presentation/history_backup_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.dart';
@@ -331,14 +331,16 @@ class _WindowHostState extends ConsumerState<WindowHost>
             'just reopen it to continue with your restored history.',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Not now'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Restore'),
-            ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Not now'),
+          ),
+          GlowButton(
+            label: 'Restore',
+            height: 46,
+            expanded: false,
+            onPressed: () => Navigator.of(context).pop(true),
+          ),
           ],
         ),
       );
@@ -496,7 +498,7 @@ IconData iconForLocation(String path) {
 
 /// Thumbnail-based overlay for switching between windows. Rendered as a sibling
 /// of the captured window (outside the [RepaintBoundary]) so it is never part
-/// of a captured thumbnail. Styled with the app's neumorphic (soft-UI) surfaces.
+/// of a captured thumbnail. Styled with the app's frosted glass surfaces.
 class WindowSwitcher extends ConsumerWidget {
   const WindowSwitcher({super.key});
 
@@ -519,7 +521,7 @@ class WindowSwitcher extends ConsumerWidget {
         Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 560),
-            child: NeumorphicCard(
+            child: GlassCard(
               borderRadius: 30,
               margin: const EdgeInsets.all(16),
               padding: const EdgeInsets.all(20),
@@ -549,9 +551,9 @@ class WindowSwitcher extends ConsumerWidget {
                         final isActive = index == wm.activeIndex;
                         final icon = iconForLocation(window.currentLocation);
 
-                        return NeumorphicCard(
+                        return GlassTile(
                           borderRadius: 24,
-                          inset: isActive,
+                          selected: isActive,
                           padding: EdgeInsets.zero,
                           margin: EdgeInsets.zero,
                           child: Stack(
@@ -628,8 +630,9 @@ class WindowSwitcher extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  FloatingActionButton(
-                    tooltip: 'New window',
+                  GlowButton(
+                    icon: Icons.add_rounded,
+                    label: 'New window',
                     onPressed: () {
                       ref.read(windowManagerProvider.notifier).addWindow(
                             startLocation: wm.active.currentLocation,
@@ -638,7 +641,6 @@ class WindowSwitcher extends ConsumerWidget {
                           .read(windowManagerProvider.notifier)
                           .closeSwitcher();
                     },
-                    child: const Icon(Icons.add_rounded),
                   ),
                 ],
               ),

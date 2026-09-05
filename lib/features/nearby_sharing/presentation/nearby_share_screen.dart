@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/nearby_sharing/domain/entities/nearby_peer.dart';
 import 'package:file_explorer/features/nearby_sharing/data/protocol/nearby_protocol.dart';
@@ -254,7 +254,7 @@ class _ReceiveTab extends ConsumerWidget {
               label: const Text('Start receiving'),
             ),
           ] else ...[
-            NeumorphicCard(
+            GlassCard(
               borderRadius: 24,
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -482,7 +482,11 @@ class _ReceiverAccordionState extends State<_ReceiverAccordion> {
                 itemBuilder: (context, i) {
                   final peer = widget.peers[i];
                   return ListTile(
-                    leading: const Icon(Icons.phone_android_rounded),
+                    leading: GlassIconChip(
+                      icon: Icons.phone_android_rounded,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 44,
+                    ),
                     title: Text(peer.name),
                     subtitle: Text(peer.host),
                     trailing: const Icon(Icons.send_rounded),

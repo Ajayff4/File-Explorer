@@ -1,3 +1,4 @@
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/media/presentation/widgets/media_thumbnail.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
@@ -366,14 +367,12 @@ class GridEntryTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final colorScheme = Theme.of(context).colorScheme;
 
-    return Material(
-      color: isSelected ? colorScheme.secondaryContainer : Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: isSelectionMode ? onToggleSelection : onOpen,
-        onLongPress: isSelectionMode ? null : onToggleSelection,
-        child: Stack(
+    return GlassTile(
+      selected: isSelected,
+      borderRadius: 14,
+      onTap: isSelectionMode ? onToggleSelection : onOpen,
+      onLongPress: isSelectionMode ? null : onToggleSelection,
+      child: Stack(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
@@ -432,7 +431,6 @@ class GridEntryTile extends ConsumerWidget {
               ),
           ],
         ),
-      ),
     );
   }
 }
@@ -490,19 +488,15 @@ class FileEntryListTile extends StatelessWidget {
         entry.type == FileSystemEntryType.video ||
         entry.type == FileSystemEntryType.app;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12),
-      child: Material(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(14),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: isSelectionMode ? onToggleSelection : onTap,
-          onLongPress:
-              isSelectionMode ? null : (onLongPress ?? onToggleSelection),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
+    return GlassTile(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      borderRadius: 14,
+      selected: isSelected,
+      onTap: isSelectionMode ? onToggleSelection : onTap,
+      onLongPress:
+          isSelectionMode ? null : (onLongPress ?? onToggleSelection),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: Row(
               children: [
                 if (isSelectionMode) ...[
                   SizedBox(
@@ -535,17 +529,12 @@ class FileEntryListTile extends StatelessWidget {
                                       dimension: 56,
                                     ),
                                   )
-                                : Container(
-                                    decoration: BoxDecoration(
-                                      color: kindColor.withValues(alpha: 0.14),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        iconForFileSystemEntry(entry),
-                                        size: 28,
-                                        color: kindColor,
-                                      ),
+                                : Center(
+                                    child: GlassIconChip(
+                                      icon:
+                                          iconForFileSystemEntry(entry),
+                                      color: kindColor,
+                                      size: 56,
                                     ),
                                   ),
                       ),
@@ -606,9 +595,6 @@ class FileEntryListTile extends StatelessWidget {
                   trailing!,
                 ],
               ],
-            ),
-          ),
-        ),
       ),
     );
   }

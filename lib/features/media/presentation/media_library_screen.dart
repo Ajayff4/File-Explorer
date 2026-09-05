@@ -9,7 +9,7 @@ import 'package:file_explorer/features/media/presentation/widgets/media_thumbnai
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/shared/widgets/app_loading_indicator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -232,14 +232,18 @@ class _AllFilesAccessPrompt extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Center(
-      child: NeumorphicCard(
+      child: GlassCard(
         margin: const EdgeInsets.all(24),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(kind.icon, size: 48),
+              GlassIconChip(
+                icon: kind.icon,
+                color: Theme.of(context).colorScheme.primary,
+                size: 72,
+              ),
               const SizedBox(height: 12),
               Text(
                 'All files access needed',
@@ -294,9 +298,21 @@ class _MediaResultsView extends StatelessWidget {
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          NeumorphicCard(
+          GlassCard(
             child: ListTile(
-              leading: Icon(kind.icon),
+              leading: GlassIconChip(
+                icon: kind.icon,
+                color: switch (kind.type) {
+                  FileSystemEntryType.image => FileEntryColors.image,
+                  FileSystemEntryType.video => FileEntryColors.video,
+                  FileSystemEntryType.audio => FileEntryColors.audio,
+                  FileSystemEntryType.document => FileEntryColors.document,
+                  FileSystemEntryType.archive => FileEntryColors.archive,
+                  FileSystemEntryType.app => FileEntryColors.app,
+                  _ => Theme.of(context).colorScheme.primary,
+                },
+                size: 48,
+              ),
               title: Text('No ${kind.label.toLowerCase()} found'),
             ),
           ),
@@ -582,16 +598,12 @@ class _MediaFolderTile extends ConsumerWidget {
       _ => null,
     };
 
-    return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: () => _openFolder(context, ref),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
-          child: Column(
-            children: [
+    return GlassTile(
+      borderRadius: 14,
+      onTap: () => _openFolder(context, ref),
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 2),
+      child: Column(
+        children: [
               SizedBox(
                 height: 96,
                 child: Stack(
@@ -643,8 +655,6 @@ class _MediaFolderTile extends ConsumerWidget {
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ],
-          ),
-        ),
       ),
     );
   }
@@ -676,7 +686,7 @@ class _MediaErrorState extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        NeumorphicCard(
+        GlassCard(
           child: ListTile(
             leading: const Icon(Icons.error_outline_rounded),
             title: const Text('Could not load library'),

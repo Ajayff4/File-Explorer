@@ -1,4 +1,4 @@
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/recycle_bin/domain/entities/trash_item.dart';
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:flutter/material.dart';
@@ -38,7 +38,7 @@ class TrashItemListTile extends StatelessWidget {
         ? formatTrashDate(item.deletedAt)
         : '${item.originalPath}\n${formatTrashDate(item.deletedAt)}';
 
-    return NeumorphicCard(
+    return GlassTile(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
         selected: selected,
@@ -47,11 +47,12 @@ class TrashItemListTile extends StatelessWidget {
                 value: selected,
                 onChanged: (_) => onTap(),
               )
-            : Icon(
-                item.isFolder
+            : GlassIconChip(
+                icon: item.isFolder
                     ? Icons.folder_rounded
                     : Icons.insert_drive_file_rounded,
                 color: colors.primary,
+                size: 48,
               ),
         title: Text(
           item.name,

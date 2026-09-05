@@ -398,7 +398,7 @@ class _MediaGridTile extends StatelessWidget {
         entry.type == FileSystemEntryType.archive;
 
     return Material(
-      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      color: Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),

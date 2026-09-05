@@ -26,21 +26,6 @@ Color onAccent(Color color) {
 class AppTheme {
   const AppTheme._();
 
-  static const _lightSurface = Color(0xFFF2F2F2);
-  static const _lightSurfaceContainer = Color(0xFFECECEC);
-
-  static Color _neumorphicLight(bool isDark, Color base) {
-    return isDark
-        ? Color.alphaBlend(Colors.white.withValues(alpha: 0.06), base)
-        : Color.alphaBlend(Colors.white.withValues(alpha: 0.8), base);
-  }
-
-  static Color _neumorphicDark(bool isDark, Color base) {
-    return isDark
-        ? Color.alphaBlend(Colors.black.withValues(alpha: 0.6), base)
-        : Color.alphaBlend(Colors.black.withValues(alpha: 0.18), base);
-  }
-
   static ThemeData light([AppThemeAccent accent = AppThemeAccent.purple]) {
     final seed = appThemeSeed(accent);
     final scheme = ColorScheme.fromSeed(seedColor: seed).copyWith(
@@ -65,36 +50,60 @@ class AppTheme {
 
   static ThemeData _base(ColorScheme scheme) {
     final isDark = scheme.brightness == Brightness.dark;
-    final surfaceColor = isDark ? scheme.surface : _lightSurface;
-    final containerColor =
-        isDark ? scheme.surfaceContainer : _lightSurfaceContainer;
+    // Scaffolds stay transparent so the ambient glass backdrop (mounted in
+    // AppShell) shows through on every route.
+    const transparent = Colors.transparent;
+    final sheetColor = isDark
+        ? const Color(0xFF14141C).withValues(alpha: 0.88)
+        : Colors.white.withValues(alpha: 0.9);
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
-      scaffoldBackgroundColor: surfaceColor,
-      appBarTheme: AppBarTheme(
+      scaffoldBackgroundColor: transparent,
+      appBarTheme: const AppBarTheme(
         centerTitle: false,
-        backgroundColor: surfaceColor,
-        foregroundColor: scheme.onSurface,
-        scrolledUnderElevation: 1,
+        backgroundColor: transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
       ),
       bottomSheetTheme: BottomSheetThemeData(
-        backgroundColor: isDark ? scheme.surface : _lightSurfaceContainer,
+        backgroundColor: sheetColor,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         showDragHandle: true,
       ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: sheetColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(28),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.6),
+          ),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: isDark
+            ? const Color(0xFF1E1E28).withValues(alpha: 0.95)
+            : const Color(0xFF1E1E28),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.2),
+          ),
+        ),
+      ),
       cardTheme: CardThemeData(
-        color: isDark ? scheme.surfaceContainerLow : Colors.white,
-        elevation: isDark ? 0 : 1,
+        color: Colors.white.withValues(alpha: isDark ? 0.08 : 0.6),
+        elevation: 0,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: isDark
-              ? BorderSide.none
-              : BorderSide(color: scheme.outlineVariant.withValues(alpha: 0.7)),
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: isDark ? 0.14 : 0.7),
+          ),
         ),
       ),
       listTileTheme: ListTileThemeData(
@@ -106,7 +115,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: containerColor,
+        fillColor: Colors.white.withValues(alpha: isDark ? 0.07 : 0.6),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: BorderSide.none,
@@ -136,16 +145,19 @@ class AppTheme {
           if (states.contains(WidgetState.selected)) {
             return scheme.onPrimary;
           }
-          return _neumorphicLight(isDark, containerColor);
+          return isDark
+              ? Colors.white.withValues(alpha: 0.7)
+              : scheme.onSurfaceVariant;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return scheme.primary;
           }
-          return containerColor;
+          return Colors.white.withValues(alpha: isDark ? 0.12 : 0.5);
         }),
-        trackOutlineColor:
-            WidgetStatePropertyAll(_neumorphicDark(isDark, containerColor)),
+        trackOutlineColor: WidgetStatePropertyAll(
+          Colors.white.withValues(alpha: isDark ? 0.25 : 0.5),
+        ),
       ),
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
@@ -189,14 +201,31 @@ class AppTheme {
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: containerColor,
+        backgroundColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        indicatorColor: scheme.primary,
         indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(18),
         ),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: Colors.white);
+          }
+          return IconThemeData(color: scheme.onSurfaceVariant);
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
+            );
+          }
+          return TextStyle(color: scheme.onSurfaceVariant, fontSize: 12);
+        }),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor: containerColor,
+        backgroundColor: Colors.transparent,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
         ),

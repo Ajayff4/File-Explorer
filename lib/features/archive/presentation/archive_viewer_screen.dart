@@ -1,4 +1,5 @@
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/archive/domain/entities/archive_entry.dart';
@@ -127,7 +128,7 @@ class _ArchiveEntryList extends ConsumerWidget {
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 8),
       itemCount: entries.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
         final entry = entries[index];
         return _ArchiveEntryTile(
@@ -172,25 +173,29 @@ class _ArchiveEntryTile extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final extension = _extensionFor(entry.name);
 
-    return InkWell(
+    return GlassTile(
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      borderRadius: 14,
       onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 56,
-              height: 56,
-              child: Center(
-                child: entry.isFolder
-                    ? Icon(Icons.folder_rounded,
-                        size: 40, color: colorScheme.primary)
-                    : FileTypeBadge(
-                        extension: extension,
-                        color: _colorForExtension(context, extension),
-                      ),
-              ),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Center(
+              child: entry.isFolder
+                  ? GlassIconChip(
+                      icon: Icons.folder_rounded,
+                      color: colorScheme.primary,
+                      size: 52,
+                    )
+                  : FileTypeBadge(
+                      extension: extension,
+                      color: _colorForExtension(context, extension),
+                    ),
             ),
+          ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -214,7 +219,6 @@ class _ArchiveEntryTile extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 

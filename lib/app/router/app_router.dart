@@ -16,6 +16,7 @@ import 'package:file_explorer/features/encryption/presentation/encryptor_screen.
 import 'package:file_explorer/features/qr_scanner/presentation/qr_scanner_screen.dart';
 import 'package:file_explorer/features/settings/presentation/settings_screen.dart';
 import 'package:file_explorer/app/window/window_manager.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.dart';
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
@@ -247,6 +248,18 @@ class AppShell extends ConsumerWidget {
   final String location;
   final Widget child;
 
+  /// Every route renders over the shared ambient backdrop (scaffolds are
+  /// transparent) so frosted surfaces have something to refract.
+  Widget _glassBody(Widget content) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        const Positioned.fill(child: GlassAmbientBackground()),
+        _withWindowControls(content),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final width = MediaQuery.sizeOf(context).width;
@@ -259,11 +272,12 @@ class AppShell extends ConsumerWidget {
 
     if (width >= 840) {
       return Scaffold(
-        body: Row(
-          children: [
-            NavigationRail(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (index) => _go(context, ref, index),
+        body: _glassBody(
+          Row(
+            children: [
+              NavigationRail(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (index) => _go(context, ref, index),
               extended: width >= 1120,
               leading: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -307,26 +321,28 @@ class AppShell extends ConsumerWidget {
               ],
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: _withWindowControls(child)),
+            Expanded(child: child),
           ],
+          ),
         ),
       );
     }
 
     return Scaffold(
-      body: _withWindowControls(child),
-      bottomNavigationBar: isSelectionMode
-          ? SelectionBottomBar(
-              selectedPaths: selectedPaths,
-              onExitSelection: () {
-                ref
-                    .read(explorerControllerProvider.notifier)
-                    .exitSelectionMode();
-              },
-            )
-          : NavigationBar(
-              selectedIndex: selectedIndex,
-              onDestinationSelected: (index) => _go(context, ref, index),
+      body: _glassBody(child),
+      bottomNavigationBar: GlassBlur(
+        child: isSelectionMode
+            ? SelectionBottomBar(
+                selectedPaths: selectedPaths,
+                onExitSelection: () {
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .exitSelectionMode();
+                },
+              )
+            : NavigationBar(
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (index) => _go(context, ref, index),
               destinations: [
                 const NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),
@@ -361,6 +377,7 @@ class AppShell extends ConsumerWidget {
                 ),
               ],
             ),
+        ),
     );
   }
 

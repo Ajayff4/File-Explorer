@@ -3,18 +3,44 @@ import 'dart:io';
 
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
-import 'package:file_explorer/features/downloader/data/downloader_database.dart';
 import 'package:file_explorer/features/explorer/data/platform/android_storage_platform.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_constants.dart';
-import 'package:file_explorer/shared/config/flavor_config.dart';
 import 'package:file_explorer/shared/database/app_database.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// Restores database snapshots from the public History folder when the local
-/// databases are missing or empty. Must run before any database is opened
-/// (i.e. first thing in `main()`). Never overwrites local user data and never
-/// throws — a backup must never break startup.
+/// Downloader-side backup operations, implemented inside the downloader
+/// feature and registered at runtime.
+///
+/// Shared backup code must NEVER statically reference downloader types —
+/// even references inside `if (enableDownloader)` guards pin the downloader
+/// graph in `standard` builds (verified by string inspection of the release
+/// binary), while collection-if/ternary UI references prune cleanly. The
+/// downloader registers itself from `downloaderDatabaseProvider`'s
+/// initializer, which only ever runs when the feature is compiled in.
+abstract interface class DownloaderBackupBackend {
+  Future<DateTime?> exportBackend(HistoryBackupService service);
+  Future<bool> importBackend(HistoryBackupService service);
+  Future<void> closeBackend();
+  Future<bool> hasLocalUserData();
+  Future<bool> hasPendingRestore(HistoryBackupService service);
+}
+
+/// Set by the downloader feature when it initializes; stays null in
+/// `standard` builds (or before first use), in which case downloader backup
+/// steps are skipped entirely.
+DownloaderBackupBackend? downloaderBackupBackend;
+
+/// Restores the app-database snapshot from the public History folder when the
+/// local database is missing or holds no user data. Must run before any
+/// database is opened (i.e. first thing in `main()`). Never overwrites local
+/// user data and never throws — a backup must never break startup.
+///
+/// The downloader snapshot is intentionally NOT handled here: restoring it
+/// needs downloader types, which shared code must not reference (see
+/// [DownloaderBackupBackend]). Fresh installs can't read the backup folder
+/// before storage permission is granted anyway, so downloader restore is
+/// covered by the runtime prompt path once the backend registers itself.
 Future<void> restoreHistoryBackup() async {
   try {
     final historyPath = await HistoryBackupService.resolveHistoryPath();
@@ -25,13 +51,6 @@ Future<void> restoreHistoryBackup() async {
       historyPath: historyPath,
     );
     await service.importAppDatabase();
-    if (enableDownloader) {
-      await service.importDatabase(
-        fileName: kHistoryBackupDownloaderFileName,
-        schemaVersion: kDownloaderDatabaseSchemaVersion,
-        openProbe: DownloaderDatabase.new,
-      );
-    }
   } catch (_) {
     // Ignore — starting fresh is always a valid fallback.
   }

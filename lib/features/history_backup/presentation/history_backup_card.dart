@@ -1,4 +1,4 @@
-import 'package:file_explorer/app/theme/neumorphic_card.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/history_backup/presentation/history_backup_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,7 +21,7 @@ class HistoryBackupCard extends ConsumerWidget {
       _ => 'Auto-saves to File Explorer/.history · restores on reinstall',
     };
 
-    return NeumorphicCard(
+    return GlassTile(
       child: ListTile(
         title: const Text('History backup'),
         subtitle: Text(subtitle),
@@ -31,7 +31,10 @@ class HistoryBackupCard extends ConsumerWidget {
                 height: 24,
                 child: CircularProgressIndicator(strokeWidth: 2.5),
               )
-            : FilledButton.tonal(
+            : GlowButton(
+                label: 'Back up now',
+                height: 44,
+                expanded: false,
                 onPressed: () async {
                   final ok = await controller.exportNow();
                   if (!context.mounted) return;
@@ -45,7 +48,6 @@ class HistoryBackupCard extends ConsumerWidget {
                     ),
                   );
                 },
-                child: const Text('Back up now'),
               ),
       ),
     );
