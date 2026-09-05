@@ -306,13 +306,10 @@ class _StoragePanel extends ConsumerWidget {
                 ],
               ),
               const SizedBox(height: 16),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: LinearProgressIndicator(
-                  value: storageSummary?.usedFraction,
-                  minHeight: 10,
-                  backgroundColor: colors.surfaceContainerHighest,
-                ),
+              GlassMeterBar(
+                fraction: storageSummary?.usedFraction ?? 0,
+                color: colors.primary,
+                height: 12,
               ),
               const SizedBox(height: 10),
               Text(

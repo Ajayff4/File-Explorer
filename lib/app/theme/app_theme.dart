@@ -203,7 +203,9 @@ class AppTheme {
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: Colors.transparent,
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        indicatorColor: scheme.primary,
+        // The selected pill is drawn per-destination (gradient + glow);
+        // the material indicator stays out of the way.
+        indicatorColor: Colors.transparent,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(18),
         ),
@@ -215,8 +217,8 @@ class AppTheme {
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
-              color: Colors.white,
+            return TextStyle(
+              color: isDark ? Colors.white : scheme.onSurface,
               fontWeight: FontWeight.w700,
               fontSize: 12,
             );
@@ -226,8 +228,34 @@ class AppTheme {
       ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: Colors.transparent,
+        indicatorColor: Colors.transparent,
         indicatorShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      sliderTheme: SliderThemeData(
+        trackHeight: 8,
+        activeTrackColor: scheme.primary,
+        inactiveTrackColor: scheme.primary.withValues(alpha: 0.22),
+        thumbColor: Colors.white,
+        overlayColor: scheme.primary.withValues(alpha: 0.18),
+        thumbShape: const RoundSliderThumbShape(
+          enabledThumbRadius: 11,
+          elevation: 4,
+          pressedElevation: 8,
+        ),
+        trackShape: const RoundedRectSliderTrackShape(),
+        tickMarkShape: const RoundSliderTickMarkShape(tickMarkRadius: 0),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          elevation: 3,
+          shadowColor: scheme.primary.withValues(alpha: 0.55),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
         ),
       ),
       dividerTheme: DividerThemeData(color: scheme.outlineVariant),

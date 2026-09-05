@@ -89,7 +89,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Media | MediaStore index kept fresh: completed transfers re-scan their paths via `MediaScannerConnection.scanFile`. |
 | ✅ | Media | Native APK icon thumbnails for app files. |
 | ✅ | Media | Hybrid thumbnail caching: native now **decodes the real image file** (BitmapFactory, downscaled) instead of relying on MediaStore (which serves stale thumbnails for overwritten/disk-written files); persistent disk cache keyed by path + size + mtime; videos still use MediaStore; decode fallback (2026-08-27 fix). |
-| ✅ | Analyzer | Storage Analyzer: isolate scan, donut chart, largest folders/files (2026-08-22). |
+| ✅ | Analyzer | Storage Analyzer: isolate scan, donut chart, largest folders/files; files tap through to their folder; glowing meter bars (2026-08-22, 2026-09-05). |
 | ✅ | Recycle bin | Delete redirects to `.recycle_bin` (moveToTrash) instead of permanent erase, per-volume trash with `.meta.json` sidecars (2026-08-22). |
 | ✅ | Recycle bin | Restore (parent dir recreated, collision rename), delete permanently, empty trash (2026-08-22). |
 | ✅ | Recycle bin | Multi-select, select-all, bulk restore/delete, and list/grid view toggle (2026-08-22). |
@@ -111,7 +111,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
 | ✅ | Players | Video player mute/unmute button. |
 | ✅ | Players | Video player keeps screen awake during playback via native wakelock channel. |
-| ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details. |
+| ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details; live spectrum graph (native FFT, beat-synced fallback) + static "Audio Player" title (2026-09-05). |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press opens item actions with Select, Share, Open with, transfer actions, and Properties. |
 | ✅ | Explorer | Storage repository, media scanning, and search traverse all nested folders without depth limits. |
@@ -168,6 +168,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-09-05 (3rd): **Audio spectrum + accent glass + analyzer taps** — player center shows a live graph (native FFT channel where the ROM allows; synthesized beat-synced fallback where ColorOS blocks it; static disc only as last resort), static "Audio Player" title, own ambient backdrop, transport overflow fixed. Accent surfaces glassed: `GlassMeterBar` (storage panel, analyzer bars), gradient-glow nav pills, slider/button theme, brightness-aware selected labels. Analyzer largest files tap through to their folder; grid extent fix kills file-tile overflow. `flutter analyze` clean; screenshot-verified on device (RMX3031, light + dark).
 
 Update 2026-09-05 (2nd): **Glassmorphism rework + true zero-trace standard flavor** — neumorphism fully replaced by a glass system (`GlassCard`/`GlassTile`/`GlassBlur`/ambient backdrop/glow kit: icon chips, gradient CTAs, glowing nav pill, luminous donut) across all screens; 3D treatment refined on-device to neutral smoke + hairlines. Standard flavor now provably downloader-free: Chaquopy plugin skipped for standard-only builds and backup code decoupled via a backend registry (release-binary inspection: zero strings/DEX/assets); universal unaffected. `flutter analyze` clean; full suite 169 + 1 pre-existing unrelated failure; screenshot-verified on device (RMX3031 + Pixel 6 emulator).
 

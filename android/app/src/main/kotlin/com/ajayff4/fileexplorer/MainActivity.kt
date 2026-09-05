@@ -14,6 +14,7 @@ import android.graphics.drawable.Drawable
 import android.content.ClipData
 import android.content.ContentValues
 import android.media.MediaScannerConnection
+import android.media.audiofx.Visualizer
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -37,6 +38,7 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
+import kotlin.math.pow
 
 class MainActivity: FlutterActivity() {
     private val ALL_FILES_ACCESS_REQUEST_CODE = 4700
@@ -47,6 +49,12 @@ class MainActivity: FlutterActivity() {
     private val mediaActionsChannel = "com.ajayff4.fileexplorer/media_actions"
     private val mediaStoreChannel = "com.ajayff4.fileexplorer/media_store"
     private val wakelockChannel = "com.ajayff4.fileexplorer/wakelock"
+    private val audioVisualizerChannel = "com.ajayff4.fileexplorer/audio_visualizer"
+    private val audioVisualizerFftChannel = "com.ajayff4.fileexplorer/audio_visualizer/fft"
+    private val visualizerBands = 32
+    private var audioVisualizer: Visualizer? = null
+    private var visualizerSink: EventChannel.EventSink? = null
+    private val visualizerHandler = Handler(Looper.getMainLooper())
     private val incomingChannel = "com.ajayff4.fileexplorer/incoming"
     private var incomingMethodChannel: MethodChannel? = null
     private var pendingIncomingPaths: List<String>? = null
@@ -467,6 +475,117 @@ class MainActivity: FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+
+        // Live audio spectrum for the built-in audio player. Hooks the output
+        // mix (session 0), so no player session id or permission is needed;
+        // frames are log-spaced FFT magnitudes normalized to 0..1.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, audioVisualizerChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "start" -> result.success(startAudioVisualizer())
+                    "stop" -> {
+                        stopAudioVisualizer()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, audioVisualizerFftChannel)
+            .setStreamHandler(
+                object : EventChannel.StreamHandler {
+                    override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
+                        visualizerSink = events
+                    }
+
+                    override fun onCancel(arguments: Any?) {
+                        visualizerSink = null
+                    }
+                },
+            )
+    }
+
+    override fun onDestroy() {
+        stopAudioVisualizer()
+        super.onDestroy()
+    }
+
+    private fun startAudioVisualizer(): Boolean {
+        if (audioVisualizer != null) return true
+        return try {
+            val visualizer = Visualizer(0)
+            val captureSize = Visualizer.getCaptureSizeRange()[1]
+            visualizer.captureSize = captureSize
+            val rate = minOf(Visualizer.getMaxCaptureRate(), 20000)
+            visualizer.setDataCaptureListener(
+                object : Visualizer.OnDataCaptureListener {
+                    override fun onWaveFormDataCapture(
+                        visualizer: Visualizer?,
+                        waveform: ByteArray?,
+                        samplingRate: Int,
+                    ) = Unit
+
+                    override fun onFftDataCapture(
+                        visualizer: Visualizer?,
+                        fft: ByteArray?,
+                        samplingRate: Int,
+                    ) {
+                        val bands = fftToBands(fft) ?: return
+                        visualizerHandler.post { visualizerSink?.success(bands) }
+                    }
+                },
+                rate,
+                false,
+                true,
+            )
+            visualizer.enabled = true
+            audioVisualizer = visualizer
+            true
+        } catch (_: Exception) {
+            stopAudioVisualizer()
+            false
+        }
+    }
+
+    private fun stopAudioVisualizer() {
+        visualizerSink = null
+        try {
+            audioVisualizer?.enabled = false
+            audioVisualizer?.release()
+        } catch (_: Exception) {
+        }
+        audioVisualizer = null
+    }
+
+    /// Folds raw FFT bytes into [visualizerBands] log-spaced magnitudes in 0..1.
+    private fun fftToBands(fft: ByteArray?): ArrayList<Double>? {
+        if (fft == null || fft.size < 4) return null
+        val bins = fft.size / 2
+        val magnitudes = DoubleArray(bins) { k ->
+            if (k == 0) {
+                0.0
+            } else {
+                val re = fft[2 * k].toDouble()
+                val im = fft[2 * k + 1].toDouble()
+                kotlin.math.sqrt(re * re + im * im)
+            }
+        }
+        val lo = 1.0
+        val hi = (bins - 1).toDouble()
+        val logLo = kotlin.math.ln(lo)
+        val logHi = kotlin.math.ln(hi)
+        return ArrayList<Double>(visualizerBands).apply {
+            for (b in 0 until visualizerBands) {
+                val start = kotlin.math.exp(logLo + (logHi - logLo) * b / visualizerBands)
+                val end = kotlin.math.exp(logLo + (logHi - logLo) * (b + 1) / visualizerBands)
+                var peak = 0.0
+                for (k in start.toInt()..end.toInt().coerceAtLeast(start.toInt())) {
+                    if (k in 1 until bins && magnitudes[k] > peak) peak = magnitudes[k]
+                }
+                val normalized = (peak / 180.0).coerceIn(0.0, 1.0)
+                add(normalized.pow(0.75))
+            }
+        }
     }
 
     private fun getStorageVolumes(): List<Map<String, Any?>> {

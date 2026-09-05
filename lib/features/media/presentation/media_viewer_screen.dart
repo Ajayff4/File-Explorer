@@ -2,10 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/app/theme/glass.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/media/data/audio_visualizer.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
+import 'package:file_explorer/features/media/presentation/widgets/audio_spectrum.dart';
 import 'package:file_explorer/features/media/presentation/local_media_source_stub.dart'
     if (dart.library.io) 'package:file_explorer/features/media/presentation/local_media_source_io.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
@@ -95,20 +98,27 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
 
     final visualPreview = _entry.type == FileSystemEntryType.image ||
         _entry.type == FileSystemEntryType.video;
+    final isAudio = _entry.type == FileSystemEntryType.audio;
 
-    return Scaffold(
-      backgroundColor: visualPreview ? Colors.black : null,
+    final scaffold = Scaffold(
+      backgroundColor: visualPreview
+          ? Colors.black
+          : isAudio
+              ? Colors.transparent
+              : null,
       appBar: fullscreenVideo
           ? null
           : AppBar(
-              title: Text(
-                _entry.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              title: isAudio
+                  ? const Text('Audio Player')
+                  : Text(
+                      _entry.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
             ),
       body: ColoredBox(
-        color: colorScheme.surface,
+        color: isAudio ? Colors.transparent : colorScheme.surface,
         child: Column(
           children: [
             Expanded(
@@ -134,6 +144,16 @@ class _MediaViewerScreenState extends ConsumerState<MediaViewerScreen> {
           ],
         ),
       ),
+    );
+    if (!isAudio) return scaffold;
+    // This route sits outside AppShell, so the audio screen mounts its own
+    // ambient backdrop behind the transparent scaffold (app bar included),
+    // matching every other glass screen.
+    return Stack(
+      children: [
+        const Positioned.fill(child: GlassAmbientBackground()),
+        scaffold,
+      ],
     );
   }
 
@@ -1314,7 +1334,7 @@ class _VideoFrame extends StatelessWidget {
   }
 }
 
-class _AudioPlayerSurface extends StatelessWidget {
+class _AudioPlayerSurface extends StatefulWidget {
   const _AudioPlayerSurface({
     required this.entry,
     required this.controller,
@@ -1336,7 +1356,111 @@ class _AudioPlayerSurface extends StatelessWidget {
   final VoidCallback onShowInfo;
 
   @override
+  State<_AudioPlayerSurface> createState() => _AudioPlayerSurfaceState();
+}
+
+class _AudioPlayerSurfaceState extends State<_AudioPlayerSurface> {
+  bool _playing = false;
+  bool _showSpectrum = false;
+  bool _spectrumLive = false;
+  bool _visualizerStartAttempted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_syncVisualizer);
+    _syncVisualizer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _AudioPlayerSurface oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.removeListener(_syncVisualizer);
+      if (_spectrumLive) {
+        _spectrumLive = false;
+        unawaited(AudioVisualizer.stop());
+      }
+      _visualizerStartAttempted = false;
+      widget.controller.addListener(_syncVisualizer);
+      _syncVisualizer();
+    }
+  }
+
+  /// Captures the output mix only while audio is actually playing; the
+  /// native effect is released on pause, track change, and dispose.
+  /// Start is attempted once per play episode (plus one delayed retry for
+  /// transient routing failures) so position-update ticks can't spam the
+  /// native effect constructor.
+  void _syncVisualizer() {
+    final playing = widget.controller.value.isPlaying;
+    if (playing != _playing) {
+      _playing = playing;
+      if (mounted) setState(() {});
+    }
+    if (!playing) {
+      // Pause: release the native effect (bars decay); next play retries it.
+      if (_spectrumLive) {
+        _spectrumLive = false;
+        unawaited(AudioVisualizer.stop());
+        if (mounted) setState(() {});
+      }
+      _visualizerStartAttempted = false;
+      return;
+    }
+    if (_visualizerStartAttempted) return;
+    _visualizerStartAttempted = true;
+    unawaited(_attemptVisualizerStart(retry: true));
+  }
+
+  Future<void> _attemptVisualizerStart({required bool retry}) async {
+    final ok = await AudioVisualizer.start();
+    if (!mounted) {
+      if (ok) unawaited(AudioVisualizer.stop());
+      return;
+    }
+    if (ok && widget.controller.value.isPlaying) {
+      setState(() {
+        _showSpectrum = true;
+        _spectrumLive = true;
+      });
+      return;
+    }
+    if (ok) unawaited(AudioVisualizer.stop());
+    // One delayed retry: output-mix attach can fail transiently while audio
+    // routing settles right after playback starts.
+    if (retry && !ok) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      if (!mounted || _spectrumLive) return;
+      if (widget.controller.value.isPlaying) {
+        await _attemptVisualizerStart(retry: false);
+        return;
+      }
+    }
+    // Native capture unavailable (some ROMs block the output mix): fall back
+    // to the synthesized beat-synced graph instead of the static disc.
+    if (!mounted || _showSpectrum) return;
+    if (widget.controller.value.isPlaying) {
+      setState(() {
+        _showSpectrum = true;
+        _spectrumLive = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_syncVisualizer);
+    if (_spectrumLive || _showSpectrum) {
+      unawaited(AudioVisualizer.stop());
+    }
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final entry = widget.entry;
+    final controller = widget.controller;
     final color = colorForFileSystemEntry(context, entry);
     final colorScheme = Theme.of(context).colorScheme;
 
@@ -1350,18 +1474,11 @@ class _AudioPlayerSurface extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 156,
-                    height: 156,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.18),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.graphic_eq_rounded,
-                      size: 86,
-                      color: color,
-                    ),
+                  _AudioArtwork(
+                    color: color,
+                    showSpectrum: _showSpectrum,
+                    playing: _playing,
+                    live: _spectrumLive,
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -1378,7 +1495,7 @@ class _AudioPlayerSurface extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                          color: colorScheme.onSurface.withValues(alpha: 0.72),
                         ),
                   ),
                 ],
@@ -1389,20 +1506,59 @@ class _AudioPlayerSurface extends StatelessWidget {
         _VolumeControl(controller: controller),
         _PlaybackControls(
           controller: controller,
-          hasPlaylist: hasPlaylist,
-          shuffle: shuffle,
-          onPrevious: onPrevious,
-          onNext: onNext,
-          onToggleShuffle: onToggleShuffle,
-          onShowInfo: onShowInfo,
+          hasPlaylist: widget.hasPlaylist,
+          shuffle: widget.shuffle,
+          onPrevious: widget.onPrevious,
+          onNext: widget.onNext,
+          onToggleShuffle: widget.onToggleShuffle,
+          onShowInfo: widget.onShowInfo,
         ),
       ],
     );
   }
 }
 
-class _VolumeControl extends StatelessWidget {
-  const _VolumeControl({required this.controller});
+/// Center artwork for the audio player: the live spectrum when native FFT
+/// frames flow, a synthesized beat-synced graph where the ROM blocks
+/// capture, otherwise the static equalizer disc.
+class _AudioArtwork extends StatelessWidget {
+  const _AudioArtwork({
+    required this.color,
+    required this.showSpectrum,
+    required this.playing,
+    required this.live,
+  });
+
+  final Color color;
+  final bool showSpectrum;
+  final bool playing;
+  final bool live;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!showSpectrum) {
+      return Container(
+        width: 156,
+        height: 156,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.18),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.graphic_eq_rounded,
+          size: 86,
+          color: color,
+        ),
+      );
+    }
+    return SizedBox(
+      height: 220,
+      child: AudioSpectrum(active: playing, color: color, simulated: !live),
+    );
+  }
+}
+
+class _VolumeControl extends StatelessWidget {  const _VolumeControl({required this.controller});
 
   final VideoPlayerController controller;
 
@@ -1615,10 +1771,14 @@ class _TransportButtons extends StatelessWidget {
     final iconColor = foregroundColor;
     final playIconSize = largePlayButton ? 46.0 : 30.0;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        _PlaybackIconButton(
+    return SizedBox(
+      width: double.infinity,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _PlaybackIconButton(
           tooltip: 'Start',
           icon: Icons.first_page_rounded,
           iconColor: iconColor,
@@ -1694,7 +1854,9 @@ class _TransportButtons extends StatelessWidget {
             onInteraction?.call();
           },
         ),
-      ],
+          ],
+        ),
+      ),
     );
   }
 }

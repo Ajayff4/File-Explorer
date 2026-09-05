@@ -398,14 +398,10 @@ class _LegendRow extends StatelessWidget {
                     ),
               ),
               const SizedBox(height: 6),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: percent / 100,
-                  minHeight: 6,
-                  backgroundColor: colors.surfaceContainerHighest,
-                  valueColor: AlwaysStoppedAnimation<Color>(color),
-                ),
+              GlassMeterBar(
+                fraction: percent / 100,
+                color: color,
+                height: 8,
               ),
             ],
           ),
@@ -554,13 +550,10 @@ class _FolderRow extends ConsumerWidget {
               overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 6),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: fraction,
-                minHeight: 6,
-                backgroundColor: colors.surfaceContainerHighest,
-              ),
+            GlassMeterBar(
+              fraction: fraction,
+              color: colors.primary,
+              height: 8,
             ),
           ],
         ),
@@ -574,15 +567,22 @@ class _FolderRow extends ConsumerWidget {
   }
 }
 
-class _FileRow extends StatelessWidget {
+class _FileRow extends ConsumerWidget {
   const _FileRow({required this.file});
 
   final LargeFile file;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GlassTile(
       margin: const EdgeInsets.only(bottom: 8),
+      onTap: () {
+        // Jump to where the file lives, like folder rows do.
+        ref
+            .read(explorerControllerProvider.notifier)
+            .openDirectory(p.dirname(file.path));
+        context.go(AppRoutes.explorer);
+      },
       child: ListTile(
         leading: GlassIconChip(
           icon: iconForFileSystemEntryType(_typeForCategory(file.category)),

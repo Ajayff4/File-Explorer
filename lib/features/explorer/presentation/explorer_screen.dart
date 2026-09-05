@@ -1079,7 +1079,9 @@ class EntryGrid extends ConsumerWidget {
           itemCount: entries.length,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columnCount,
-            mainAxisExtent: 114,
+            // 114px tile content + breathing room for text line-height
+            // overshoot on file tiles (name + detail rows).
+            mainAxisExtent: 120,
             mainAxisSpacing: 10,
             crossAxisSpacing: 8,
           ),

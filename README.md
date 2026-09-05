@@ -57,8 +57,8 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Home → Tools → Analyzer scans a volume on an isolate and reports total,
   per-category, and per-folder usage.
 - ✅ Animated donut chart (centered, with the size/percent legend spanning the
-  full card width) plus a per-category **usage bar**; largest folders (tap →
-  Explorer) and largest files.
+  full card width) plus a per-category glowing **usage bar**; largest folders
+  and largest files (both tap → containing folder in Explorer).
 - ✅ Skips inaccessible directories (`/Android/data`) instead of aborting the scan.
 
 ### 🎬 Viewers & Players
@@ -66,7 +66,8 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ In-app preview for images, video, audio (Explorer + within ZIPs).
 - ✅ Images: pinch/double-tap zoom, rotate, swipe, share, details, delete, rename, wallpaper.
 - ✅ Video: auto-hiding controls, landscape, 10‑s double-tap seeking, speed, loop, shuffle, mute, wakelock.
-- ✅ Audio: seek, speed, volume, mute, loop, shuffle, prev/next, details.
+- ✅ Audio: live spectrum graph (native FFT where the ROM allows, beat-synced
+  fallback otherwise), seek, speed, volume, mute, loop, shuffle, prev/next, details.
 - ✅ Built-in text viewer (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size.
 - ✅ `Open with` system chooser; `Open as` to force Text/Image/Video/Audio.
 
@@ -151,6 +152,7 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Frosted-glass surfaces app-wide (blurred panels, blur-free list/grid tiles, frosted nav) over an accent-derived ambient backdrop.
 - ✅ 3D thick-glass cues: edge-light rims, specular streaks, smoky fills, accent glow on selected surfaces.
 - ✅ Glowing kind-colored icon chips on rows, gradient glow CTAs, glowing nav pill, luminous analyzer rings.
+- ✅ Gradient meter bars, glass sliders/buttons, brightness-aware nav labels.
 
 ### 🔎 Search
 

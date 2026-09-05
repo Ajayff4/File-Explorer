@@ -497,6 +497,61 @@ class GlassIconChip extends StatelessWidget {
   }
 }
 
+/// Deepened end-stop for monochrome accent gradients (buttons, nav pills,
+/// meter bars) — matches the [GlowButton] language.
+Color glassDeep(Color color) =>
+    Color.lerp(color, Colors.black, 0.28) ?? color;
+
+/// Gradient meter bar with outer glow and a track that reads on both
+/// brightnesses — replaces flat [LinearProgressIndicator]s for storage and
+/// analyzer usage bars.
+class GlassMeterBar extends StatelessWidget {
+  const GlassMeterBar({
+    super.key,
+    required this.fraction,
+    required this.color,
+    this.height = 10,
+  });
+
+  final double fraction;
+  final Color color;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final fill = fraction.clamp(0.0, 1.0);
+    return Container(
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(height / 2),
+        color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.1),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.5),
+        ),
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: FractionallySizedBox(
+          widthFactor: fill,
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(height / 2),
+              gradient: LinearGradient(colors: [color, glassDeep(color)]),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.45),
+                  blurRadius: 10,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Gradient glow call-to-action (primary → tertiary pill with outer glow)
 /// for primary actions: new-window, backup/restore, permission grant.
 class GlowButton extends StatelessWidget {

@@ -287,35 +287,65 @@ class AppShell extends ConsumerWidget {
                 ),
               ),
               destinations: [
-                const NavigationRailDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard_rounded),
+                NavigationRailDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 0,
+                    child: const Icon(Icons.dashboard_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.dashboard_rounded),
+                  ),
                   label: Text('Home'),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.folder_outlined),
-                  selectedIcon: Icon(Icons.folder_rounded),
+                NavigationRailDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 1,
+                    child: const Icon(Icons.folder_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.folder_rounded),
+                  ),
                   label: Text('Files'),
                 ),
                 NavigationRailDestination(
-                  icon: _TransferTabIcon(
-                    count: activeTransferCount,
-                    icon: const Icon(Icons.sync_alt_outlined),
+                  icon: _NavPill(
+                    selected: selectedIndex == 2,
+                    child: _TransferTabIcon(
+                      count: activeTransferCount,
+                      icon: const Icon(Icons.sync_alt_outlined),
+                    ),
                   ),
-                  selectedIcon: _TransferTabIcon(
-                    count: activeTransferCount,
-                    icon: const Icon(Icons.sync_alt_rounded),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: _TransferTabIcon(
+                      count: activeTransferCount,
+                      icon: const Icon(Icons.sync_alt_rounded),
+                    ),
                   ),
                   label: const Text('Transfers'),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.tune_outlined),
-                  selectedIcon: Icon(Icons.tune_rounded),
+                NavigationRailDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 3,
+                    child: const Icon(Icons.tune_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.tune_rounded),
+                  ),
                   label: Text('Settings'),
                 ),
-                const NavigationRailDestination(
-                  icon: Icon(Icons.window_rounded),
-                  selectedIcon: Icon(Icons.window_rounded),
+                NavigationRailDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 4,
+                    child: const Icon(Icons.window_rounded),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.window_rounded),
+                  ),
                   label: Text('Windows'),
                 ),
               ],
@@ -344,35 +374,65 @@ class AppShell extends ConsumerWidget {
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (index) => _go(context, ref, index),
               destinations: [
-                const NavigationDestination(
-                  icon: Icon(Icons.dashboard_outlined),
-                  selectedIcon: Icon(Icons.dashboard_rounded),
+                NavigationDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 0,
+                    child: const Icon(Icons.dashboard_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.dashboard_rounded),
+                  ),
                   label: 'Home',
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.folder_outlined),
-                  selectedIcon: Icon(Icons.folder_rounded),
+                NavigationDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 1,
+                    child: const Icon(Icons.folder_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.folder_rounded),
+                  ),
                   label: 'Files',
                 ),
                 NavigationDestination(
-                  icon: _TransferTabIcon(
-                    count: activeTransferCount,
-                    icon: const Icon(Icons.sync_alt_outlined),
+                  icon: _NavPill(
+                    selected: selectedIndex == 2,
+                    child: _TransferTabIcon(
+                      count: activeTransferCount,
+                      icon: const Icon(Icons.sync_alt_outlined),
+                    ),
                   ),
-                  selectedIcon: _TransferTabIcon(
-                    count: activeTransferCount,
-                    icon: const Icon(Icons.sync_alt_rounded),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: _TransferTabIcon(
+                      count: activeTransferCount,
+                      icon: const Icon(Icons.sync_alt_rounded),
+                    ),
                   ),
                   label: 'Transfers',
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.tune_outlined),
-                  selectedIcon: Icon(Icons.tune_rounded),
+                NavigationDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 3,
+                    child: const Icon(Icons.tune_outlined),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.tune_rounded),
+                  ),
                   label: 'Settings',
                 ),
-                const NavigationDestination(
-                  icon: Icon(Icons.window_rounded),
-                  selectedIcon: Icon(Icons.window_rounded),
+                NavigationDestination(
+                  icon: _NavPill(
+                    selected: selectedIndex == 4,
+                    child: const Icon(Icons.window_rounded),
+                  ),
+                  selectedIcon: _NavPill(
+                    selected: true,
+                    child: const Icon(Icons.window_rounded),
+                  ),
                   label: 'Windows',
                 ),
               ],
@@ -438,8 +498,7 @@ class AppShell extends ConsumerWidget {
   Widget _withWindowControls(Widget child) => child;
 }
 
-class _TransferTabIcon extends StatelessWidget {
-  const _TransferTabIcon({
+class _TransferTabIcon extends StatelessWidget {  const _TransferTabIcon({
     required this.count,
     required this.icon,
   });
@@ -456,6 +515,41 @@ class _TransferTabIcon extends StatelessWidget {
       backgroundColor: scheme.primary,
       textColor: scheme.onPrimary,
       child: icon,
+    );
+  }
+}
+
+/// Selected-destination pill: monochrome primary gradient + glow, matching
+/// the [GlowButton] language. Unselected destinations render the bare icon
+/// (the material indicator is transparent by theme).
+class _NavPill extends StatelessWidget {
+  const _NavPill({required this.child, required this.selected});
+
+  final Widget child;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!selected) return child;
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          colors: [scheme.primary, glassDeep(scheme.primary)],
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.25),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: scheme.primary.withValues(alpha: 0.5),
+            blurRadius: 14,
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

@@ -68,6 +68,37 @@ Progress log for the Flutter application.
   provider initializer). Same release verification: zero traces.
 - **Explorer app bar shows a static "Explorer" title** (was empty outside
   selection/picker modes).
+- **Audio player shows a live spectrum graph instead of the static disc**
+  (`lib/features/media/data/audio_visualizer.dart`,
+  `presentation/widgets/audio_spectrum.dart`):
+  - **Real FFT where the ROM allows it** — new `audio_visualizer` native
+    channel (`Visualizer(0)` on the output mix, no permission/session needed)
+    streams 32 log-spaced magnitudes at ~20 fps; capture runs only while
+    audio plays (released on pause/track change/dispose).
+  - **Honest fallback** — this Realme's ColorOS blocks output-mix attach
+    (error -3, proven in logcat; Android exposes no API for another session),
+    so when native capture fails the graph dances to a synthesized
+    beat-synced signal through the same smoother/painter; static disc kept
+    only where neither applies. Pause eases bars to a flat glowing baseline.
+  - **Player screen glassed** — static "Audio Player" title, own ambient
+    backdrop (route sits outside `AppShell`), readable filename/path tones;
+    transport-row overflow fixed; control positions unchanged.
+  - **Verified** — `flutter analyze` clean; 5 new smoother unit tests;
+    screenshot-verified on device (RMX3031, light + dark).
+- **Accent surfaces speak glass now** (`GlassMeterBar`, gradient nav pills,
+  slider/button theme):
+  - `GlassMeterBar` (gradient fill + glow + dual-mode track) replaces flat
+    `LinearProgressIndicator`s: Home storage panel, analyzer category and
+    folder bars — light-mode washout fixed.
+  - Bottom nav / rail selected pill is a gradient-glow `_NavPill` (material
+    indicator transparent); selected labels brightness-aware (white on dark,
+    onSurface on light).
+  - Theme `sliderTheme` (rounded track, white glowing thumb) and
+    `filledButtonTheme` (primary + glow shadow) so sliders/buttons match.
+  - **Verified** — screenshot-verified on device (RMX3031, light + dark).
+- **Analyzer largest files are tappable** — jump to the containing folder in
+  Explorer, like folder rows; grid tile extent 114 → 120 kills the 2px file-tile
+  overflow.
 
 ## 2026-09-04
 
