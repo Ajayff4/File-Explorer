@@ -165,12 +165,7 @@ class MediaLibraryScreen extends ConsumerWidget {
               onPressed: () => _openFilteredExplorer(context, ref, rootPath),
               icon: const Icon(Icons.folder_open_rounded),
             ),
-            IconButton(
-              tooltip: 'Refresh',
-              onPressed: () =>
-                  ref.invalidate(mediaLibraryResultsProvider(request)),
-              icon: const Icon(Icons.refresh_rounded),
-            ),
+            _RepairRefreshButton(request: request),
             IconButton(
               tooltip: viewMode == ExplorerViewMode.list
                   ? 'Grid view'
@@ -190,8 +185,10 @@ class MediaLibraryScreen extends ConsumerWidget {
           ],
         ),
         body: RefreshIndicator(
-          onRefresh: () async =>
-              ref.refresh(mediaLibraryResultsProvider(request).future),
+          onRefresh: () async {
+            await repairMediaResults(ref, request);
+            return ref.refresh(mediaLibraryResultsProvider(request).future);
+          },
           child: needsAllFilesAccess
               ? _AllFilesAccessPrompt(kind: kind, request: request)
               : resultsAsync.when(
@@ -217,6 +214,76 @@ class MediaLibraryScreen extends ConsumerWidget {
     ref.read(explorerFilterTypeProvider.notifier).state = kind.type;
     ref.read(explorerControllerProvider.notifier).openDirectory(rootPath);
     context.go(AppRoutes.explorer);
+  }
+}
+
+/// Repairs the OS index for the volume, then reloads category results.
+///
+/// Files written behind MediaStore's back (e.g. another app decrypting
+/// files straight onto disk) have no index rows, so their folders are
+/// missing from category views and plain re-queries change nothing.
+/// Scanning the root lets the OS walker pick them up (directory paths
+/// recurse); the re-query afterwards serves the repaired index.
+Future<void> repairMediaResults(
+  WidgetRef ref,
+  MediaLibraryRequest request,
+) async {
+  final platform = ref.read(mediaStorePlatformProvider);
+  if (platform != null) {
+    try {
+      await platform.rescanVolume(request.rootPath);
+    } catch (_) {
+      // Fall through to the plain re-query below.
+    }
+  }
+  ref.invalidate(mediaLibraryResultsProvider(request));
+}
+
+/// App-bar refresh with a busy spinner: rescans the volume through the OS
+/// indexer before reloading, so folders missing from a stale MediaStore
+/// actually come back.
+class _RepairRefreshButton extends ConsumerStatefulWidget {
+  const _RepairRefreshButton({required this.request});
+
+  final MediaLibraryRequest request;
+
+  @override
+  ConsumerState<_RepairRefreshButton> createState() =>
+      _RepairRefreshButtonState();
+}
+
+class _RepairRefreshButtonState extends ConsumerState<_RepairRefreshButton> {
+  bool _busy = false;
+
+  @override
+  Widget build(BuildContext context) {
+    if (_busy) {
+      return const Padding(
+        padding: EdgeInsets.all(12),
+        child: SizedBox(
+          width: 24,
+          height: 24,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
+        ),
+      );
+    }
+    return IconButton(
+      tooltip: 'Refresh (rescans the volume)',
+      onPressed: () async {
+        setState(() => _busy = true);
+        try {
+          await repairMediaResults(ref, widget.request);
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Volume rescanned')),
+            );
+          }
+        } finally {
+          if (mounted) setState(() => _busy = false);
+        }
+      },
+      icon: const Icon(Icons.refresh_rounded),
+    );
   }
 }
 

@@ -381,23 +381,39 @@ class MainActivity: FlutterActivity() {
                     "scanFiles" -> {
                         val paths = call.argument<List<String>>("paths")
                         if (paths.isNullOrEmpty()) {
-                            result.success(null)
+                            result.success(0)
                         } else {
-                            try {
-                                MediaScannerConnection.scanFile(
-                                    this,
-                                    paths.toTypedArray(),
-                                    null,
-                                    null,
-                                )
-                                result.success(null)
-                            } catch (error: Exception) {
-                                result.error(
-                                    "scan_failed",
-                                    error.message ?: "Media scan failed",
-                                    null,
-                                )
-                            }
+                            // MediaScannerConnection.scanFile returns immediately;
+                            // await completion (directory paths recurse) so the
+                            // caller can re-query a repaired index right away.
+                            Thread {
+                                try {
+                                    val latch =
+                                        java.util.concurrent.CountDownLatch(paths.size)
+                                    var scanned = 0
+                                    MediaScannerConnection.scanFile(
+                                        this,
+                                        paths.toTypedArray(),
+                                        null,
+                                    ) { _, _ ->
+                                        synchronized(latch) { scanned++ }
+                                        latch.countDown()
+                                    }
+                                    latch.await(180, java.util.concurrent.TimeUnit.SECONDS)
+                                    val done = synchronized(latch) { scanned }
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.success(done)
+                                    }
+                                } catch (error: Exception) {
+                                    Handler(Looper.getMainLooper()).post {
+                                        result.error(
+                                            "scan_failed",
+                                            error.message ?: "Media scan failed",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }.start()
                         }
                     }
                     "saveQrToDownloads" -> {

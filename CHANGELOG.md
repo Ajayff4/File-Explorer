@@ -2,6 +2,25 @@
 
 Progress log for the Flutter application.
 
+## 2026-09-06
+
+### Fixed
+- **Settings list froze after one scroll** (`lib/app/theme/glass.dart`):
+  - **Root cause** — `GlowButton`'s container used
+    `alignment: Alignment.center`, so as a `ListTile` trailing (Settings →
+    History backup card's **Back up now**) it stretched to the full tile
+    width, tripping `ListTile`'s full-width-trailing assertion. The layout
+    throw fired when the card scrolled into view and left the sliver geometry
+    dead — the list ignored further drags and taps until leaving/revisiting
+    the route rebuilt it.
+  - **Fix** — centering applies only when `expanded`; as a loose child the
+    button now shrink-wraps to its label.
+  - **Verified** — 3 new widget tests
+    (`test/features/settings/settings_scroll_test.dart`: drag-down-reverse-up
+    keeps scrolling, horizontal-drag ancestor variant, phone-width trailing
+    size); `flutter analyze` clean; universal debug APK verified on device
+    (RMX3031).
+
 ## 2026-09-05
 
 ### Added

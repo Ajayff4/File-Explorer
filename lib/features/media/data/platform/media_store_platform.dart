@@ -93,7 +93,25 @@ class MediaStorePlatform {
     if (paths.isEmpty) {
       return;
     }
-    await _channel.invokeMethod<void>('scanFiles', {'paths': paths});
+    // Native now replies with the completed-callback count; discarded here.
+    await _channel.invokeMethod<int>('scanFiles', {'paths': paths});
+  }
+
+  /// Repairs the OS index for a whole volume before re-querying.
+  ///
+  /// Files written behind MediaStore's back (e.g. another app's decrypt
+  /// restoring files directly) have no index rows, so category views miss
+  /// their folders and plain re-queries change nothing. Scanning the root
+  /// lets the OS walker pick them up; directory paths recurse. Returns the
+  /// number of completed scan callbacks.
+  Future<int> rescanVolume(String rootPath) async {
+    final result = await _channel.invokeMethod<int>(
+      'scanFiles',
+      {
+        'paths': [rootPath],
+      },
+    );
+    return result ?? 0;
   }
 
   int _intFrom(Object? value) {

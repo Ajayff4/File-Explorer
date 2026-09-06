@@ -593,7 +593,10 @@ class GlowButton extends StatelessWidget {
           ),
         ],
       ),
-      alignment: Alignment.center,
+      // Shrink-wrap when used as a loose child (e.g. ListTile trailing):
+      // Alignment.center would stretch to full available width and trip
+      // ListTile's full-width-trailing assertion in debug builds.
+      alignment: expanded ? Alignment.center : null,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
