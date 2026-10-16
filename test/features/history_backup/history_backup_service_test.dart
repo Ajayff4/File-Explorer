@@ -5,6 +5,7 @@ import 'package:drift/drift.dart' hide isNotNull, isNull;
 import 'package:drift/native.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_constants.dart';
+import 'package:file_explorer/features/ftp/domain/entities/ftp_connection.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_service.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/shared/database/app_database.dart';
@@ -95,6 +96,29 @@ void main() {
             openedAt: DateTime(2026, 1, 1),
           ),
         );
+  }
+
+  Future<void> seedFtp(
+    AppDatabase db, {
+    required String id,
+    String name = 'Server',
+    String host = 'example.com',
+  }) async {
+    await db.into(db.ftpConnectionRows).insert(
+          FtpConnectionRowsCompanion.insert(
+            id: id,
+            name: name,
+            protocol: FtpProtocol.ftp,
+            host: host,
+            port: 21,
+            createdAt: DateTime(2026, 1, 1),
+            updatedAt: DateTime(2026, 1, 2),
+          ),
+        );
+  }
+
+  Future<List<FtpConnectionRow>> ftpRows(AppDatabase db) {
+    return db.select(db.ftpConnectionRows).get();
   }
 
   Future<int> transferCount(AppDatabase db) async {
@@ -296,5 +320,99 @@ void main() {
     expect(await service.isRestoreDismissed(), isFalse);
     await service.dismissRestorePrompt();
     expect(await service.isRestoreDismissed(), isTrue);
+  });
+
+  test('merge restores missing FTP rows without touching local ones',
+      () async {
+    // Snapshot from elsewhere holds two servers.
+    final otherDir = Directory('${temp.path}/other')..createSync();
+    final other = openDb(otherDir.path);
+    await createSchema(other);
+    await seedFtp(other, id: 'a1', name: 'Backup One');
+    await seedFtp(other, id: 'a2', name: 'Backup Two');
+    final backupService = HistoryBackupService(
+      docsPath: otherDir.path,
+      historyPath: history.path,
+    );
+    await backupService.exportAppDatabase(other);
+    await other.close();
+    openDatabases.remove(other);
+
+    // Local install kept its own servers, one edited under a shared id.
+    final local = openDb(docs.path);
+    await createSchema(local);
+    await seedFtp(local, id: 'a2', name: 'Local Two');
+    await seedFtp(local, id: 'b1', name: 'Local One');
+    await local.close();
+    openDatabases.remove(local);
+
+    // Full copy is vetoed by local rows, merge still restores the gap.
+    expect(await service.importAppDatabase(), isFalse);
+    expect(await service.mergeFtpConnections(), 1);
+
+    final verify = openDb(docs.path);
+    final rows = await ftpRows(verify);
+    expect(rows.map((row) => row.id).toSet(), {'a1', 'a2', 'b1'});
+    expect(
+      rows.firstWhere((row) => row.id == 'a2').name,
+      'Local Two',
+    );
+  });
+
+  test('merge fills defaults for old-schema snapshots', () async {
+    // Hand-built v13-shape table: no username/remotePath/passive columns.
+    final raw = AppDatabase(
+      NativeDatabase(File('${history.path}/$kHistoryBackupAppFileName')),
+    );
+    openDatabases.add(raw);
+    await raw.customStatement('DROP TABLE ftp_connection_rows');
+    await raw.customStatement(
+      'CREATE TABLE ftp_connection_rows ('
+      'id TEXT NOT NULL PRIMARY KEY, '
+      'name TEXT NOT NULL, '
+      'protocol INTEGER NOT NULL, '
+      'host TEXT NOT NULL, '
+      'port INTEGER NOT NULL)',
+    );
+    await raw.customStatement(
+      "INSERT INTO ftp_connection_rows VALUES "
+      "('old1', 'Old', 1, 'sftp.example.com', 22)",
+    );
+    await File('${history.path}/$kHistoryBackupMetaFileName').writeAsString(
+      jsonEncode({
+        'version': 1,
+        'exportedAt': DateTime(2026, 1, 3).toIso8601String(),
+        'databases': {
+          kHistoryBackupAppFileName: {'schema': 13},
+        },
+      }),
+    );
+    await raw.close();
+    openDatabases.remove(raw);
+
+    final local = openDb(docs.path);
+    await createSchema(local);
+    await local.close();
+    openDatabases.remove(local);
+
+    expect(await service.mergeFtpConnections(), 1);
+
+    final verify = openDb(docs.path);
+    final rows = await ftpRows(verify);
+    expect(rows.single.id, 'old1');
+    expect(rows.single.protocol, FtpProtocol.sftp);
+    expect(rows.single.username, '');
+    expect(rows.single.remotePath, '/');
+    expect(rows.single.passiveMode, isTrue);
+    expect(rows.single.keyFormat, KeyFormat.auto);
+  });
+
+  test('merge returns zero without a snapshot', () async {
+    final local = openDb(docs.path);
+    await createSchema(local);
+    await local.close();
+    openDatabases.remove(local);
+
+    expect(await service.mergeFtpConnections(), 0);
   });
 }

@@ -1,12 +1,13 @@
 import 'package:drift/drift.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/ftp/domain/entities/ftp_connection.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 
 part 'app_database.g.dart';
 
 /// Current schema version, exposed as a const so the history backup can
 /// validate a backup snapshot without opening a database instance.
-const int kAppDatabaseSchemaVersion = 12;
+const int kAppDatabaseSchemaVersion = 15;
 
 class TransferTaskRows extends Table {
   TextColumn get id => text()();
@@ -85,6 +86,32 @@ class QrScanRows extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
+class FtpConnectionRows extends Table {
+  TextColumn get id => text()();
+  TextColumn get name => text()();
+  IntColumn get protocol => intEnum<FtpProtocol>()();
+  TextColumn get host => text()();
+  IntColumn get port => integer()();
+  TextColumn get username => text().withDefault(const Constant(''))();
+  TextColumn get password => text().nullable()();
+  TextColumn get remotePath => text().withDefault(const Constant('/'))();
+  BoolColumn get passiveMode => boolean().withDefault(const Constant(true))();
+  BoolColumn get acceptInvalidCert =>
+      boolean().withDefault(const Constant(false))();
+  IntColumn get sftpAuthType =>
+      intEnum<SftpAuthType>().withDefault(const Constant(0))();
+  TextColumn get privateKey => text().nullable()();
+  TextColumn get privateKeyPath => text().nullable()();
+  IntColumn get keyFormat =>
+      intEnum<KeyFormat>().withDefault(const Constant(0))();
+  TextColumn get passphrase => text().nullable()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 @DriftDatabase(
   tables: [
     TransferTaskRows,
@@ -93,6 +120,7 @@ class QrScanRows extends Table {
     SearchIndexEntryRows,
     SettingRows,
     QrScanRows,
+    FtpConnectionRows,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -168,6 +196,23 @@ class AppDatabase extends _$AppDatabase {
         }
         if (from < 12) {
           await addColumnIfMissing(qrScanRows, qrScanRows.type);
+        }
+        if (from < 13 && !await tableExists('ftp_connection_rows')) {
+          await migrator.createTable(ftpConnectionRows);
+        }
+        if (from < 14 && await tableExists('ftp_connection_rows')) {
+          await addColumnIfMissing(
+              ftpConnectionRows, ftpConnectionRows.sftpAuthType);
+          await addColumnIfMissing(
+              ftpConnectionRows, ftpConnectionRows.privateKey);
+          await addColumnIfMissing(
+              ftpConnectionRows, ftpConnectionRows.passphrase);
+        }
+        if (from < 15 && await tableExists('ftp_connection_rows')) {
+          await addColumnIfMissing(
+              ftpConnectionRows, ftpConnectionRows.privateKeyPath);
+          await addColumnIfMissing(
+              ftpConnectionRows, ftpConnectionRows.keyFormat);
         }
       },
     );

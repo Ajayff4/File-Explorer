@@ -267,6 +267,14 @@ final _coreFeatures = [
     route: AppRoutes.nearbyShare,
   ),
   _CoreFeature(
+    icon: Icons.dns_rounded,
+    title: 'FTP connections',
+    description:
+        'Save FTP, SFTP, and FTPS servers with host, port, login, and options, then manage them from one list.',
+    color: Color(0xFF1565C0),
+    route: AppRoutes.ftp,
+  ),
+  _CoreFeature(
     icon: Icons.auto_awesome_mosaic_rounded,
     title: 'Multi-window',
     description:

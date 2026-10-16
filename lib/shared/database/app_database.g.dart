@@ -2375,6 +2375,831 @@ class QrScanRowsCompanion extends UpdateCompanion<QrScanRow> {
   }
 }
 
+class $FtpConnectionRowsTable extends FtpConnectionRows
+    with TableInfo<$FtpConnectionRowsTable, FtpConnectionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $FtpConnectionRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _nameMeta = const VerificationMeta('name');
+  @override
+  late final GeneratedColumn<String> name = GeneratedColumn<String>(
+      'name', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  @override
+  late final GeneratedColumnWithTypeConverter<FtpProtocol, int> protocol =
+      GeneratedColumn<int>('protocol', aliasedName, false,
+              type: DriftSqlType.int, requiredDuringInsert: true)
+          .withConverter<FtpProtocol>(
+              $FtpConnectionRowsTable.$converterprotocol);
+  static const VerificationMeta _hostMeta = const VerificationMeta('host');
+  @override
+  late final GeneratedColumn<String> host = GeneratedColumn<String>(
+      'host', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _portMeta = const VerificationMeta('port');
+  @override
+  late final GeneratedColumn<int> port = GeneratedColumn<int>(
+      'port', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _usernameMeta =
+      const VerificationMeta('username');
+  @override
+  late final GeneratedColumn<String> username = GeneratedColumn<String>(
+      'username', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _passwordMeta =
+      const VerificationMeta('password');
+  @override
+  late final GeneratedColumn<String> password = GeneratedColumn<String>(
+      'password', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _remotePathMeta =
+      const VerificationMeta('remotePath');
+  @override
+  late final GeneratedColumn<String> remotePath = GeneratedColumn<String>(
+      'remote_path', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('/'));
+  static const VerificationMeta _passiveModeMeta =
+      const VerificationMeta('passiveMode');
+  @override
+  late final GeneratedColumn<bool> passiveMode = GeneratedColumn<bool>(
+      'passive_mode', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("passive_mode" IN (0, 1))'),
+      defaultValue: const Constant(true));
+  static const VerificationMeta _acceptInvalidCertMeta =
+      const VerificationMeta('acceptInvalidCert');
+  @override
+  late final GeneratedColumn<bool> acceptInvalidCert = GeneratedColumn<bool>(
+      'accept_invalid_cert', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("accept_invalid_cert" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  late final GeneratedColumnWithTypeConverter<SftpAuthType, int> sftpAuthType =
+      GeneratedColumn<int>('sftp_auth_type', aliasedName, false,
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(0))
+          .withConverter<SftpAuthType>(
+              $FtpConnectionRowsTable.$convertersftpAuthType);
+  static const VerificationMeta _privateKeyMeta =
+      const VerificationMeta('privateKey');
+  @override
+  late final GeneratedColumn<String> privateKey = GeneratedColumn<String>(
+      'private_key', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _privateKeyPathMeta =
+      const VerificationMeta('privateKeyPath');
+  @override
+  late final GeneratedColumn<String> privateKeyPath = GeneratedColumn<String>(
+      'private_key_path', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  @override
+  late final GeneratedColumnWithTypeConverter<KeyFormat, int> keyFormat =
+      GeneratedColumn<int>('key_format', aliasedName, false,
+              type: DriftSqlType.int,
+              requiredDuringInsert: false,
+              defaultValue: const Constant(0))
+          .withConverter<KeyFormat>(
+              $FtpConnectionRowsTable.$converterkeyFormat);
+  static const VerificationMeta _passphraseMeta =
+      const VerificationMeta('passphrase');
+  @override
+  late final GeneratedColumn<String> passphrase = GeneratedColumn<String>(
+      'passphrase', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.dateTime, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        protocol,
+        host,
+        port,
+        username,
+        password,
+        remotePath,
+        passiveMode,
+        acceptInvalidCert,
+        sftpAuthType,
+        privateKey,
+        privateKeyPath,
+        keyFormat,
+        passphrase,
+        createdAt,
+        updatedAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'ftp_connection_rows';
+  @override
+  VerificationContext validateIntegrity(Insertable<FtpConnectionRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('name')) {
+      context.handle(
+          _nameMeta, name.isAcceptableOrUnknown(data['name']!, _nameMeta));
+    } else if (isInserting) {
+      context.missing(_nameMeta);
+    }
+    if (data.containsKey('host')) {
+      context.handle(
+          _hostMeta, host.isAcceptableOrUnknown(data['host']!, _hostMeta));
+    } else if (isInserting) {
+      context.missing(_hostMeta);
+    }
+    if (data.containsKey('port')) {
+      context.handle(
+          _portMeta, port.isAcceptableOrUnknown(data['port']!, _portMeta));
+    } else if (isInserting) {
+      context.missing(_portMeta);
+    }
+    if (data.containsKey('username')) {
+      context.handle(_usernameMeta,
+          username.isAcceptableOrUnknown(data['username']!, _usernameMeta));
+    }
+    if (data.containsKey('password')) {
+      context.handle(_passwordMeta,
+          password.isAcceptableOrUnknown(data['password']!, _passwordMeta));
+    }
+    if (data.containsKey('remote_path')) {
+      context.handle(
+          _remotePathMeta,
+          remotePath.isAcceptableOrUnknown(
+              data['remote_path']!, _remotePathMeta));
+    }
+    if (data.containsKey('passive_mode')) {
+      context.handle(
+          _passiveModeMeta,
+          passiveMode.isAcceptableOrUnknown(
+              data['passive_mode']!, _passiveModeMeta));
+    }
+    if (data.containsKey('accept_invalid_cert')) {
+      context.handle(
+          _acceptInvalidCertMeta,
+          acceptInvalidCert.isAcceptableOrUnknown(
+              data['accept_invalid_cert']!, _acceptInvalidCertMeta));
+    }
+    if (data.containsKey('private_key')) {
+      context.handle(
+          _privateKeyMeta,
+          privateKey.isAcceptableOrUnknown(
+              data['private_key']!, _privateKeyMeta));
+    }
+    if (data.containsKey('private_key_path')) {
+      context.handle(
+          _privateKeyPathMeta,
+          privateKeyPath.isAcceptableOrUnknown(
+              data['private_key_path']!, _privateKeyPathMeta));
+    }
+    if (data.containsKey('passphrase')) {
+      context.handle(
+          _passphraseMeta,
+          passphrase.isAcceptableOrUnknown(
+              data['passphrase']!, _passphraseMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  FtpConnectionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return FtpConnectionRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      name: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}name'])!,
+      protocol: $FtpConnectionRowsTable.$converterprotocol.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}protocol'])!),
+      host: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}host'])!,
+      port: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}port'])!,
+      username: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}username'])!,
+      password: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}password']),
+      remotePath: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}remote_path'])!,
+      passiveMode: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}passive_mode'])!,
+      acceptInvalidCert: attachedDatabase.typeMapping.read(
+          DriftSqlType.bool, data['${effectivePrefix}accept_invalid_cert'])!,
+      sftpAuthType: $FtpConnectionRowsTable.$convertersftpAuthType.fromSql(
+          attachedDatabase.typeMapping.read(
+              DriftSqlType.int, data['${effectivePrefix}sftp_auth_type'])!),
+      privateKey: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}private_key']),
+      privateKeyPath: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}private_key_path']),
+      keyFormat: $FtpConnectionRowsTable.$converterkeyFormat.fromSql(
+          attachedDatabase.typeMapping
+              .read(DriftSqlType.int, data['${effectivePrefix}key_format'])!),
+      passphrase: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}passphrase']),
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
+    );
+  }
+
+  @override
+  $FtpConnectionRowsTable createAlias(String alias) {
+    return $FtpConnectionRowsTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<FtpProtocol, int, int> $converterprotocol =
+      const EnumIndexConverter<FtpProtocol>(FtpProtocol.values);
+  static JsonTypeConverter2<SftpAuthType, int, int> $convertersftpAuthType =
+      const EnumIndexConverter<SftpAuthType>(SftpAuthType.values);
+  static JsonTypeConverter2<KeyFormat, int, int> $converterkeyFormat =
+      const EnumIndexConverter<KeyFormat>(KeyFormat.values);
+}
+
+class FtpConnectionRow extends DataClass
+    implements Insertable<FtpConnectionRow> {
+  final String id;
+  final String name;
+  final FtpProtocol protocol;
+  final String host;
+  final int port;
+  final String username;
+  final String? password;
+  final String remotePath;
+  final bool passiveMode;
+  final bool acceptInvalidCert;
+  final SftpAuthType sftpAuthType;
+  final String? privateKey;
+  final String? privateKeyPath;
+  final KeyFormat keyFormat;
+  final String? passphrase;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const FtpConnectionRow(
+      {required this.id,
+      required this.name,
+      required this.protocol,
+      required this.host,
+      required this.port,
+      required this.username,
+      this.password,
+      required this.remotePath,
+      required this.passiveMode,
+      required this.acceptInvalidCert,
+      required this.sftpAuthType,
+      this.privateKey,
+      this.privateKeyPath,
+      required this.keyFormat,
+      this.passphrase,
+      required this.createdAt,
+      required this.updatedAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['name'] = Variable<String>(name);
+    {
+      map['protocol'] = Variable<int>(
+          $FtpConnectionRowsTable.$converterprotocol.toSql(protocol));
+    }
+    map['host'] = Variable<String>(host);
+    map['port'] = Variable<int>(port);
+    map['username'] = Variable<String>(username);
+    if (!nullToAbsent || password != null) {
+      map['password'] = Variable<String>(password);
+    }
+    map['remote_path'] = Variable<String>(remotePath);
+    map['passive_mode'] = Variable<bool>(passiveMode);
+    map['accept_invalid_cert'] = Variable<bool>(acceptInvalidCert);
+    {
+      map['sftp_auth_type'] = Variable<int>(
+          $FtpConnectionRowsTable.$convertersftpAuthType.toSql(sftpAuthType));
+    }
+    if (!nullToAbsent || privateKey != null) {
+      map['private_key'] = Variable<String>(privateKey);
+    }
+    if (!nullToAbsent || privateKeyPath != null) {
+      map['private_key_path'] = Variable<String>(privateKeyPath);
+    }
+    {
+      map['key_format'] = Variable<int>(
+          $FtpConnectionRowsTable.$converterkeyFormat.toSql(keyFormat));
+    }
+    if (!nullToAbsent || passphrase != null) {
+      map['passphrase'] = Variable<String>(passphrase);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  FtpConnectionRowsCompanion toCompanion(bool nullToAbsent) {
+    return FtpConnectionRowsCompanion(
+      id: Value(id),
+      name: Value(name),
+      protocol: Value(protocol),
+      host: Value(host),
+      port: Value(port),
+      username: Value(username),
+      password: password == null && nullToAbsent
+          ? const Value.absent()
+          : Value(password),
+      remotePath: Value(remotePath),
+      passiveMode: Value(passiveMode),
+      acceptInvalidCert: Value(acceptInvalidCert),
+      sftpAuthType: Value(sftpAuthType),
+      privateKey: privateKey == null && nullToAbsent
+          ? const Value.absent()
+          : Value(privateKey),
+      privateKeyPath: privateKeyPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(privateKeyPath),
+      keyFormat: Value(keyFormat),
+      passphrase: passphrase == null && nullToAbsent
+          ? const Value.absent()
+          : Value(passphrase),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory FtpConnectionRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return FtpConnectionRow(
+      id: serializer.fromJson<String>(json['id']),
+      name: serializer.fromJson<String>(json['name']),
+      protocol: $FtpConnectionRowsTable.$converterprotocol
+          .fromJson(serializer.fromJson<int>(json['protocol'])),
+      host: serializer.fromJson<String>(json['host']),
+      port: serializer.fromJson<int>(json['port']),
+      username: serializer.fromJson<String>(json['username']),
+      password: serializer.fromJson<String?>(json['password']),
+      remotePath: serializer.fromJson<String>(json['remotePath']),
+      passiveMode: serializer.fromJson<bool>(json['passiveMode']),
+      acceptInvalidCert: serializer.fromJson<bool>(json['acceptInvalidCert']),
+      sftpAuthType: $FtpConnectionRowsTable.$convertersftpAuthType
+          .fromJson(serializer.fromJson<int>(json['sftpAuthType'])),
+      privateKey: serializer.fromJson<String?>(json['privateKey']),
+      privateKeyPath: serializer.fromJson<String?>(json['privateKeyPath']),
+      keyFormat: $FtpConnectionRowsTable.$converterkeyFormat
+          .fromJson(serializer.fromJson<int>(json['keyFormat'])),
+      passphrase: serializer.fromJson<String?>(json['passphrase']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'name': serializer.toJson<String>(name),
+      'protocol': serializer.toJson<int>(
+          $FtpConnectionRowsTable.$converterprotocol.toJson(protocol)),
+      'host': serializer.toJson<String>(host),
+      'port': serializer.toJson<int>(port),
+      'username': serializer.toJson<String>(username),
+      'password': serializer.toJson<String?>(password),
+      'remotePath': serializer.toJson<String>(remotePath),
+      'passiveMode': serializer.toJson<bool>(passiveMode),
+      'acceptInvalidCert': serializer.toJson<bool>(acceptInvalidCert),
+      'sftpAuthType': serializer.toJson<int>(
+          $FtpConnectionRowsTable.$convertersftpAuthType.toJson(sftpAuthType)),
+      'privateKey': serializer.toJson<String?>(privateKey),
+      'privateKeyPath': serializer.toJson<String?>(privateKeyPath),
+      'keyFormat': serializer.toJson<int>(
+          $FtpConnectionRowsTable.$converterkeyFormat.toJson(keyFormat)),
+      'passphrase': serializer.toJson<String?>(passphrase),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  FtpConnectionRow copyWith(
+          {String? id,
+          String? name,
+          FtpProtocol? protocol,
+          String? host,
+          int? port,
+          String? username,
+          Value<String?> password = const Value.absent(),
+          String? remotePath,
+          bool? passiveMode,
+          bool? acceptInvalidCert,
+          SftpAuthType? sftpAuthType,
+          Value<String?> privateKey = const Value.absent(),
+          Value<String?> privateKeyPath = const Value.absent(),
+          KeyFormat? keyFormat,
+          Value<String?> passphrase = const Value.absent(),
+          DateTime? createdAt,
+          DateTime? updatedAt}) =>
+      FtpConnectionRow(
+        id: id ?? this.id,
+        name: name ?? this.name,
+        protocol: protocol ?? this.protocol,
+        host: host ?? this.host,
+        port: port ?? this.port,
+        username: username ?? this.username,
+        password: password.present ? password.value : this.password,
+        remotePath: remotePath ?? this.remotePath,
+        passiveMode: passiveMode ?? this.passiveMode,
+        acceptInvalidCert: acceptInvalidCert ?? this.acceptInvalidCert,
+        sftpAuthType: sftpAuthType ?? this.sftpAuthType,
+        privateKey: privateKey.present ? privateKey.value : this.privateKey,
+        privateKeyPath:
+            privateKeyPath.present ? privateKeyPath.value : this.privateKeyPath,
+        keyFormat: keyFormat ?? this.keyFormat,
+        passphrase: passphrase.present ? passphrase.value : this.passphrase,
+        createdAt: createdAt ?? this.createdAt,
+        updatedAt: updatedAt ?? this.updatedAt,
+      );
+  FtpConnectionRow copyWithCompanion(FtpConnectionRowsCompanion data) {
+    return FtpConnectionRow(
+      id: data.id.present ? data.id.value : this.id,
+      name: data.name.present ? data.name.value : this.name,
+      protocol: data.protocol.present ? data.protocol.value : this.protocol,
+      host: data.host.present ? data.host.value : this.host,
+      port: data.port.present ? data.port.value : this.port,
+      username: data.username.present ? data.username.value : this.username,
+      password: data.password.present ? data.password.value : this.password,
+      remotePath:
+          data.remotePath.present ? data.remotePath.value : this.remotePath,
+      passiveMode:
+          data.passiveMode.present ? data.passiveMode.value : this.passiveMode,
+      acceptInvalidCert: data.acceptInvalidCert.present
+          ? data.acceptInvalidCert.value
+          : this.acceptInvalidCert,
+      sftpAuthType: data.sftpAuthType.present
+          ? data.sftpAuthType.value
+          : this.sftpAuthType,
+      privateKey:
+          data.privateKey.present ? data.privateKey.value : this.privateKey,
+      privateKeyPath: data.privateKeyPath.present
+          ? data.privateKeyPath.value
+          : this.privateKeyPath,
+      keyFormat: data.keyFormat.present ? data.keyFormat.value : this.keyFormat,
+      passphrase:
+          data.passphrase.present ? data.passphrase.value : this.passphrase,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FtpConnectionRow(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('protocol: $protocol, ')
+          ..write('host: $host, ')
+          ..write('port: $port, ')
+          ..write('username: $username, ')
+          ..write('password: $password, ')
+          ..write('remotePath: $remotePath, ')
+          ..write('passiveMode: $passiveMode, ')
+          ..write('acceptInvalidCert: $acceptInvalidCert, ')
+          ..write('sftpAuthType: $sftpAuthType, ')
+          ..write('privateKey: $privateKey, ')
+          ..write('privateKeyPath: $privateKeyPath, ')
+          ..write('keyFormat: $keyFormat, ')
+          ..write('passphrase: $passphrase, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+      id,
+      name,
+      protocol,
+      host,
+      port,
+      username,
+      password,
+      remotePath,
+      passiveMode,
+      acceptInvalidCert,
+      sftpAuthType,
+      privateKey,
+      privateKeyPath,
+      keyFormat,
+      passphrase,
+      createdAt,
+      updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is FtpConnectionRow &&
+          other.id == this.id &&
+          other.name == this.name &&
+          other.protocol == this.protocol &&
+          other.host == this.host &&
+          other.port == this.port &&
+          other.username == this.username &&
+          other.password == this.password &&
+          other.remotePath == this.remotePath &&
+          other.passiveMode == this.passiveMode &&
+          other.acceptInvalidCert == this.acceptInvalidCert &&
+          other.sftpAuthType == this.sftpAuthType &&
+          other.privateKey == this.privateKey &&
+          other.privateKeyPath == this.privateKeyPath &&
+          other.keyFormat == this.keyFormat &&
+          other.passphrase == this.passphrase &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class FtpConnectionRowsCompanion extends UpdateCompanion<FtpConnectionRow> {
+  final Value<String> id;
+  final Value<String> name;
+  final Value<FtpProtocol> protocol;
+  final Value<String> host;
+  final Value<int> port;
+  final Value<String> username;
+  final Value<String?> password;
+  final Value<String> remotePath;
+  final Value<bool> passiveMode;
+  final Value<bool> acceptInvalidCert;
+  final Value<SftpAuthType> sftpAuthType;
+  final Value<String?> privateKey;
+  final Value<String?> privateKeyPath;
+  final Value<KeyFormat> keyFormat;
+  final Value<String?> passphrase;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const FtpConnectionRowsCompanion({
+    this.id = const Value.absent(),
+    this.name = const Value.absent(),
+    this.protocol = const Value.absent(),
+    this.host = const Value.absent(),
+    this.port = const Value.absent(),
+    this.username = const Value.absent(),
+    this.password = const Value.absent(),
+    this.remotePath = const Value.absent(),
+    this.passiveMode = const Value.absent(),
+    this.acceptInvalidCert = const Value.absent(),
+    this.sftpAuthType = const Value.absent(),
+    this.privateKey = const Value.absent(),
+    this.privateKeyPath = const Value.absent(),
+    this.keyFormat = const Value.absent(),
+    this.passphrase = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  FtpConnectionRowsCompanion.insert({
+    required String id,
+    required String name,
+    required FtpProtocol protocol,
+    required String host,
+    required int port,
+    this.username = const Value.absent(),
+    this.password = const Value.absent(),
+    this.remotePath = const Value.absent(),
+    this.passiveMode = const Value.absent(),
+    this.acceptInvalidCert = const Value.absent(),
+    this.sftpAuthType = const Value.absent(),
+    this.privateKey = const Value.absent(),
+    this.privateKeyPath = const Value.absent(),
+    this.keyFormat = const Value.absent(),
+    this.passphrase = const Value.absent(),
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        name = Value(name),
+        protocol = Value(protocol),
+        host = Value(host),
+        port = Value(port),
+        createdAt = Value(createdAt),
+        updatedAt = Value(updatedAt);
+  static Insertable<FtpConnectionRow> custom({
+    Expression<String>? id,
+    Expression<String>? name,
+    Expression<int>? protocol,
+    Expression<String>? host,
+    Expression<int>? port,
+    Expression<String>? username,
+    Expression<String>? password,
+    Expression<String>? remotePath,
+    Expression<bool>? passiveMode,
+    Expression<bool>? acceptInvalidCert,
+    Expression<int>? sftpAuthType,
+    Expression<String>? privateKey,
+    Expression<String>? privateKeyPath,
+    Expression<int>? keyFormat,
+    Expression<String>? passphrase,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (name != null) 'name': name,
+      if (protocol != null) 'protocol': protocol,
+      if (host != null) 'host': host,
+      if (port != null) 'port': port,
+      if (username != null) 'username': username,
+      if (password != null) 'password': password,
+      if (remotePath != null) 'remote_path': remotePath,
+      if (passiveMode != null) 'passive_mode': passiveMode,
+      if (acceptInvalidCert != null) 'accept_invalid_cert': acceptInvalidCert,
+      if (sftpAuthType != null) 'sftp_auth_type': sftpAuthType,
+      if (privateKey != null) 'private_key': privateKey,
+      if (privateKeyPath != null) 'private_key_path': privateKeyPath,
+      if (keyFormat != null) 'key_format': keyFormat,
+      if (passphrase != null) 'passphrase': passphrase,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  FtpConnectionRowsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? name,
+      Value<FtpProtocol>? protocol,
+      Value<String>? host,
+      Value<int>? port,
+      Value<String>? username,
+      Value<String?>? password,
+      Value<String>? remotePath,
+      Value<bool>? passiveMode,
+      Value<bool>? acceptInvalidCert,
+      Value<SftpAuthType>? sftpAuthType,
+      Value<String?>? privateKey,
+      Value<String?>? privateKeyPath,
+      Value<KeyFormat>? keyFormat,
+      Value<String?>? passphrase,
+      Value<DateTime>? createdAt,
+      Value<DateTime>? updatedAt,
+      Value<int>? rowid}) {
+    return FtpConnectionRowsCompanion(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      protocol: protocol ?? this.protocol,
+      host: host ?? this.host,
+      port: port ?? this.port,
+      username: username ?? this.username,
+      password: password ?? this.password,
+      remotePath: remotePath ?? this.remotePath,
+      passiveMode: passiveMode ?? this.passiveMode,
+      acceptInvalidCert: acceptInvalidCert ?? this.acceptInvalidCert,
+      sftpAuthType: sftpAuthType ?? this.sftpAuthType,
+      privateKey: privateKey ?? this.privateKey,
+      privateKeyPath: privateKeyPath ?? this.privateKeyPath,
+      keyFormat: keyFormat ?? this.keyFormat,
+      passphrase: passphrase ?? this.passphrase,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (name.present) {
+      map['name'] = Variable<String>(name.value);
+    }
+    if (protocol.present) {
+      map['protocol'] = Variable<int>(
+          $FtpConnectionRowsTable.$converterprotocol.toSql(protocol.value));
+    }
+    if (host.present) {
+      map['host'] = Variable<String>(host.value);
+    }
+    if (port.present) {
+      map['port'] = Variable<int>(port.value);
+    }
+    if (username.present) {
+      map['username'] = Variable<String>(username.value);
+    }
+    if (password.present) {
+      map['password'] = Variable<String>(password.value);
+    }
+    if (remotePath.present) {
+      map['remote_path'] = Variable<String>(remotePath.value);
+    }
+    if (passiveMode.present) {
+      map['passive_mode'] = Variable<bool>(passiveMode.value);
+    }
+    if (acceptInvalidCert.present) {
+      map['accept_invalid_cert'] = Variable<bool>(acceptInvalidCert.value);
+    }
+    if (sftpAuthType.present) {
+      map['sftp_auth_type'] = Variable<int>($FtpConnectionRowsTable
+          .$convertersftpAuthType
+          .toSql(sftpAuthType.value));
+    }
+    if (privateKey.present) {
+      map['private_key'] = Variable<String>(privateKey.value);
+    }
+    if (privateKeyPath.present) {
+      map['private_key_path'] = Variable<String>(privateKeyPath.value);
+    }
+    if (keyFormat.present) {
+      map['key_format'] = Variable<int>(
+          $FtpConnectionRowsTable.$converterkeyFormat.toSql(keyFormat.value));
+    }
+    if (passphrase.present) {
+      map['passphrase'] = Variable<String>(passphrase.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('FtpConnectionRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('name: $name, ')
+          ..write('protocol: $protocol, ')
+          ..write('host: $host, ')
+          ..write('port: $port, ')
+          ..write('username: $username, ')
+          ..write('password: $password, ')
+          ..write('remotePath: $remotePath, ')
+          ..write('passiveMode: $passiveMode, ')
+          ..write('acceptInvalidCert: $acceptInvalidCert, ')
+          ..write('sftpAuthType: $sftpAuthType, ')
+          ..write('privateKey: $privateKey, ')
+          ..write('privateKeyPath: $privateKeyPath, ')
+          ..write('keyFormat: $keyFormat, ')
+          ..write('passphrase: $passphrase, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2388,6 +3213,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $SearchIndexEntryRowsTable(this);
   late final $SettingRowsTable settingRows = $SettingRowsTable(this);
   late final $QrScanRowsTable qrScanRows = $QrScanRowsTable(this);
+  late final $FtpConnectionRowsTable ftpConnectionRows =
+      $FtpConnectionRowsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2398,7 +3225,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         recentLocationRows,
         searchIndexEntryRows,
         settingRows,
-        qrScanRows
+        qrScanRows,
+        ftpConnectionRows
       ];
 }
 
@@ -3630,6 +4458,373 @@ typedef $$QrScanRowsTableProcessedTableManager = ProcessedTableManager<
     (QrScanRow, BaseReferences<_$AppDatabase, $QrScanRowsTable, QrScanRow>),
     QrScanRow,
     PrefetchHooks Function()>;
+typedef $$FtpConnectionRowsTableCreateCompanionBuilder
+    = FtpConnectionRowsCompanion Function({
+  required String id,
+  required String name,
+  required FtpProtocol protocol,
+  required String host,
+  required int port,
+  Value<String> username,
+  Value<String?> password,
+  Value<String> remotePath,
+  Value<bool> passiveMode,
+  Value<bool> acceptInvalidCert,
+  Value<SftpAuthType> sftpAuthType,
+  Value<String?> privateKey,
+  Value<String?> privateKeyPath,
+  Value<KeyFormat> keyFormat,
+  Value<String?> passphrase,
+  required DateTime createdAt,
+  required DateTime updatedAt,
+  Value<int> rowid,
+});
+typedef $$FtpConnectionRowsTableUpdateCompanionBuilder
+    = FtpConnectionRowsCompanion Function({
+  Value<String> id,
+  Value<String> name,
+  Value<FtpProtocol> protocol,
+  Value<String> host,
+  Value<int> port,
+  Value<String> username,
+  Value<String?> password,
+  Value<String> remotePath,
+  Value<bool> passiveMode,
+  Value<bool> acceptInvalidCert,
+  Value<SftpAuthType> sftpAuthType,
+  Value<String?> privateKey,
+  Value<String?> privateKeyPath,
+  Value<KeyFormat> keyFormat,
+  Value<String?> passphrase,
+  Value<DateTime> createdAt,
+  Value<DateTime> updatedAt,
+  Value<int> rowid,
+});
+
+class $$FtpConnectionRowsTableFilterComposer
+    extends Composer<_$AppDatabase, $FtpConnectionRowsTable> {
+  $$FtpConnectionRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<FtpProtocol, FtpProtocol, int> get protocol =>
+      $composableBuilder(
+          column: $table.protocol,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get host => $composableBuilder(
+      column: $table.host, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get port => $composableBuilder(
+      column: $table.port, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get remotePath => $composableBuilder(
+      column: $table.remotePath, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get passiveMode => $composableBuilder(
+      column: $table.passiveMode, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get acceptInvalidCert => $composableBuilder(
+      column: $table.acceptInvalidCert,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<SftpAuthType, SftpAuthType, int>
+      get sftpAuthType => $composableBuilder(
+          column: $table.sftpAuthType,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get privateKey => $composableBuilder(
+      column: $table.privateKey, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get privateKeyPath => $composableBuilder(
+      column: $table.privateKeyPath,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<KeyFormat, KeyFormat, int> get keyFormat =>
+      $composableBuilder(
+          column: $table.keyFormat,
+          builder: (column) => ColumnWithTypeConverterFilters(column));
+
+  ColumnFilters<String> get passphrase => $composableBuilder(
+      column: $table.passphrase, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$FtpConnectionRowsTableOrderingComposer
+    extends Composer<_$AppDatabase, $FtpConnectionRowsTable> {
+  $$FtpConnectionRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get name => $composableBuilder(
+      column: $table.name, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get protocol => $composableBuilder(
+      column: $table.protocol, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get host => $composableBuilder(
+      column: $table.host, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get port => $composableBuilder(
+      column: $table.port, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get username => $composableBuilder(
+      column: $table.username, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get password => $composableBuilder(
+      column: $table.password, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get remotePath => $composableBuilder(
+      column: $table.remotePath, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get passiveMode => $composableBuilder(
+      column: $table.passiveMode, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get acceptInvalidCert => $composableBuilder(
+      column: $table.acceptInvalidCert,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sftpAuthType => $composableBuilder(
+      column: $table.sftpAuthType,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get privateKey => $composableBuilder(
+      column: $table.privateKey, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get privateKeyPath => $composableBuilder(
+      column: $table.privateKeyPath,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get keyFormat => $composableBuilder(
+      column: $table.keyFormat, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get passphrase => $composableBuilder(
+      column: $table.passphrase, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$FtpConnectionRowsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $FtpConnectionRowsTable> {
+  $$FtpConnectionRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get name =>
+      $composableBuilder(column: $table.name, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<FtpProtocol, int> get protocol =>
+      $composableBuilder(column: $table.protocol, builder: (column) => column);
+
+  GeneratedColumn<String> get host =>
+      $composableBuilder(column: $table.host, builder: (column) => column);
+
+  GeneratedColumn<int> get port =>
+      $composableBuilder(column: $table.port, builder: (column) => column);
+
+  GeneratedColumn<String> get username =>
+      $composableBuilder(column: $table.username, builder: (column) => column);
+
+  GeneratedColumn<String> get password =>
+      $composableBuilder(column: $table.password, builder: (column) => column);
+
+  GeneratedColumn<String> get remotePath => $composableBuilder(
+      column: $table.remotePath, builder: (column) => column);
+
+  GeneratedColumn<bool> get passiveMode => $composableBuilder(
+      column: $table.passiveMode, builder: (column) => column);
+
+  GeneratedColumn<bool> get acceptInvalidCert => $composableBuilder(
+      column: $table.acceptInvalidCert, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<SftpAuthType, int> get sftpAuthType =>
+      $composableBuilder(
+          column: $table.sftpAuthType, builder: (column) => column);
+
+  GeneratedColumn<String> get privateKey => $composableBuilder(
+      column: $table.privateKey, builder: (column) => column);
+
+  GeneratedColumn<String> get privateKeyPath => $composableBuilder(
+      column: $table.privateKeyPath, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<KeyFormat, int> get keyFormat =>
+      $composableBuilder(column: $table.keyFormat, builder: (column) => column);
+
+  GeneratedColumn<String> get passphrase => $composableBuilder(
+      column: $table.passphrase, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+}
+
+class $$FtpConnectionRowsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $FtpConnectionRowsTable,
+    FtpConnectionRow,
+    $$FtpConnectionRowsTableFilterComposer,
+    $$FtpConnectionRowsTableOrderingComposer,
+    $$FtpConnectionRowsTableAnnotationComposer,
+    $$FtpConnectionRowsTableCreateCompanionBuilder,
+    $$FtpConnectionRowsTableUpdateCompanionBuilder,
+    (
+      FtpConnectionRow,
+      BaseReferences<_$AppDatabase, $FtpConnectionRowsTable, FtpConnectionRow>
+    ),
+    FtpConnectionRow,
+    PrefetchHooks Function()> {
+  $$FtpConnectionRowsTableTableManager(
+      _$AppDatabase db, $FtpConnectionRowsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$FtpConnectionRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$FtpConnectionRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$FtpConnectionRowsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> name = const Value.absent(),
+            Value<FtpProtocol> protocol = const Value.absent(),
+            Value<String> host = const Value.absent(),
+            Value<int> port = const Value.absent(),
+            Value<String> username = const Value.absent(),
+            Value<String?> password = const Value.absent(),
+            Value<String> remotePath = const Value.absent(),
+            Value<bool> passiveMode = const Value.absent(),
+            Value<bool> acceptInvalidCert = const Value.absent(),
+            Value<SftpAuthType> sftpAuthType = const Value.absent(),
+            Value<String?> privateKey = const Value.absent(),
+            Value<String?> privateKeyPath = const Value.absent(),
+            Value<KeyFormat> keyFormat = const Value.absent(),
+            Value<String?> passphrase = const Value.absent(),
+            Value<DateTime> createdAt = const Value.absent(),
+            Value<DateTime> updatedAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FtpConnectionRowsCompanion(
+            id: id,
+            name: name,
+            protocol: protocol,
+            host: host,
+            port: port,
+            username: username,
+            password: password,
+            remotePath: remotePath,
+            passiveMode: passiveMode,
+            acceptInvalidCert: acceptInvalidCert,
+            sftpAuthType: sftpAuthType,
+            privateKey: privateKey,
+            privateKeyPath: privateKeyPath,
+            keyFormat: keyFormat,
+            passphrase: passphrase,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String name,
+            required FtpProtocol protocol,
+            required String host,
+            required int port,
+            Value<String> username = const Value.absent(),
+            Value<String?> password = const Value.absent(),
+            Value<String> remotePath = const Value.absent(),
+            Value<bool> passiveMode = const Value.absent(),
+            Value<bool> acceptInvalidCert = const Value.absent(),
+            Value<SftpAuthType> sftpAuthType = const Value.absent(),
+            Value<String?> privateKey = const Value.absent(),
+            Value<String?> privateKeyPath = const Value.absent(),
+            Value<KeyFormat> keyFormat = const Value.absent(),
+            Value<String?> passphrase = const Value.absent(),
+            required DateTime createdAt,
+            required DateTime updatedAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              FtpConnectionRowsCompanion.insert(
+            id: id,
+            name: name,
+            protocol: protocol,
+            host: host,
+            port: port,
+            username: username,
+            password: password,
+            remotePath: remotePath,
+            passiveMode: passiveMode,
+            acceptInvalidCert: acceptInvalidCert,
+            sftpAuthType: sftpAuthType,
+            privateKey: privateKey,
+            privateKeyPath: privateKeyPath,
+            keyFormat: keyFormat,
+            passphrase: passphrase,
+            createdAt: createdAt,
+            updatedAt: updatedAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$FtpConnectionRowsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $FtpConnectionRowsTable,
+    FtpConnectionRow,
+    $$FtpConnectionRowsTableFilterComposer,
+    $$FtpConnectionRowsTableOrderingComposer,
+    $$FtpConnectionRowsTableAnnotationComposer,
+    $$FtpConnectionRowsTableCreateCompanionBuilder,
+    $$FtpConnectionRowsTableUpdateCompanionBuilder,
+    (
+      FtpConnectionRow,
+      BaseReferences<_$AppDatabase, $FtpConnectionRowsTable, FtpConnectionRow>
+    ),
+    FtpConnectionRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3646,4 +4841,6 @@ class $AppDatabaseManager {
       $$SettingRowsTableTableManager(_db, _db.settingRows);
   $$QrScanRowsTableTableManager get qrScanRows =>
       $$QrScanRowsTableTableManager(_db, _db.qrScanRows);
+  $$FtpConnectionRowsTableTableManager get ftpConnectionRows =>
+      $$FtpConnectionRowsTableTableManager(_db, _db.ftpConnectionRows);
 }

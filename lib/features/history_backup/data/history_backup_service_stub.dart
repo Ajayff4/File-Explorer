@@ -53,6 +53,8 @@ class HistoryBackupService {
 
   Future<bool> importAppDatabase() async => false;
 
+  Future<int> mergeFtpConnections() async => 0;
+
   Future<bool> importDatabase({
     required String fileName,
     required int schemaVersion,

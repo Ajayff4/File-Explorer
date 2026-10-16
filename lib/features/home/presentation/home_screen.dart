@@ -515,6 +515,12 @@ class _ToolsSection extends ConsumerWidget {
         onTap: () => context.push(AppRoutes.nearbyShare),
       ),
       _Tool(
+        icon: Icons.dns_rounded,
+        label: 'FTP',
+        color: const Color(0xFF1565C0),
+        onTap: () => context.push(AppRoutes.ftp),
+      ),
+      _Tool(
         icon: Icons.wallpaper_rounded,
         label: 'Save Wallpaper',
         color: const Color(0xFF7E57C2),

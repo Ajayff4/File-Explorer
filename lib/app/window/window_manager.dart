@@ -118,7 +118,7 @@ class WindowManager extends Notifier<WindowManagerState> {
     }
   }
 
-  Future<void> addWindow({String? startLocation}) async {
+  Future<void> addWindow({String? startLocation, Object? extra}) async {
     final root = _root;
     if (root == null) return;
     if (state.windows.length >= _maxWindows) return;
@@ -149,6 +149,7 @@ class WindowManager extends Notifier<WindowManagerState> {
     final router = GoRouter(
       navigatorKey: GlobalKey<NavigatorState>(),
       initialLocation: startLocation ?? AppRoutes.explorer,
+      initialExtra: extra,
       routes: buildAppRoutes(),
       redirect: appRouteRedirect,
     );
@@ -491,6 +492,7 @@ IconData iconForLocation(String path) {
   if (path.startsWith(AppRoutes.encryptor)) return Icons.lock_outline;
   if (path.startsWith(AppRoutes.qrScanner)) return Icons.qr_code_scanner;
   if (path.startsWith(AppRoutes.coreFeatures)) return Icons.grid_view_rounded;
+  if (path.startsWith(AppRoutes.ftp)) return Icons.dns_rounded;
   return Icons.home_rounded;
 }
 
@@ -634,8 +636,13 @@ class WindowSwitcher extends ConsumerWidget {
                     icon: Icons.add_rounded,
                     label: 'New window',
                     onPressed: () {
+                      final activeRouter = wm.active.router;
                       ref.read(windowManagerProvider.notifier).addWindow(
                             startLocation: wm.active.currentLocation,
+                            // Carry route extras (e.g. the open FTP server)
+                            // so extra-dependent routes don't fall back.
+                            extra: activeRouter
+                                .routerDelegate.currentConfiguration.extra,
                           );
                       ref
                           .read(windowManagerProvider.notifier)

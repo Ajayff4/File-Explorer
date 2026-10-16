@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:file_explorer/features/explorer/data/platform/android_storage_platform.dart';
+import 'package:file_explorer/features/ftp/domain/entities/ftp_connection.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_constants.dart';
 import 'package:file_explorer/shared/database/app_database.dart';
 import 'package:path/path.dart' as p;
@@ -178,6 +179,121 @@ class HistoryBackupService {
       openProbe: AppDatabase.new,
       ignoredTables: appIgnoredTables,
     );
+  }
+
+  /// Additively restores FTP connections from the snapshot into the live
+  /// database file. Used when the full file-copy import is vetoed because
+  /// the local database already holds user rows — without this, adding a
+  /// single new connection would permanently block restoring years of
+  /// saved servers.
+  ///
+  /// Only inserts ids missing locally, so local edits always win. Returns the number of restored connections. Opens the
+  /// live file directly (callers close provider instances first), and
+  /// never throws.
+  Future<int> mergeFtpConnections() async {
+    AppDatabase? live;
+    GeneratedDatabase? probe;
+    try {
+      final backup = File(p.join(historyPath, kHistoryBackupAppFileName));
+      if (!await backup.exists()) return 0;
+      final backupSchema = await _metaSchemaFor(kHistoryBackupAppFileName);
+      if (backupSchema == null || backupSchema > kAppDatabaseSchemaVersion) {
+        return 0;
+      }
+      final local = File(p.join(docsPath, kHistoryBackupAppFileName));
+      if (!await local.exists() || await local.length() == 0) return 0;
+      probe = AppDatabase(NativeDatabase(backup, logStatements: false));
+      final snapshotTables = await _userTables(probe);
+      if (!snapshotTables.contains('ftp_connection_rows')) return 0;
+      final rows = await probe
+          .customSelect('SELECT * FROM "ftp_connection_rows"')
+          .get();
+      if (rows.isEmpty) return 0;
+      live = AppDatabase(NativeDatabase(local, logStatements: false));
+      final existing = <String>{
+        for (final row in await live
+            .customSelect('SELECT "id" FROM "ftp_connection_rows"')
+            .get())
+          row.read<String>('id'),
+      };
+      var restored = 0;
+      for (final row in rows) {
+        final companion = _ftpCompanionFor(row);
+        if (companion == null) continue;
+        final id = companion.id.value;
+        if (existing.contains(id)) continue;
+        await live.into(live.ftpConnectionRows).insert(companion);
+        existing.add(id);
+        restored++;
+      }
+      return restored;
+    } catch (_) {
+      return 0;
+    } finally {
+      try {
+        await probe?.close();
+      } catch (_) {}
+      try {
+        await live?.close();
+      } catch (_) {}
+    }
+  }
+
+  /// Maps one snapshot `ftp_connection_rows` row to an insert companion.
+  /// Missing columns (older snapshot schemas) fall back to entry defaults;
+  /// returns null when the row has no usable id.
+  FtpConnectionRowsCompanion? _ftpCompanionFor(QueryRow row) {
+    try {
+      final id = row.readNullable<String>('id');
+      if (id == null || id.isEmpty) return null;
+      final protocol = _ftpProtocolFor(row.readNullable<int>('protocol'));
+      final port = row.readNullable<int>('port') ?? protocol.defaultPort;
+      return FtpConnectionRowsCompanion.insert(
+        id: id,
+        name: row.readNullable<String>('name') ?? '',
+        protocol: protocol,
+        host: row.readNullable<String>('host') ?? '',
+        port: (port < 1 || port > 65535) ? protocol.defaultPort : port,
+        username: Value(row.readNullable<String>('username') ?? ''),
+        password: Value(row.readNullable<String>('password')),
+        remotePath: Value(row.readNullable<String>('remotePath') ?? '/'),
+        passiveMode:
+            Value((row.readNullable<int>('passiveMode') ?? 1) != 0),
+        acceptInvalidCert:
+            Value((row.readNullable<int>('acceptInvalidCert') ?? 0) != 0),
+        sftpAuthType: Value(
+          _enumFor(
+            row.readNullable<int>('sftpAuthType'),
+            SftpAuthType.values,
+            SftpAuthType.password,
+          ),
+        ),
+        privateKeyPath: Value(row.readNullable<String>('privateKeyPath')),
+        keyFormat: Value(
+          _enumFor(
+            row.readNullable<int>('keyFormat'),
+            KeyFormat.values,
+            KeyFormat.auto,
+          ),
+        ),
+        passphrase: Value(row.readNullable<String>('passphrase')),
+        createdAt:
+            row.readNullable<DateTime>('createdAt') ?? DateTime.now(),
+        updatedAt:
+            row.readNullable<DateTime>('updatedAt') ?? DateTime.now(),
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
+  FtpProtocol _ftpProtocolFor(int? index) {
+    return _enumFor(index, FtpProtocol.values, FtpProtocol.ftp);
+  }
+
+  T _enumFor<T>(int? index, List<T> values, T fallback) {
+    if (index == null || index < 0 || index >= values.length) return fallback;
+    return values[index];
   }
 
   /// Copies a snapshot over the local database file when the local file is

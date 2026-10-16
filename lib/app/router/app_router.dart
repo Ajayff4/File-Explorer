@@ -2,6 +2,9 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/selection_bottom_bar.dart';
+import 'package:file_explorer/features/ftp/domain/entities/ftp_connection.dart';
+import 'package:file_explorer/features/ftp/presentation/ftp_browser_screen.dart';
+import 'package:file_explorer/features/ftp/presentation/ftp_screen.dart';
 import 'package:file_explorer/features/home/presentation/core_features_screen.dart';
 import 'package:file_explorer/features/home/presentation/home_screen.dart';
 import 'package:file_explorer/features/media/presentation/media_folder_screen.dart';
@@ -147,6 +150,28 @@ List<RouteBase> buildAppRoutes() {
               return NearbyShareScreen(initialPaths: paths);
             },
           ),
+          GoRoute(
+            path: AppRoutes.ftp,
+            builder: (context, state) => const FtpScreen(),
+          ),
+          GoRoute(
+            path: AppRoutes.ftpBrowser,
+            builder: (context, state) {
+              final extra = state.extra;
+              final id = state.pathParameters['id'];
+              if (extra is FtpConnection &&
+                  (id == null || extra.id == id)) {
+                return FtpBrowserScreen(
+                  connectionId: extra.id,
+                  initialConnection: extra,
+                );
+              }
+              if (id != null) {
+                return FtpBrowserScreen(connectionId: id);
+              }
+              return const FtpScreen();
+            },
+          ),
         ],
       ),
       GoRoute(
@@ -232,6 +257,10 @@ class AppRoutes {
   static const encryptor = '/encryptor';
   static const qrScanner = '/qr-scanner';
   static const nearbyShare = '/nearby';
+  static const ftp = '/ftp';
+  static const ftpBrowser = '/ftp/browse/:id';
+
+  static String ftpBrowse(String id) => '/ftp/browse/$id';
 
   static String media(MediaLibraryKind kind) {
     return '/media/${kind.routeSegment}';

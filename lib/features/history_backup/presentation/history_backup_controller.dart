@@ -182,9 +182,11 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
   }
 
   /// Closes the open databases and copies usable snapshots over the local
-  /// files. Returns true when anything was restored. Providers still hold
-  /// the closed instances, so the caller must restart the app afterwards
-  /// (the WindowHost prompt closes it via [SystemNavigator.pop]).
+  /// files. When the full copy is vetoed by existing local rows, FTP
+  /// connections still merge additively. Returns true when anything was
+  /// restored. Providers still hold the closed instances, so the caller
+  /// must restart the app afterwards (the WindowHost prompt closes it via
+  /// [SystemNavigator.pop]).
   Future<bool> restoreNow() async {
     try {
       try {
@@ -197,7 +199,11 @@ class HistoryBackupController extends Notifier<HistoryBackupState> {
       final app = await service.importAppDatabase();
       final downloader =
           backend != null && await backend.importBackend(service);
-      return app || downloader;
+      var merged = false;
+      if (!app) {
+        merged = await service.mergeFtpConnections() > 0;
+      }
+      return app || downloader || merged;
     } catch (_) {
       return false;
     }
