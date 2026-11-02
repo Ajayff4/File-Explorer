@@ -4,6 +4,7 @@ import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/encryption/data/encryption_service.dart';
 import 'package:file_explorer/features/encryption/presentation/encryption_actions.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/file_checksum_sheet.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
@@ -485,6 +486,7 @@ class _EntryActionsSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final transferController = ref.read(transferControllerProvider.notifier);
+    final isHidden = entry.name.startsWith('.') && entry.name.length > 1;
 
     return SafeArea(
       child: ListView(
@@ -590,6 +592,16 @@ class _EntryActionsSheet extends ConsumerWidget {
               );
             },
           ),
+          if (!entry.isFolder)
+            ListTile(
+              leading: const Icon(Icons.fingerprint_rounded),
+              title: const Text('Checksums'),
+              subtitle: const Text('MD5, SHA-1, SHA-256, SHA-512'),
+              onTap: () {
+                Navigator.of(context).pop();
+                showFileChecksumSheet(parentContext, entry);
+              },
+            ),
           for (final operation in [
             TransferOperation.copy,
             TransferOperation.move,
@@ -616,6 +628,29 @@ class _EntryActionsSheet extends ConsumerWidget {
                 }
               },
             ),
+          ListTile(
+            leading: Icon(
+              isHidden
+                  ? Icons.visibility_rounded
+                  : Icons.visibility_off_rounded,
+            ),
+            title: Text(isHidden ? 'Unhide' : 'Hide'),
+            subtitle: Text(
+              isHidden ? 'Remove the dot prefix' : 'Add a dot prefix',
+            ),
+            onTap: () {
+              Navigator.of(context).pop();
+              final newName =
+                  isHidden ? entry.name.substring(1) : '.${entry.name}';
+              _queueEntryOperation(
+                parentContext,
+                transferController,
+                entry,
+                TransferOperation.rename,
+                destinationPath: p.join(p.dirname(entry.path), newName),
+              );
+            },
+          ),
           ListTile(
             leading: Icon(
               iconForTransferOperation(TransferOperation.delete),
@@ -1556,6 +1591,14 @@ class _EntryPropertiesPanelState extends State<EntryPropertiesPanel> {
               icon: const Icon(Icons.copy_rounded),
               label: const Text('Copy path'),
             ),
+            if (!isMulti && !entry.isFolder) ...[
+              const SizedBox(height: 8),
+              OutlinedButton.icon(
+                onPressed: () => showFileChecksumSheet(context, entry),
+                icon: const Icon(Icons.fingerprint_rounded),
+                label: const Text('Checksums'),
+              ),
+            ],
           ],
         ),
       ),

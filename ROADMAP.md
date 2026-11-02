@@ -30,12 +30,15 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Explorer | Refresh. |
 | ✅ | Explorer | Grid-first browsing with list/grid view toggle. |
 | ✅ | Explorer | Hidden-file filtering. |
+| ✅ | Explorer | Explicit hide/unhide of files and folders via a dot-prefix rename routed through Transfers (2026-11-02). |
 | ✅ | Explorer | Folder-first sorting by name, modified date, size, and type. |
 | ✅ | Explorer | Current-folder favorite toggle. |
 | ✅ | Explorer | Multi-select, select-all, clear-selection, and batch copy/move/delete. |
+| ✅ | Explorer | Batch rename from multi-select: find/replace, prefix, suffix, numbering (start/step/padding), preserve extension, live preview and errors (2026-11-02). |
 | ✅ | Explorer | New folder and new file creation with validation dialogs. |
 | ✅ | Explorer | File type browsing from Home shortcuts with filtered folder counts. |
 | ✅ | Explorer | Properties sheet with multi-select support: path, contents (files/folders), total size (async for folders), bytes, type, MIME type, modified. |
+| ✅ | Explorer | File checksums (MD5, SHA-1, SHA-256, SHA-512) from the actions sheet and properties panel, streamed in chunks, with copy (2026-11-02). |
 | ✅ | Android storage | Storage permission state model. |
 | ✅ | Android storage | Permission education/recovery card. |
 | ✅ | Android storage | Android storage volume MethodChannel. |
@@ -105,7 +108,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Viewers | In-app image viewer with pinch/double-tap zoom, rotate, swipe previous/next, details, delete, Android share, transfer-backed rename, and Android wallpaper action. |
 | ✅ | Viewers | Non-previewable files open Android's system app chooser on tap. |
 | ✅ | Viewers | "Open as" action lets users force-open any file as Text, Image, Video, or Audio with choice of built-in or system viewer. |
-| ✅ | Viewers | Built-in text file viewer with monospace font, line wrap toggle, adjustable font size, and support for 40+ text/code file extensions. |
+| ✅ | Viewers | Built-in text viewer/editor with monospace font, line wrap toggle, adjustable font size, and support for 40+ text/code file extensions; edit mode saves in place with unsaved-change guard and UTF-8/Latin-1/UTF-16 LE/BE encoding + BOM preservation (2026-11-02). |
 | ✅ | Viewers | Files inside ZIP archives open in the same full image viewer / video player / audio player as regular files. |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
 | ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
@@ -169,6 +172,8 @@ flutter build apk --debug
 # passed after native media_store channel changes
 ```
 
+Update 2026-11-02: **Local power tools slice** — the text viewer is now an editor (save in place, dirty guard, UTF-8/Latin-1/UTF-16 LE/BE with BOM preservation); multi-select rename became batch rename (find/replace, prefix/suffix, numbering, preserve extension, live preview); files expose streamed MD5/SHA-1/SHA-256/SHA-512 checksums from actions and properties; and any entry can be hidden/unhidden through a dot-prefix rename. First launch now requests full storage access automatically when possible (no prompt for later windows), with the blocked state on later denial. `flutter analyze`: no new issues (1 pre-existing info lint); `flutter test`: 230 pass + 1 pre-existing unrelated failure (`nearby_share_screen_test`); standard debug APK built and installed on device (RMX3031).
+
 Update 2026-09-06: **Settings scroll freeze fixed** — `GlowButton` stretched to full width as a `ListTile` trailing (History backup card), tripping the full-width-trailing assertion when the card scrolled into view and killing the list until revisit. Centering now applies only when `expanded`. 3 new widget tests; `flutter analyze` clean; universal debug APK verified on device (RMX3031).
 
 Update 2026-09-05 (3rd): **Audio spectrum + accent glass + analyzer taps** — player center shows a live graph (native FFT channel where the ROM allows; synthesized beat-synced fallback where ColorOS blocks it; static disc only as last resort), static "Audio Player" title, own ambient backdrop, transport overflow fixed. Accent surfaces glassed: `GlassMeterBar` (storage panel, analyzer bars), gradient-glow nav pills, slider/button theme, brightness-aware selected labels. Analyzer largest files tap through to their folder; grid extent fix kills file-tile overflow. `flutter analyze` clean; screenshot-verified on device (RMX3031, light + dark).
@@ -230,13 +235,13 @@ When coming back:
 
 1. Check git status in `project/`.
 2. Commit any completed slice if it is still uncommitted.
-3. Choose the next development slice from current product gaps (see *What Works Now* + *Last Verified*).
+3. Choose the next development slice from current product gaps (see *What Works Now*, *Last Verified*, and the *ES File Explorer Gap Plan*).
 
 ## Immediate Pending Work
 
 All previously planned slices have shipped (see *What Works Now* and *Last
-Verified*). Choose the next feature slice from current product gaps rather than
-this stale list.
+Verified*). Choose the next feature slice from the *ES File Explorer Gap Plan*
+(Priority 1 first) rather than this stale list.
 
 ## Must-Have Feature Plan
 
@@ -358,8 +363,111 @@ Removed from the roadmap.
 
 ## Later Roadmap
 
-All planned features have shipped — see *What Works Now* and *Last Verified* for
-the current status. No pending roadmap items remain.
+All previously planned features have shipped — see *What Works Now* and *Last
+Verified* for the current status. The plan below is additive.
+
+### ES File Explorer Gap Plan (2026-10-26)
+
+Comparison basis: the classic ES File Explorer manual and Wikipedia feature
+list, checked against the current codebase and current Android/Play policy.
+
+Already at parity (not re-planned): local file operations, multi-select,
+search index, recycle bin, AES-256 encryption, storage analyzer, media
+viewers, ZIP/TAR/GZ/TAR.GZ compression and extraction, FTP/FTPS/SFTP clients,
+LAN Share, QR tools, Universal Downloader, multi-window, hidden-file
+filtering, and copy-path.
+
+#### Priority 1 — Local power tools (no SDK, no recurring cost, no policy risk)
+
+Goal: close the everyday ES gaps that are pure local engineering. Ship
+complete, tested flows — no placeholder actions.
+
+| Status | Feature | Notes |
+| --- | --- | --- |
+| ✅ | Text/code editor | Reuse the existing text viewer; add editing, save, and encoding handling (2026-11-02). |
+| ✅ | Batch rename | Prefix/suffix, find/replace, numbering, and extension change with preview (2026-11-02). |
+| ✅ | MD5/SHA checksums | Properties action + copy; stream large files instead of loading them whole (2026-11-02). |
+| ☐ | Range selection | Select first/last item; shift-like selection across list and grid. |
+| ☐ | Drag-and-drop | Move/copy within Explorer; route through the transfer queue, never mutate directly. |
+| ☐ | Home-screen shortcuts | Pin file/folder shortcuts through Android `ShortcutManager`. |
+| ✅ | Explicit hide files/folders | Dot-rename action alongside the existing Show hidden toggle (2026-11-02). |
+| ☐ | Set folder as Home | Persisted start folder for Explorer (ES's "set folder as home"). |
+| ☐ | RAR/7z extraction | Creation for ZIP/TAR/GZ/TAR.GZ already ships; add extraction only. 7z is free; use a permissively licensed RAR decoder and skip RAR creation (licensing). |
+| ☐ | PDF/EPUB viewer | `PdfRenderer` + EPUB reader; read-only, no editor. |
+| ☐ | Video merger | Concatenate selected clips in user order. Use native track-copy muxing for compatible files in both flavors; keep FFmpeg re-encode fallback to builds that bundle the binary. |
+| ☐ | Rich file-type icons | Replace extension-letter badges with recognizable file/type artwork for documents, spreadsheets, code, archives, media, and apps; keep real thumbnails where available. |
+| ☐ | SQLite/hex viewer | Read-only; lowest priority inside P1. |
+| ☐ | General HTTP downloader | Non-yt-dlp downloads reusing the existing queue/transfer plumbing. |
+
+Deferred low-value local extras: custom downloadable themes/icon sets and
+gesture shortcuts are feasible, but wait until the core P1/P2 work lands.
+
+Why first: no cloud accounts, SDKs, OAuth, or sensitive-permission
+declarations are needed; everything is verifiable on-device and shippable in
+both flavors (with the existing downloader flavor gate where applicable).
+
+#### Priority 2 — Network features (cloud items marked `[FUTURE]`)
+
+Goal: match ES's LAN and remote-access features. These are technically
+feasible now; cloud SDK work is explicitly deferred until publishing and
+OAuth/verification planning, so it stays `[FUTURE]`.
+
+| Status | Feature | Notes |
+| --- | --- | --- |
+| ☐ | SMB/CIFS client | Windows shares and NAS; the biggest practical ES gap. |
+| ☐ | WebDAV client | Nextcloud, ownCloud, and WebDAV servers. |
+| ☐ | FTP/HTTP server + Remote Manager | Browse the phone from a PC browser; needs a foreground service and notification. |
+| ☐ | Bluetooth sharing | Feasible but slow; Android 12+ runtime permissions. |
+| ☐ | Wi-Fi Direct / LocalOnlyHotspot for Share | Removes the same-Wi-Fi limitation; user consent required per session. |
+| ☐ | `[FUTURE]` Google Drive | Prefer SAF (`drive.file`) to avoid restricted-scope OAuth; full Drive scope needs verification. |
+| ☐ | `[FUTURE]` Dropbox / OneDrive / Box / S3 | Vendor SDKs; OAuth, Data Safety, and account-deletion requirements. |
+| ☐ | `[FUTURE]` DLNA / Cast | Cast SDK or DLNA library; optional media feature, same SDK cost as cloud. |
+
+#### Priority 3 — Possible but only if fully implementable
+
+Rule: implement end-to-end or leave it out. No teaser/partial versions.
+
+| Status | Feature | Definition of done / caveat |
+| --- | --- | --- |
+| ☐ | App manager (installed apps, uninstall, APK backup/install, shortcuts) | Needs `QUERY_ALL_PACKAGES` and `REQUEST_INSTALL_PACKAGES` declarations (file managers are an allowed use case). APK-only backup; handle split APKs; no app data. |
+| ☐ | `/Android/data` + `/Android/obb` browsing | Impossible with all-files access or SAF on Android 11+. Only root or Shizuku/ADB; ship only if the setup UX and per-device fallback are reliable. |
+| ☐ | Root explorer / chmod / app-data backup | Rooted devices only. Optional sideload capability; no stock-device promise. |
+| ☐ | Contacts icon (set photo as contact) | Sensitive contacts permission + Play declaration; only if the whole flow is complete. |
+| ☐ | Background transfers | Foreground service with the Android 14+ service type and notification; only if background completion is reliable. |
+
+#### Priority 4 — Not worth doing (do not implement)
+
+These were deliberately excluded and should stay excluded.
+
+- Task killer / RAM booster / battery saver / CPU cooler / charging boost.
+- One-tap "junk cleaner" or "speed up phone" claims.
+- Lock-screen takeover / charging screens or any adware-style surface.
+- Always-on background monitoring that drains battery without user-visible value.
+- Feature-list padding that cannot be honestly described in the store listing.
+
+Why: Android no longer permits reliable third-party app killing, and Play
+treats misleading performance/cleaner claims as policy violations. These are
+exactly why the features remain absent.
+
+#### Priority 5 — Policy management (stay aligned)
+
+- Keep `MANAGE_EXTERNAL_STORAGE` only while it remains core to file management; maintain the Play Permissions Declaration and pass access review.
+- Add `QUERY_ALL_PACKAGES` and `REQUEST_INSTALL_PACKAGES` only for the app-manager scope, with declarations.
+- When `targetSdk` moves to 37 (Android 17), declare and request `ACCESS_LOCAL_NETWORK` for SMB/WebDAV/FTP servers and Share; without it LAN connections are silently blocked. The current release targets 36, so no runtime prompt is needed yet.
+- Servers and background transfers: correct foreground-service type plus a user-visible notification.
+- `/Android/data` and `/Android/obb`: document as root/Shizuku-only; never claim full stock-Android access.
+- Cloud `[FUTURE]`: settle OAuth, scopes, Data Safety, and account deletion before implementation.
+- Re-test every yearly Android release and Play target-SDK deadline; prefer SAF/MediaStore where it avoids broad permissions.
+
+#### Sources
+
+- ES File Explorer classic manual: <http://www.estrongs.com/eshelp/en/ES_File_Explorer_User_Manual3.0.htm>
+- ES File Explorer — Wikipedia: <https://en.wikipedia.org/wiki/ES_File_Explorer>
+- Play all-files access policy (`MANAGE_EXTERNAL_STORAGE`): <https://support.google.com/googleplay/android-developer/answer/10467955>
+- Play broad package visibility (`QUERY_ALL_PACKAGES`): <https://support.google.com/googleplay/android-developer/answer/10158779>
+- Play install packages (`REQUEST_INSTALL_PACKAGES`): <https://support.google.com/googleplay/android-developer/answer/12085295>
+- Android 11 storage updates (`/Android/data`, `/Android/obb`, SAF): <https://developer.android.com/about/versions/11/privacy/storage>
+- Android 17 local network permission (`ACCESS_LOCAL_NETWORK`): <https://developer.android.com/privacy-and-security/local-network-permission>
 
 ## Guardrails
 

@@ -128,9 +128,14 @@ class WindowManager extends Notifier<WindowManagerState> {
       await captureActive();
     }
 
+    final promptForStorageAccess = state.windows.isEmpty;
     final overrides = <Override>[
-      explorerControllerProvider
-          .overrideWith((ref) => ExplorerController(ref)..loadInitialDirectory()),
+      explorerControllerProvider.overrideWith(
+        (ref) => ExplorerController(ref)
+          ..loadInitialDirectory(
+            requestAccessOnLaunch: promptForStorageAccess,
+          ),
+      ),
       explorerViewModeProvider.overrideWith((ref) => ExplorerViewMode.grid),
       fileSearchControllerProvider.overrideWith((ref) {
         final settings = ref.watch(settingsControllerProvider).settings;

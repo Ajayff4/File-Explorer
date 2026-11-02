@@ -7,6 +7,7 @@ import 'package:file_explorer/features/recents/data/repositories/recent_location
 import 'package:file_explorer/features/storage_permissions/data/repositories/fake_storage_permission_repository.dart';
 import 'package:file_explorer/features/storage_permissions/data/repositories/storage_permission_repository_provider.dart';
 import 'package:file_explorer/features/storage_permissions/domain/entities/storage_permission_state.dart';
+import 'package:file_explorer/features/storage_permissions/domain/repositories/storage_permission_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -122,6 +123,95 @@ void main() {
       _MultiVolumeStorageRepository.primaryPath,
     );
   });
+
+  test('requests full access when prompted on launch', () async {
+    final repository = _MultiVolumeStorageRepository();
+    final permissionRepository = _RecordingStoragePermissionRepository(
+      initialState: const StoragePermissionState.needsFullAccess(),
+      grantedState: const StoragePermissionState.fullAccess(
+        accessMode: StorageAccessMode.allFiles,
+        message: 'Full storage access is enabled',
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        storageRepositoryProvider.overrideWithValue(repository),
+        recentLocationStoreProvider.overrideWithValue(
+          InMemoryRecentLocationStore(),
+        ),
+        storagePermissionRepositoryProvider
+            .overrideWithValue(permissionRepository),
+        explorerControllerProvider.overrideWith(
+          (ref) => ExplorerController(ref)
+            ..loadInitialDirectory(requestAccessOnLaunch: true),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    final state = container.read(explorerControllerProvider);
+    expect(permissionRepository.requestCount, 1);
+    expect(state.permission.value?.canBrowse, isTrue);
+    expect(state.volumes.value, hasLength(2));
+  });
+
+  test('does not request full access on a regular load', () async {
+    final permissionRepository = _RecordingStoragePermissionRepository(
+      initialState: const StoragePermissionState.needsFullAccess(),
+      grantedState: const StoragePermissionState.fullAccess(
+        accessMode: StorageAccessMode.allFiles,
+        message: 'Full storage access is enabled',
+      ),
+    );
+    final container = ProviderContainer(
+      overrides: [
+        storageRepositoryProvider.overrideWithValue(
+          _MultiVolumeStorageRepository(),
+        ),
+        recentLocationStoreProvider.overrideWithValue(
+          InMemoryRecentLocationStore(),
+        ),
+        storagePermissionRepositoryProvider
+            .overrideWithValue(permissionRepository),
+      ],
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    expect(permissionRepository.requestCount, 0);
+    expect(
+      container.read(explorerControllerProvider).permission.value?.canBrowse,
+      isFalse,
+    );
+  });
+}
+
+class _RecordingStoragePermissionRepository
+    implements StoragePermissionRepository {
+  _RecordingStoragePermissionRepository({
+    required this.initialState,
+    required this.grantedState,
+  }) : _current = initialState;
+
+  final StoragePermissionState initialState;
+  final StoragePermissionState grantedState;
+  StoragePermissionState _current;
+  int requestCount = 0;
+
+  @override
+  Future<StoragePermissionState> checkPermission() async {
+    return _current;
+  }
+
+  @override
+  Future<StoragePermissionState> requestFullAccess() async {
+    requestCount += 1;
+    _current = grantedState;
+    return _current;
+  }
 }
 
 Future<void> _waitForExplorerLoad(ProviderContainer container) async {

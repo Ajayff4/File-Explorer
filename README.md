@@ -37,8 +37,10 @@ feature below works end to end on a real device over wireless ADB.
   navigation.
 - ✅ Sorting — Name (A–Z / Z–A), Modified, Size, Type.
 - ✅ Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move.
+- ✅ Batch rename — find/replace, prefix, suffix, numbering (start/step/padding), preserve extension, and a live preview with validation errors.
+- ✅ Hide/unhide any file or folder via a dot-prefix rename; pairs with the Show hidden files setting.
 - ✅ "New Folder" / "New File" actions.
-- ✅ Properties panel with folder-size computation + multi-select summary.
+- ✅ Properties panel with folder-size computation + multi-select summary, plus streamed MD5/SHA-1/SHA-256/SHA-512 checksums with copy.
 - ✅ Type-filter folder listings via MediaStore `countMedia`, walker fallback.
 - ✅ Progressive loading — no fake storage in production.
 
@@ -68,7 +70,7 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Video: auto-hiding controls, landscape, 10‑s double-tap seeking, speed, loop, shuffle, mute, wakelock.
 - ✅ Audio: live spectrum graph (native FFT where the ROM allows, beat-synced
   fallback otherwise), seek, speed, volume, mute, loop, shuffle, prev/next, details.
-- ✅ Built-in text viewer (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size.
+- ✅ Built-in text viewer/editor (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size; edit and save in place with an unsaved-change guard and UTF-8/Latin-1/UTF-16 LE/BE encoding (BOM preserved).
 - ✅ `Open with` system chooser; `Open as` to force Text/Image/Video/Audio.
 
 ### 🗜️ Archives

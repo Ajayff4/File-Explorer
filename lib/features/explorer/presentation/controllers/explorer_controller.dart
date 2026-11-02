@@ -61,7 +61,9 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
   final Ref _ref;
 
-  Future<void> loadInitialDirectory() async {
+  Future<void> loadInitialDirectory({
+    bool requestAccessOnLaunch = false,
+  }) async {
     final permissionRepository = _ref.read(storagePermissionRepositoryProvider);
     state = state.copyWith(permission: const AsyncValue.loading());
 
@@ -72,22 +74,13 @@ class ExplorerController extends StateNotifier<ExplorerState> {
 
     final permissionValue = permission.value;
     if (permissionValue == null || !permissionValue.canBrowse) {
-      state = state.copyWith(
-        volumes: const AsyncValue.data([]),
-        listing: AsyncValue.data(
-          DirectoryListing(
-            path: state.currentPath,
-            entries: const [],
-          ),
-        ),
-        summary: const AsyncValue.data(
-          StorageSummary(
-            label: 'Storage',
-            usedBytes: 0,
-            totalBytes: 1,
-          ),
-        ),
-      );
+      if (requestAccessOnLaunch &&
+          permissionValue != null &&
+          permissionValue.canRequestFullAccess) {
+        await requestFullStorageAccess();
+        return;
+      }
+      _showBlockedStorageState();
       return;
     }
 
@@ -128,7 +121,28 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final permissionValue = permission.value;
     if (permissionValue != null && permissionValue.canBrowse) {
       await loadInitialDirectory();
+    } else {
+      _showBlockedStorageState();
     }
+  }
+
+  void _showBlockedStorageState() {
+    state = state.copyWith(
+      volumes: const AsyncValue.data([]),
+      listing: AsyncValue.data(
+        DirectoryListing(
+          path: state.currentPath,
+          entries: const [],
+        ),
+      ),
+      summary: const AsyncValue.data(
+        StorageSummary(
+          label: 'Storage',
+          usedBytes: 0,
+          totalBytes: 1,
+        ),
+      ),
+    );
   }
 
   Future<void> openDirectory(String path, {bool recordRecent = true}) async {

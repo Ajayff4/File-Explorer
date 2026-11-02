@@ -45,7 +45,7 @@ class StoragePermissionCard extends StatelessWidget {
                 Text(state.message),
                 const SizedBox(height: 10),
                 Text(
-                  'File Explorer needs explicit access before it can browse shared storage. You stay in control, and no broad permission is requested on launch.',
+                  'File Explorer needs explicit access before it can browse shared storage. Grant it here, or retry after enabling it in system settings.',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
                 if (recoveryText != null) ...[

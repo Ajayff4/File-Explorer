@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:file_explorer/app/router/app_router.dart';
 import 'package:file_explorer/features/encryption/data/encryption_service.dart';
 import 'package:file_explorer/features/encryption/presentation/encryption_actions.dart';
+import 'package:file_explorer/features/explorer/domain/batch_rename.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/batch_rename_dialog.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
@@ -88,17 +92,24 @@ class SelectionBottomBar extends ConsumerWidget {
                 },
               ),
               _ActionButton(
-                tooltip: 'Rename',
-                icon: Icons.edit_rounded,
-                enabled: selectedCount == 1,
+                tooltip: selectedCount > 1 ? 'Batch rename' : 'Rename',
+                icon: Icons.drive_file_rename_outline_rounded,
                 onTap: () {
-                  if (selectedCount != 1) return;
-                  _showRenameDialog(
-                    context,
-                    transferController,
-                    selectedPaths.first,
-                    onExitSelection,
-                  );
+                  if (selectedCount == 1) {
+                    _showRenameDialog(
+                      context,
+                      transferController,
+                      selectedPaths.first,
+                      onExitSelection,
+                    );
+                  } else {
+                    _showBatchRenameDialog(
+                      context,
+                      transferController,
+                      selectedPaths,
+                      onExitSelection,
+                    );
+                  }
                 },
               ),
               _ActionButton(
@@ -127,19 +138,17 @@ class _ActionButton extends StatelessWidget {
     required this.tooltip,
     required this.icon,
     required this.onTap,
-    this.enabled = true,
   });
 
   final String tooltip;
   final IconData icon;
   final VoidCallback onTap;
-  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     return IconButton.outlined(
       tooltip: tooltip,
-      onPressed: enabled ? onTap : null,
+      onPressed: onTap,
       icon: Icon(icon),
     );
   }
@@ -175,6 +184,62 @@ Future<void> _showRenameDialog(
   );
   if (!context.mounted) return;
   _showQueuedSnackBar(context, TransferOperation.rename);
+  onExitSelection();
+}
+
+Future<void> _showBatchRenameDialog(
+  BuildContext context,
+  TransferController transferController,
+  List<String> selectedPaths,
+  VoidCallback onExitSelection,
+) async {
+  final sources = <BatchRenameSource>[];
+  for (final path in selectedPaths) {
+    var isFolder = false;
+    try {
+      isFolder = await FileSystemEntity.isDirectory(path);
+    } on FileSystemException {
+      // Treat unreadable paths as files; the rename task reports failures.
+    }
+    sources.add(BatchRenameSource(path: path, isFolder: isFolder));
+  }
+  if (!context.mounted) {
+    return;
+  }
+
+  final preview = await showBatchRenameDialog(
+    context: context,
+    sources: sources,
+  );
+  if (preview == null || !context.mounted) {
+    return;
+  }
+
+  final changedItems = preview.changedItems;
+  for (final item in changedItems) {
+    transferController.queueOperation(
+      operation: TransferOperation.rename,
+      sourcePaths: [item.oldPath],
+      displayName: item.oldName,
+      destinationPath: item.newPath,
+    );
+  }
+
+  final messenger = ScaffoldMessenger.of(context);
+  final router = GoRouter.of(context);
+  messenger
+    ..hideCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        content: Text('${changedItems.length} rename tasks queued'),
+        duration: const Duration(seconds: 4),
+        persist: false,
+        action: SnackBarAction(
+          label: 'Transfers',
+          onPressed: () => router.go(AppRoutes.transfers),
+        ),
+      ),
+    );
   onExitSelection();
 }
 

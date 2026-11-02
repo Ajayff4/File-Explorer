@@ -2,6 +2,52 @@
 
 Progress log for the Flutter application.
 
+## 2026-11-02
+
+### Added
+- **Text/code editor** (`lib/features/media/`): the built-in text viewer now
+  edits and saves in place. Edit mode swaps the read-only view for a monospace
+  `TextField`, tracks unsaved changes ("Unsaved changes" in the app bar), and
+  confirms discarding edits on stop/back (`PopScope`). Empty files get an
+  **Edit file** button. An encoding menu (UTF-8, Latin-1, UTF-16 LE/BE) selects
+  the decode/encode path in the new `text_file_encoding.dart`; BOMs are
+  detected (UTF-8/UTF-16 LE/BE) and preserved on save, and non-BOM files fall
+  back to UTF-8 when valid or Latin-1. Saves write bytes directly with
+  `flush: true` and report failures without leaving the editor. Switching
+  encoding while editing only changes the save target.
+- **Batch rename** (`lib/features/explorer/`): multi-select rename now opens a
+  batch dialog backed by `domain/batch_rename.dart` — find/replace, prefix,
+  suffix, optional numbering (start/step/padding), and preserve-extension,
+  with a live preview of changed names plus validation errors. Only changed
+  items are queued as individual transfer-backed renames; a snackbar links to
+  Transfers. Single-selection rename keeps the simple dialog.
+- **File checksums** (`lib/features/explorer/domain/services/`,
+  `widgets/file_checksum_sheet.dart`, adds `crypto`): file actions and the
+  properties panel expose **Checksums** for MD5, SHA-1, SHA-256, and SHA-512.
+  `FileChecksumService` streams the file in chunks into chunked digest
+  conversions, so large files are never loaded whole; results can be copied.
+- **Explicit hide/unhide** (`entry_actions_button.dart`): any file or folder
+  can be hidden by adding a dot prefix through the transfer queue, and unhidden
+  by removing it; the action knows whether the entry is already a dotfile.
+
+### Changed
+- **Storage permission prompt** (`explorer_controller.dart`,
+  `window_manager.dart`): full storage access is now requested automatically on
+  first launch (when no app window exists yet) if it can still be requested,
+  instead of only showing the education card. Later window creation does not
+  re-prompt, and a still-denied permission on resume now shows the blocked
+  storage state. The permission card copy was updated to match the new flow.
+- Tests: new `batch_rename_test`, `file_checksum_service_test`,
+  `text_file_encoding_test`, and `text_file_viewer_screen_test`; explorer
+  controller tests extended for the launch-permission behavior.
+
+### Verified
+- `flutter analyze`: no new issues (1 pre-existing info-level doc-comment lint);
+  `flutter test`: 230 passed, 2 skipped, 1 pre-existing unrelated failure
+  (`nearby_share_screen_test`). Standard debug APK built and installed on
+  device (RMX3031) for manual verification of the editor, batch rename,
+  checksums, hide/unhide, and first-launch permission prompt.
+
 ## 2026-09-06
 
 ### Fixed
