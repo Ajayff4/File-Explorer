@@ -1,10 +1,13 @@
+import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:archive/archive.dart';
 import 'package:file_explorer/features/transfers/data/repositories/local_transfer_executor_io.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:koni_archive/io.dart' as koni;
 
 void main() {
   late Directory tempDir;
@@ -463,6 +466,39 @@ void main() {
       await File('${tempDir.path}/nested/xz.txt').readAsString(),
       'hello xz',
     );
+  });
+
+  test('extracts 7z archives into the destination directory', () async {
+    final archivePath = '${tempDir.path}/bundle.7z';
+    final writer = await koni.createArchiveFile(
+      archivePath,
+      format: const koni.SevenZWriteFormat(),
+    );
+    await writer.addBytes(
+      koni.ArchiveEntrySpec(path: 'docs/note.txt'),
+      Uint8List.fromList(utf8.encode('hello 7z')),
+    );
+    await writer.addBytes(
+      koni.ArchiveEntrySpec(path: 'empty.txt'),
+      Uint8List(0),
+    );
+    await writer.close();
+
+    final extractDir = Directory('${tempDir.path}/seven_zip_output');
+    await const LocalTransferExecutor().execute(
+      _task(
+        operation: TransferOperation.extractArchive,
+        sourcePath: archivePath,
+        destinationPath: extractDir.path,
+      ),
+      onProgress: (_) {},
+    );
+
+    expect(
+      await File('${extractDir.path}/docs/note.txt').readAsString(),
+      'hello 7z',
+    );
+    expect(await File('${extractDir.path}/empty.txt').readAsString(), '');
   });
 }
 

@@ -26,7 +26,10 @@ class AppSettings {
     this.showTransferStation = true,
     this.themeMode = AppThemeMode.dark,
     this.themeAccent = AppThemeAccent.purple,
+    this.homeFolderPath,
   });
+
+  static const Object _unsetHomeFolderPath = Object();
 
   final bool showHiddenFiles;
   final bool confirmDestructiveActions;
@@ -37,6 +40,9 @@ class AppSettings {
   final AppThemeMode themeMode;
   final AppThemeAccent themeAccent;
 
+  /// Folder Explorer opens on launch. `null` uses the primary storage root.
+  final String? homeFolderPath;
+
   AppSettings copyWith({
     bool? showHiddenFiles,
     bool? confirmDestructiveActions,
@@ -45,6 +51,7 @@ class AppSettings {
     bool? showTransferStation,
     AppThemeMode? themeMode,
     AppThemeAccent? themeAccent,
+    Object? homeFolderPath = _unsetHomeFolderPath,
   }) {
     return AppSettings(
       showHiddenFiles: showHiddenFiles ?? this.showHiddenFiles,
@@ -56,6 +63,9 @@ class AppSettings {
       showTransferStation: showTransferStation ?? this.showTransferStation,
       themeMode: themeMode ?? this.themeMode,
       themeAccent: themeAccent ?? this.themeAccent,
+      homeFolderPath: identical(homeFolderPath, _unsetHomeFolderPath)
+          ? this.homeFolderPath
+          : homeFolderPath as String?,
     );
   }
 }
@@ -67,7 +77,8 @@ enum SettingKey {
   useIndexedSearch('use_indexed_search'),
   showTransferStation('show_transfer_station'),
   themeMode('theme_mode'),
-  themeAccent('theme_accent');
+  themeAccent('theme_accent'),
+  homeFolder('home_folder');
 
   const SettingKey(this.storageKey);
 

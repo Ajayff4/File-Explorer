@@ -16,6 +16,12 @@ final explorerControllerProvider =
   return ExplorerController(ref)..loadInitialDirectory();
 });
 
+/// Folder Explorer opens on launch, loaded from persisted settings before the
+/// app starts. `null` uses the primary storage root.
+final explorerStartPathProvider = Provider<String?>((ref) => null);
+
+const Object _unsetSelectionAnchor = Object();
+
 class ExplorerState {
   const ExplorerState({
     this.currentPath = FakeStorageRepository.rootPath,
@@ -25,6 +31,7 @@ class ExplorerState {
     this.summary = const AsyncValue.loading(),
     this.selectedPaths = const [],
     this.isSelectionMode = false,
+    this.selectionAnchorPath,
   });
 
   final String currentPath;
@@ -35,6 +42,10 @@ class ExplorerState {
   final List<String> selectedPaths;
   final bool isSelectionMode;
 
+  /// Path that started the current selection. Range selection extends from
+  /// this anchor to the tapped entry.
+  final String? selectionAnchorPath;
+
   ExplorerState copyWith({
     String? currentPath,
     AsyncValue<List<StorageVolume>>? volumes,
@@ -43,6 +54,7 @@ class ExplorerState {
     AsyncValue<StorageSummary>? summary,
     List<String>? selectedPaths,
     bool? isSelectionMode,
+    Object? selectionAnchorPath = _unsetSelectionAnchor,
   }) {
     return ExplorerState(
       currentPath: currentPath ?? this.currentPath,
@@ -52,6 +64,12 @@ class ExplorerState {
       summary: summary ?? this.summary,
       selectedPaths: selectedPaths ?? this.selectedPaths,
       isSelectionMode: isSelectionMode ?? this.isSelectionMode,
+      selectionAnchorPath: identical(
+        selectionAnchorPath,
+        _unsetSelectionAnchor,
+      )
+          ? this.selectionAnchorPath
+          : selectionAnchorPath as String?,
     );
   }
 }
@@ -95,18 +113,24 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     final volumeList = volumes.value ?? const <StorageVolume>[];
     final primaryVolume = _primaryVolumeFrom(volumeList);
     final rootPath = primaryVolume?.path ?? FakeStorageRepository.rootPath;
+    final homePath = _ref.read(explorerStartPathProvider);
+    final startPath =
+        homePath == null || homePath.isEmpty ? rootPath : homePath;
     final summary = await AsyncValue.guard(
       () => _summaryForVolume(primaryVolume, repository),
     );
 
     state = state.copyWith(
-      currentPath: rootPath,
+      currentPath: startPath,
       volumes: volumes,
       summary: summary,
       listing: const AsyncValue.loading(),
     );
 
-    await openDirectory(rootPath);
+    await openDirectory(startPath);
+    if (startPath != rootPath && state.listing.hasError) {
+      await openDirectory(rootPath);
+    }
   }
 
   Future<void> requestFullStorageAccess() async {
@@ -152,6 +176,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
       listing: const AsyncValue.loading(),
       selectedPaths: const [],
       isSelectionMode: false,
+      selectionAnchorPath: null,
     );
 
     final listing =
@@ -206,14 +231,19 @@ class ExplorerController extends StateNotifier<ExplorerState> {
   void toggleSelection(String path) {
     final currentSelected = state.selectedPaths;
     if (currentSelected.contains(path)) {
+      final remaining = currentSelected.where((p) => p != path).toList();
       state = state.copyWith(
-        selectedPaths: currentSelected.where((p) => p != path).toList(),
-        isSelectionMode: currentSelected.length > 1,
+        selectedPaths: remaining,
+        isSelectionMode: remaining.isNotEmpty,
+        selectionAnchorPath: state.selectionAnchorPath == path
+            ? (remaining.isEmpty ? null : remaining.last)
+            : state.selectionAnchorPath,
       );
     } else {
       state = state.copyWith(
         selectedPaths: [...currentSelected, path],
         isSelectionMode: true,
+        selectionAnchorPath: path,
       );
     }
   }
@@ -221,7 +251,78 @@ class ExplorerController extends StateNotifier<ExplorerState> {
   void selectAll(List<String> paths) {
     state = state.copyWith(
       selectedPaths: paths,
+      isSelectionMode: paths.isNotEmpty,
+      selectionAnchorPath: paths.isEmpty ? null : paths.first,
+    );
+  }
+
+  /// Selects every entry between the current anchor and [path] in
+  /// [orderedPaths], matching shift-click behavior in desktop file managers.
+  void selectTo(String path, {required List<String> orderedPaths}) {
+    final anchor = state.selectionAnchorPath;
+    if (anchor == null) {
+      toggleSelection(path);
+      return;
+    }
+
+    final anchorIndex = orderedPaths.indexOf(anchor);
+    final targetIndex = orderedPaths.indexOf(path);
+    if (anchorIndex == -1 || targetIndex == -1) {
+      toggleSelection(path);
+      return;
+    }
+
+    final start = anchorIndex < targetIndex ? anchorIndex : targetIndex;
+    final end = anchorIndex < targetIndex ? targetIndex : anchorIndex;
+    state = state.copyWith(
+      selectedPaths: orderedPaths.sublist(start, end + 1),
       isSelectionMode: true,
+      selectionAnchorPath: anchor,
+    );
+  }
+
+  /// Extends the current selection from the anchor to the first entry.
+  void selectToFirst({required List<String> orderedPaths}) {
+    _selectToBoundary(orderedPaths, fromStart: true);
+  }
+
+  /// Extends the current selection from the anchor to the last entry.
+  void selectToLast({required List<String> orderedPaths}) {
+    _selectToBoundary(orderedPaths, fromStart: false);
+  }
+
+  void _selectToBoundary(
+    List<String> orderedPaths, {
+    required bool fromStart,
+  }) {
+    if (orderedPaths.isEmpty) return;
+
+    final anchorIndex = state.selectionAnchorPath == null
+        ? -1
+        : orderedPaths.indexOf(state.selectionAnchorPath!);
+    if (anchorIndex == -1) {
+      final boundary = fromStart ? orderedPaths.first : orderedPaths.last;
+      state = state.copyWith(
+        selectedPaths: [boundary],
+        isSelectionMode: true,
+        selectionAnchorPath: boundary,
+      );
+      return;
+    }
+
+    final boundaryIndex = fromStart ? 0 : orderedPaths.length - 1;
+    final range = fromStart
+        ? orderedPaths.sublist(0, anchorIndex + 1)
+        : orderedPaths.sublist(anchorIndex, boundaryIndex + 1);
+    final selectedSet = {...state.selectedPaths, ...range};
+    final selected = [
+      for (final path in orderedPaths)
+        if (selectedSet.contains(path)) path,
+    ];
+    state = state.copyWith(
+      selectedPaths: selected,
+      isSelectionMode: true,
+      selectionAnchorPath: state.selectionAnchorPath,
     );
   }
 
@@ -252,6 +353,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     state = state.copyWith(
       selectedPaths: const [],
       isSelectionMode: false,
+      selectionAnchorPath: null,
     );
   }
 
@@ -259,6 +361,7 @@ class ExplorerController extends StateNotifier<ExplorerState> {
     state = state.copyWith(
       selectedPaths: const [],
       isSelectionMode: false,
+      selectionAnchorPath: null,
     );
   }
 

@@ -1,5 +1,7 @@
 import 'package:file_explorer/app/app.dart';
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/history_backup/data/history_backup_service.dart';
+import 'package:file_explorer/features/settings/data/repositories/settings_store_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,7 +20,29 @@ Future<void> main() async {
   if (kDebugMode) {
     await _requestMediaPermissionsForTesting();
   }
-  runApp(const ProviderScope(child: FileExplorerApp()));
+  final homeFolderPath = await _loadHomeFolderPath();
+  runApp(
+    ProviderScope(
+      overrides: [
+        explorerStartPathProvider.overrideWithValue(homeFolderPath),
+      ],
+      child: const FileExplorerApp(),
+    ),
+  );
+}
+
+/// Reads the persisted start folder before the first window is created so
+/// Explorer can open it directly instead of flashing the storage root.
+Future<String?> _loadHomeFolderPath() async {
+  final bootstrap = ProviderContainer();
+  try {
+    final settings = await bootstrap.read(settingsStoreProvider).loadSettings();
+    return settings.homeFolderPath;
+  } catch (_) {
+    return null;
+  } finally {
+    bootstrap.dispose();
+  }
 }
 
 Future<void> _requestMediaPermissionsForTesting() async {

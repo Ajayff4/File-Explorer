@@ -249,6 +249,7 @@ class LocalStorageRepository implements StorageRepository {
       '.gz' ||
       '.bz2' ||
       '.xz' ||
+      '.7z' ||
       '.tar.gz' ||
       '.tar.bz2' ||
       '.tar.xz' =>

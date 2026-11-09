@@ -3,6 +3,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/explorer_screen.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/selection_range_menu.dart';
 import 'package:file_explorer/features/recents/presentation/controllers/recents_controller.dart';
 import 'package:file_explorer/features/search/domain/entities/search_result.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
@@ -99,9 +100,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                 },
                 icon: const Icon(Icons.select_all_rounded),
               ),
-              IconButton(
-                tooltip: 'Select range',
-                onPressed: selectedCount >= 2
+              SelectionRangeMenu(
+                onSelectBetween: selectedCount >= 2
                     ? () {
                         final searchPaths = searchState.results
                             .map((r) => r.entry.path)
@@ -111,7 +111,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             .selectInterval(paths: searchPaths);
                       }
                     : null,
-                icon: const Icon(Icons.linear_scale_rounded),
+                onSelectFirst: () {
+                  final searchPaths =
+                      searchState.results.map((r) => r.entry.path).toList();
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectToFirst(orderedPaths: searchPaths);
+                },
+                onSelectLast: () {
+                  final searchPaths =
+                      searchState.results.map((r) => r.entry.path).toList();
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectToLast(orderedPaths: searchPaths);
+                },
               ),
               TextButton(
                 onPressed: () {

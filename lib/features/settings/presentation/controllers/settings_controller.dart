@@ -74,6 +74,20 @@ class SettingsController extends StateNotifier<SettingsState> {
     );
   }
 
+  Future<void> setHomeFolder(String? path) async {
+    final normalized = path?.trim();
+    final value = normalized == null || normalized.isEmpty ? '' : normalized;
+    await _store.saveString(SettingKey.homeFolder, value);
+    if (!mounted) {
+      return;
+    }
+    state = state.copyWith(
+      settings: state.settings.copyWith(
+        homeFolderPath: value.isEmpty ? null : value,
+      ),
+    );
+  }
+
   Future<void> resetSettings() async {
     await _store.resetSettings();
     if (!mounted) {
@@ -95,6 +109,7 @@ class SettingsController extends StateNotifier<SettingsState> {
         current.copyWith(showTransferStation: value),
       SettingKey.themeMode => current,
       SettingKey.themeAccent => current,
+      SettingKey.homeFolder => current,
     };
   }
 }

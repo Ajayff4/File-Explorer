@@ -32,6 +32,8 @@ class InMemorySettingsStore implements SettingsStore {
   ) {
     const defaults = AppSettings();
 
+    final homeFolderValue = stringValues[SettingKey.homeFolder];
+
     AppThemeMode readThemeMode() {
       final raw = stringValues[SettingKey.themeMode];
       for (final mode in AppThemeMode.values) {
@@ -67,6 +69,9 @@ class InMemorySettingsStore implements SettingsStore {
           defaults.showTransferStation,
       themeMode: readThemeMode(),
       themeAccent: readThemeAccent(),
+      homeFolderPath: homeFolderValue == null || homeFolderValue.isEmpty
+          ? null
+          : homeFolderValue,
     );
   }
 }

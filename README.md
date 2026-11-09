@@ -37,6 +37,10 @@ feature below works end to end on a real device over wireless ADB.
   navigation.
 - ✅ Sorting — Name (A–Z / Z–A), Modified, Size, Type.
 - ✅ Multi-select action sheet (sort props…) with type filter, share, delete, rename, copy/move.
+- ✅ Range selection (select-to-item, first/last, shift-click) across list and grid.
+- ✅ Drag-and-drop copy/move within Explorer, queued through the Transfer Station (Ctrl at drop = copy).
+- ✅ Pin files/folders to the home screen via Android `ShortcutManager` (Android 8+).
+- ✅ Set the current folder as the Home/startup folder (clearable in Settings).
 - ✅ Batch rename — find/replace, prefix, suffix, numbering (start/step/padding), preserve extension, and a live preview with validation errors.
 - ✅ Hide/unhide any file or folder via a dot-prefix rename; pairs with the Show hidden files setting.
 - ✅ "New Folder" / "New File" actions.
@@ -71,13 +75,15 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Audio: live spectrum graph (native FFT where the ROM allows, beat-synced
   fallback otherwise), seek, speed, volume, mute, loop, shuffle, prev/next, details.
 - ✅ Built-in text viewer/editor (`.txt`, `.md`, `.json`, `.py`, `.dart`, …) — selectable, wrap, font size; edit and save in place with an unsaved-change guard and UTF-8/Latin-1/UTF-16 LE/BE encoding (BOM preserved).
+- ✅ Built-in PDF viewer — native `PdfRenderer`, paginated, pinch-zoom, read-only.
+- ✅ Built-in EPUB reader — metadata, spine order, chapter navigation, selectable text; read-only.
 - ✅ `Open with` system chooser; `Open as` to force Text/Image/Video/Audio.
 
 ### 🗜️ Archives
 
 - ✅ In-app `.zip` browsing, folder viewer, back/refresh, breadcrumbs.
 - ✅ Type badges + human-readable sizes; `Open with` via system chooser.
-- ✅ "Extract here" workflow.
+- ✅ "Extract here" workflow for ZIP/TAR/GZ/TAR.GZ and extract-only `.7z` (RAR not supported).
 
 ### 🔁 Transfers
 
@@ -173,7 +179,7 @@ feature below works end to end on a real device over wireless ADB.
 - ✅ Share — direct device-to-device transfer on the same network (ShareIt/Xender style): pick files from Explorer, auto-discover peers over the LAN, and receive into a shared **File Explorer/Share** folder.
   - ⚠️ **Known limitation:** both phones must already be on the **same Wi-Fi** (or one phone's hotspot). Unlike ShareIt/Xender, the app does **not** yet create its own hotspot and auto-join the other device — if the two phones aren't on the same network, discovery silently finds nothing. The UI shows a "connect both phones to the same Wi-Fi" hint.
   - 🔜 **Planned (Phase 2):** Wi-Fi Direct / automatic hotspot creation (auto-tethering) so sharing works with zero prior network setup, matching the Xender/ShareIt flow. See `docs/NEARBY_SHARING_DESIGN.md` → *Risks / notes* + *Out of scope for MVP*.
-- ✅ **Open with / share target** — the app registers as a handler for `ACTION_VIEW` (images, audio, video, text, PDF, archives, APKs) and `ACTION_SEND` / `SEND_MULTIPLE`, so it shows up in other file managers' "Open with" lists and in the system share sheet. Opening a file launches the built-in viewer (media/text/archive) instead of a 3rd-party app.
+- ✅ **Open with / share target** — the app registers as a handler for `ACTION_VIEW` (images, audio, video, text, PDF, EPUB, archives, APKs) and `ACTION_SEND` / `SEND_MULTIPLE`, so it shows up in other file managers' "Open with" lists and in the system share sheet. Opening a file launches the built-in viewer (media/text/PDF/EPUB/archive) instead of a 3rd-party app.
 
 ---
 

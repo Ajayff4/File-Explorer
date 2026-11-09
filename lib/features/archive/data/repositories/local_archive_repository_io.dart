@@ -88,6 +88,10 @@ class LocalArchiveRepository implements ArchiveRepository {
           'Unsupported archive format',
           archivePath,
         ),
+      ArchiveFormat.sevenZip => throw FileSystemException(
+          '7z archives are extract-only',
+          archivePath,
+        ),
     };
   }
 

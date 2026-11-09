@@ -7,6 +7,7 @@ import 'package:file_explorer/features/recycle_bin/data/recycle_bin_repository.d
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
 import 'package:file_explorer/features/transfers/domain/repositories/transfer_executor.dart';
 import 'package:file_explorer/shared/archive/archive_format.dart';
+import 'package:koni_archive/io.dart' as koni;
 import 'package:path/path.dart' as p;
 
 class LocalTransferExecutor implements TransferExecutor {
@@ -138,7 +139,8 @@ class LocalTransferExecutor implements TransferExecutor {
           throw StateError('Compression is handled before source iteration');
         case TransferOperation.encrypt:
         case TransferOperation.decrypt:
-          throw StateError('Encryption/decryption handled before source iteration');
+          throw StateError(
+              'Encryption/decryption handled before source iteration');
       }
     }
   }
@@ -403,6 +405,76 @@ class LocalTransferExecutor implements TransferExecutor {
         }
 
         await _gunzipFile(sourcePath, destinationPath);
+      case ArchiveFormat.sevenZip:
+        await _extractSevenZip(
+          sourcePath,
+          destinationRoot,
+          task: task,
+        );
+    }
+  }
+
+  Future<void> _extractSevenZip(
+    String sourcePath,
+    String destinationRoot, {
+    required TransferTask task,
+  }) async {
+    koni.Archive? archive;
+    try {
+      archive = await koni.openArchiveFile(
+        sourcePath,
+        options: koni.ArchiveReadOptions(password: task.archivePassword),
+      );
+      await Directory(destinationRoot).create(recursive: true);
+      for (final entry in archive.entries) {
+        final relativePath = _safeArchivePath(entry.path);
+        if (relativePath == null || relativePath.isEmpty) {
+          continue;
+        }
+        final outputPath = p.join(destinationRoot, relativePath);
+        if (entry.isDirectory) {
+          await Directory(outputPath).create(recursive: true);
+          continue;
+        }
+        if (entry.type != koni.ArchiveEntryType.file) {
+          continue;
+        }
+        final targetPath =
+            await _resolveDestinationPath(outputPath, task: task);
+        if (targetPath == null) {
+          continue;
+        }
+        await Directory(p.dirname(targetPath)).create(recursive: true);
+        final sink = File(targetPath).openWrite();
+        try {
+          await for (final chunk in archive.openRead(entry)) {
+            sink.add(chunk);
+          }
+        } finally {
+          await sink.close();
+        }
+      }
+    } on koni.InvalidPasswordException {
+      throw TransferExecutionException(
+        code: TransferFailureCode.unknown,
+        message: 'Incorrect 7z archive password.',
+        path: sourcePath,
+      );
+    } on koni.EncryptedArchiveException {
+      throw TransferExecutionException(
+        code: TransferFailureCode.unknown,
+        message:
+            'This 7z archive is encrypted. Enter the archive password to extract it.',
+        path: sourcePath,
+      );
+    } on koni.ArchiveException catch (error) {
+      throw TransferExecutionException(
+        code: TransferFailureCode.unknown,
+        message: 'Could not extract 7z: ${error.message}',
+        path: sourcePath,
+      );
+    } finally {
+      await archive?.close();
     }
   }
 
@@ -428,7 +500,7 @@ class LocalTransferExecutor implements TransferExecutor {
           tarPath,
           (input, output) => XZDecoder().decodeStream(input, output),
         );
-      case ArchiveFormat.zip || ArchiveFormat.gzip:
+      case ArchiveFormat.zip || ArchiveFormat.gzip || ArchiveFormat.sevenZip:
         throw FileSystemException('Not a tar archive', sourcePath);
     }
   }

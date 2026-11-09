@@ -24,6 +24,8 @@ import 'package:file_explorer/features/explorer/presentation/explorer_view_mode.
 import 'package:file_explorer/features/transfers/presentation/controllers/transfer_controller.dart';
 import 'package:file_explorer/features/transfers/presentation/transfer_manager_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_file_preview_screen.dart';
+import 'package:file_explorer/features/documents/presentation/epub_viewer_screen.dart';
+import 'package:file_explorer/features/documents/presentation/pdf_viewer_screen.dart';
 import 'package:file_explorer/features/archive/presentation/archive_viewer_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/download_browse_screen.dart';
 import 'package:file_explorer/features/downloader/presentation/downloader_screen.dart';
@@ -60,181 +62,198 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
 List<RouteBase> buildAppRoutes() {
   return [
-      ShellRoute(
-        builder: (context, state, child) {
-          return AppShell(location: state.uri.path, child: child);
-        },
-        routes: [
-          GoRoute(
-            path: AppRoutes.home,
-            builder: (context, state) => const HomeScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.coreFeatures,
-            builder: (context, state) => const CoreFeaturesScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.explorer,
-            builder: (context, state) => const ExplorerScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.search,
-            builder: (context, state) => const SearchScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.mediaLibrary,
-            builder: (context, state) => MediaLibraryScreen(
-              kind: MediaLibraryKind.fromRouteSegment(
-                state.pathParameters['kind'],
-              ),
-            ),
-          ),
-          GoRoute(
-            path: AppRoutes.mediaFolder,
-            builder: (context, state) {
-              final extra = state.extra;
-              final kind = MediaLibraryKind.fromRouteSegment(
-                state.pathParameters['kind'],
-              );
-              final folderPath = extra is String ? extra : '/';
-              return MediaFolderScreen(
-                folderPath: folderPath,
-                kind: kind,
-              );
-            },
-          ),
-          GoRoute(
-            path: AppRoutes.transfers,
-            builder: (context, state) => const TransferManagerScreen(),
-          ),
-          if (enableDownloader)
-            GoRoute(
-              path: '/downloader',
-              builder: (context, state) => const DownloaderScreen(),
-            ),
-          GoRoute(
-            path: AppRoutes.analyzer,
-            builder: (context, state) {
-              final extra = state.extra;
-              final rootPath =
-                  extra is String && extra.isNotEmpty ? extra : '/';
-              return StorageAnalyzerScreen(rootPath: rootPath);
-            },
-          ),
-          GoRoute(
-            path: AppRoutes.recycleBin,
-            builder: (context, state) {
-              final extra = state.extra;
-              final rootPath =
-                  extra is String && extra.isNotEmpty ? extra : '/';
-              return RecycleBinScreen(rootPath: rootPath);
-            },
-          ),
-          GoRoute(
-            path: AppRoutes.encryptor,
-            builder: (context, state) => const EncryptorScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.qrScanner,
-            builder: (context, state) => const QrScannerScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.settings,
-            builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.nearbyShare,
-            builder: (context, state) {
-              final extra = state.extra;
-              final paths = extra is List<String> ? extra : const <String>[];
-              return NearbyShareScreen(initialPaths: paths);
-            },
-          ),
-          GoRoute(
-            path: AppRoutes.ftp,
-            builder: (context, state) => const FtpScreen(),
-          ),
-          GoRoute(
-            path: AppRoutes.ftpBrowser,
-            builder: (context, state) {
-              final extra = state.extra;
-              final id = state.pathParameters['id'];
-              if (extra is FtpConnection &&
-                  (id == null || extra.id == id)) {
-                return FtpBrowserScreen(
-                  connectionId: extra.id,
-                  initialConnection: extra,
-                );
-              }
-              if (id != null) {
-                return FtpBrowserScreen(connectionId: id);
-              }
-              return const FtpScreen();
-            },
-          ),
-        ],
-      ),
-      GoRoute(
-        path: AppRoutes.mediaViewer,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is FileSystemEntry) {
-            return MediaViewerScreen(entry: extra);
-          }
-          if (extra is MediaViewerSession) {
-            return MediaViewerScreen(session: extra);
-          }
-          return const MissingMediaViewerScreen();
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.textViewer,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is FileSystemEntry) {
-            return TextFileViewerScreen(entry: extra);
-          }
-          return const MissingMediaViewerScreen();
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.archiveViewer,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is FileSystemEntry) {
-            return ArchiveViewerScreen(
-              archivePath: extra.path,
-              archiveName: extra.name,
-            );
-          }
-          return const MissingMediaViewerScreen();
-        },
-      ),
-      GoRoute(
-        path: AppRoutes.archiveFilePreview,
-        builder: (context, state) {
-          final extra = state.extra;
-          if (extra is ArchiveFilePreviewSession) {
-            return ArchiveFilePreviewScreen(
-              archivePath: extra.archivePath,
-              entry: extra.entry,
-            );
-          }
-          return const MissingMediaViewerScreen();
-        },
-      ),
-      if (enableDownloader)
+    ShellRoute(
+      builder: (context, state, child) {
+        return AppShell(location: state.uri.path, child: child);
+      },
+      routes: [
         GoRoute(
-          path: '/downloader/browse',
+          path: AppRoutes.home,
+          builder: (context, state) => const HomeScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.coreFeatures,
+          builder: (context, state) => const CoreFeaturesScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.explorer,
+          builder: (context, state) => const ExplorerScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.search,
+          builder: (context, state) => const SearchScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.mediaLibrary,
+          builder: (context, state) => MediaLibraryScreen(
+            kind: MediaLibraryKind.fromRouteSegment(
+              state.pathParameters['kind'],
+            ),
+          ),
+        ),
+        GoRoute(
+          path: AppRoutes.mediaFolder,
           builder: (context, state) {
             final extra = state.extra;
-            if (extra is String && extra.isNotEmpty) {
-              return DownloadBrowseScreen(startPath: extra);
-            }
-            return const DownloaderScreen();
+            final kind = MediaLibraryKind.fromRouteSegment(
+              state.pathParameters['kind'],
+            );
+            final folderPath = extra is String ? extra : '/';
+            return MediaFolderScreen(
+              folderPath: folderPath,
+              kind: kind,
+            );
           },
         ),
-    ];
+        GoRoute(
+          path: AppRoutes.transfers,
+          builder: (context, state) => const TransferManagerScreen(),
+        ),
+        if (enableDownloader)
+          GoRoute(
+            path: '/downloader',
+            builder: (context, state) => const DownloaderScreen(),
+          ),
+        GoRoute(
+          path: AppRoutes.analyzer,
+          builder: (context, state) {
+            final extra = state.extra;
+            final rootPath = extra is String && extra.isNotEmpty ? extra : '/';
+            return StorageAnalyzerScreen(rootPath: rootPath);
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.recycleBin,
+          builder: (context, state) {
+            final extra = state.extra;
+            final rootPath = extra is String && extra.isNotEmpty ? extra : '/';
+            return RecycleBinScreen(rootPath: rootPath);
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.encryptor,
+          builder: (context, state) => const EncryptorScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.qrScanner,
+          builder: (context, state) => const QrScannerScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.settings,
+          builder: (context, state) => const SettingsScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.nearbyShare,
+          builder: (context, state) {
+            final extra = state.extra;
+            final paths = extra is List<String> ? extra : const <String>[];
+            return NearbyShareScreen(initialPaths: paths);
+          },
+        ),
+        GoRoute(
+          path: AppRoutes.ftp,
+          builder: (context, state) => const FtpScreen(),
+        ),
+        GoRoute(
+          path: AppRoutes.ftpBrowser,
+          builder: (context, state) {
+            final extra = state.extra;
+            final id = state.pathParameters['id'];
+            if (extra is FtpConnection && (id == null || extra.id == id)) {
+              return FtpBrowserScreen(
+                connectionId: extra.id,
+                initialConnection: extra,
+              );
+            }
+            if (id != null) {
+              return FtpBrowserScreen(connectionId: id);
+            }
+            return const FtpScreen();
+          },
+        ),
+      ],
+    ),
+    GoRoute(
+      path: AppRoutes.mediaViewer,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FileSystemEntry) {
+          return MediaViewerScreen(entry: extra);
+        }
+        if (extra is MediaViewerSession) {
+          return MediaViewerScreen(session: extra);
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.textViewer,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FileSystemEntry) {
+          return TextFileViewerScreen(entry: extra);
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.pdfViewer,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FileSystemEntry) {
+          return PdfViewerScreen(entry: extra);
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.epubViewer,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FileSystemEntry) {
+          return EpubViewerScreen(entry: extra);
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.archiveViewer,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is FileSystemEntry) {
+          return ArchiveViewerScreen(
+            archivePath: extra.path,
+            archiveName: extra.name,
+          );
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    GoRoute(
+      path: AppRoutes.archiveFilePreview,
+      builder: (context, state) {
+        final extra = state.extra;
+        if (extra is ArchiveFilePreviewSession) {
+          return ArchiveFilePreviewScreen(
+            archivePath: extra.archivePath,
+            entry: extra.entry,
+          );
+        }
+        return const MissingMediaViewerScreen();
+      },
+    ),
+    if (enableDownloader)
+      GoRoute(
+        path: '/downloader/browse',
+        builder: (context, state) {
+          final extra = state.extra;
+          if (extra is String && extra.isNotEmpty) {
+            return DownloadBrowseScreen(startPath: extra);
+          }
+          return const DownloaderScreen();
+        },
+      ),
+  ];
 }
 
 class AppRoutes {
@@ -248,6 +267,8 @@ class AppRoutes {
   static const mediaFolder = '/media/:kind/folder';
   static const mediaViewer = '/preview';
   static const textViewer = '/text-preview';
+  static const pdfViewer = '/pdf-viewer';
+  static const epubViewer = '/epub-viewer';
   static const archiveViewer = '/zip-viewer';
   static const archiveFilePreview = '/zip-preview';
   static const transfers = '/transfers';
@@ -307,81 +328,81 @@ class AppShell extends ConsumerWidget {
               NavigationRail(
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (index) => _go(context, ref, index),
-              extended: width >= 1120,
-              leading: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Icon(
-                  Icons.folder_copy_rounded,
-                  color: Theme.of(context).colorScheme.primary,
+                extended: width >= 1120,
+                leading: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  child: Icon(
+                    Icons.folder_copy_rounded,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
                 ),
+                destinations: [
+                  NavigationRailDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 0,
+                      child: const Icon(Icons.dashboard_outlined),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.dashboard_rounded),
+                    ),
+                    label: Text('Home'),
+                  ),
+                  NavigationRailDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 1,
+                      child: const Icon(Icons.folder_outlined),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.folder_rounded),
+                    ),
+                    label: Text('Files'),
+                  ),
+                  NavigationRailDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 2,
+                      child: _TransferTabIcon(
+                        count: activeTransferCount,
+                        icon: const Icon(Icons.sync_alt_outlined),
+                      ),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: _TransferTabIcon(
+                        count: activeTransferCount,
+                        icon: const Icon(Icons.sync_alt_rounded),
+                      ),
+                    ),
+                    label: const Text('Transfers'),
+                  ),
+                  NavigationRailDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 3,
+                      child: const Icon(Icons.tune_outlined),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.tune_rounded),
+                    ),
+                    label: Text('Settings'),
+                  ),
+                  NavigationRailDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 4,
+                      child: const Icon(Icons.window_rounded),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.window_rounded),
+                    ),
+                    label: Text('Windows'),
+                  ),
+                ],
               ),
-              destinations: [
-                NavigationRailDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 0,
-                    child: const Icon(Icons.dashboard_outlined),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.dashboard_rounded),
-                  ),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 1,
-                    child: const Icon(Icons.folder_outlined),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.folder_rounded),
-                  ),
-                  label: Text('Files'),
-                ),
-                NavigationRailDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 2,
-                    child: _TransferTabIcon(
-                      count: activeTransferCount,
-                      icon: const Icon(Icons.sync_alt_outlined),
-                    ),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: _TransferTabIcon(
-                      count: activeTransferCount,
-                      icon: const Icon(Icons.sync_alt_rounded),
-                    ),
-                  ),
-                  label: const Text('Transfers'),
-                ),
-                NavigationRailDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 3,
-                    child: const Icon(Icons.tune_outlined),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.tune_rounded),
-                  ),
-                  label: Text('Settings'),
-                ),
-                NavigationRailDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 4,
-                    child: const Icon(Icons.window_rounded),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.window_rounded),
-                  ),
-                  label: Text('Windows'),
-                ),
-              ],
-            ),
-            const VerticalDivider(width: 1),
-            Expanded(child: child),
-          ],
+              const VerticalDivider(width: 1),
+              Expanded(child: child),
+            ],
           ),
         ),
       );
@@ -402,71 +423,71 @@ class AppShell extends ConsumerWidget {
             : NavigationBar(
                 selectedIndex: selectedIndex,
                 onDestinationSelected: (index) => _go(context, ref, index),
-              destinations: [
-                NavigationDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 0,
-                    child: const Icon(Icons.dashboard_outlined),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.dashboard_rounded),
-                  ),
-                  label: 'Home',
-                ),
-                NavigationDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 1,
-                    child: const Icon(Icons.folder_outlined),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.folder_rounded),
-                  ),
-                  label: 'Files',
-                ),
-                NavigationDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 2,
-                    child: _TransferTabIcon(
-                      count: activeTransferCount,
-                      icon: const Icon(Icons.sync_alt_outlined),
+                destinations: [
+                  NavigationDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 0,
+                      child: const Icon(Icons.dashboard_outlined),
                     ),
-                  ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: _TransferTabIcon(
-                      count: activeTransferCount,
-                      icon: const Icon(Icons.sync_alt_rounded),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.dashboard_rounded),
                     ),
+                    label: 'Home',
                   ),
-                  label: 'Transfers',
-                ),
-                NavigationDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 3,
-                    child: const Icon(Icons.tune_outlined),
+                  NavigationDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 1,
+                      child: const Icon(Icons.folder_outlined),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.folder_rounded),
+                    ),
+                    label: 'Files',
                   ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.tune_rounded),
+                  NavigationDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 2,
+                      child: _TransferTabIcon(
+                        count: activeTransferCount,
+                        icon: const Icon(Icons.sync_alt_outlined),
+                      ),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: _TransferTabIcon(
+                        count: activeTransferCount,
+                        icon: const Icon(Icons.sync_alt_rounded),
+                      ),
+                    ),
+                    label: 'Transfers',
                   ),
-                  label: 'Settings',
-                ),
-                NavigationDestination(
-                  icon: _NavPill(
-                    selected: selectedIndex == 4,
-                    child: const Icon(Icons.window_rounded),
+                  NavigationDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 3,
+                      child: const Icon(Icons.tune_outlined),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.tune_rounded),
+                    ),
+                    label: 'Settings',
                   ),
-                  selectedIcon: _NavPill(
-                    selected: true,
-                    child: const Icon(Icons.window_rounded),
+                  NavigationDestination(
+                    icon: _NavPill(
+                      selected: selectedIndex == 4,
+                      child: const Icon(Icons.window_rounded),
+                    ),
+                    selectedIcon: _NavPill(
+                      selected: true,
+                      child: const Icon(Icons.window_rounded),
+                    ),
+                    label: 'Windows',
                   ),
-                  label: 'Windows',
-                ),
-              ],
-            ),
-        ),
+                ],
+              ),
+      ),
     );
   }
 
@@ -481,6 +502,12 @@ class AppShell extends ConsumerWidget {
       return 1;
     }
     if (location.startsWith(AppRoutes.textViewer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.pdfViewer)) {
+      return 1;
+    }
+    if (location.startsWith(AppRoutes.epubViewer)) {
       return 1;
     }
     if (location.startsWith(AppRoutes.archiveViewer)) {
@@ -527,7 +554,8 @@ class AppShell extends ConsumerWidget {
   Widget _withWindowControls(Widget child) => child;
 }
 
-class _TransferTabIcon extends StatelessWidget {  const _TransferTabIcon({
+class _TransferTabIcon extends StatelessWidget {
+  const _TransferTabIcon({
     required this.count,
     required this.icon,
   });

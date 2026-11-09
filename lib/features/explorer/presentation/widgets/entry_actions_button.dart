@@ -1,11 +1,13 @@
 import 'dart:io';
 
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/documents/domain/document_format.dart';
 import 'package:file_explorer/features/encryption/data/encryption_service.dart';
 import 'package:file_explorer/features/encryption/presentation/encryption_actions.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_checksum_sheet.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/shortcut_actions.dart';
 import 'package:file_explorer/features/media/presentation/local_media_actions.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:file_explorer/features/media/presentation/text_file_viewer_screen.dart';
@@ -249,6 +251,22 @@ void openFileForPreview({
         entry: entry,
         entries: playlist.isEmpty ? [entry] : playlist,
       ),
+    );
+    return;
+  }
+
+  if (isPdfFile(entry.path)) {
+    context.push(
+      AppRoutes.pdfViewer,
+      extra: entry,
+    );
+    return;
+  }
+
+  if (isEpubFile(entry.path)) {
+    context.push(
+      AppRoutes.epubViewer,
+      extra: entry,
     );
     return;
   }
@@ -542,8 +560,9 @@ class _EntryActionsSheet extends ConsumerWidget {
                 title: const Text('Extract here'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  if (_isZipArchive(entry)) {
-                    _extractZipEntry(parentContext, transferController, entry);
+                  if (_supportsArchivePassword(entry)) {
+                    _extractArchiveEntry(
+                        parentContext, transferController, entry);
                   } else {
                     _queueEntryOperation(
                       parentContext,
@@ -592,6 +611,21 @@ class _EntryActionsSheet extends ConsumerWidget {
               );
             },
           ),
+          if (isSingleSelection)
+            ListTile(
+              leading: const Icon(Icons.push_pin_rounded),
+              title: const Text('Pin to home screen'),
+              onTap: () {
+                Navigator.of(context).pop();
+                pinShortcutToHomeScreen(
+                  parentContext,
+                  ref,
+                  path: entry.path,
+                  isFolder: entry.isFolder,
+                  label: entry.name,
+                );
+              },
+            ),
           if (!entry.isFolder)
             ListTile(
               leading: const Icon(Icons.fingerprint_rounded),
@@ -703,12 +737,13 @@ bool _isExtractableArchive(FileSystemEntry entry) {
   return archiveFormatForPath(entry.path) != null;
 }
 
-bool _isZipArchive(FileSystemEntry entry) {
-  return !entry.isFolder &&
-      archiveFormatForPath(entry.path) == ArchiveFormat.zip;
+bool _supportsArchivePassword(FileSystemEntry entry) {
+  if (entry.isFolder) return false;
+  final format = archiveFormatForPath(entry.path);
+  return format == ArchiveFormat.zip || format == ArchiveFormat.sevenZip;
 }
 
-Future<void> _extractZipEntry(
+Future<void> _extractArchiveEntry(
   BuildContext context,
   TransferController transferController,
   FileSystemEntry entry,
@@ -1136,7 +1171,7 @@ class _ArchivePasswordDialogState extends State<_ArchivePasswordDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('ZIP password'),
+      title: const Text('Archive password'),
       content: TextField(
         controller: _controller,
         autofocus: true,
@@ -1144,7 +1179,7 @@ class _ArchivePasswordDialogState extends State<_ArchivePasswordDialog> {
         decoration: InputDecoration(
           labelText: 'Password',
           helperText: widget.optional
-              ? 'Leave blank for ZIP files without a password'
+              ? 'Leave blank for archives without a password'
               : null,
         ),
         textInputAction: TextInputAction.done,

@@ -62,4 +62,24 @@ void main() {
       AppThemeAccent.royalBlue,
     );
   });
+
+  test('updates, persists, and clears the home folder', () async {
+    const homePath = '/storage/emulated/0/Download';
+    final store = InMemorySettingsStore();
+    final controller = SettingsController(store);
+
+    await controller.setHomeFolder(homePath);
+
+    expect(controller.state.settings.homeFolderPath, homePath);
+    var reloadedController = SettingsController(store);
+    await reloadedController.loadSettings();
+    expect(reloadedController.state.settings.homeFolderPath, homePath);
+
+    await controller.setHomeFolder(null);
+
+    expect(controller.state.settings.homeFolderPath, isNull);
+    reloadedController = SettingsController(store);
+    await reloadedController.loadSettings();
+    expect(reloadedController.state.settings.homeFolderPath, isNull);
+  });
 }

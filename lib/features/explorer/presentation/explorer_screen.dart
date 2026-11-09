@@ -5,10 +5,13 @@ import 'package:file_explorer/features/explorer/domain/repositories/storage_repo
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_filters.dart';
 import 'package:file_explorer/features/explorer/presentation/entry_sorting.dart';
+import 'package:file_explorer/features/explorer/presentation/explorer_ordered_entries.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/explorer_drag_and_drop.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/file_entry_visuals.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/selection_range_menu.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/shortcut_actions.dart';
 import 'package:file_explorer/features/favorites/presentation/controllers/favorites_controller.dart';
 import 'package:file_explorer/features/media/data/platform/media_store_platform.dart';
-import 'package:file_explorer/features/media/data/platform/media_store_search_results.dart';
 import 'package:file_explorer/features/media/data/repositories/media_library_repository_provider.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
@@ -37,6 +40,8 @@ final explorerFilterTypeProvider = StateProvider<FileSystemEntryType?>((ref) {
 enum _MoreMenuAction {
   newFolder,
   newFile,
+  pinFolder,
+  useAsHome,
   sortNameAsc,
   sortNameDesc,
   sortModifiedNew,
@@ -76,6 +81,7 @@ class ExplorerScreen extends ConsumerWidget {
     final favoritesState = ref.watch(favoritesControllerProvider);
     final settings = ref.watch(settingsControllerProvider).settings;
     final isFavorite = favoritesState.containsPath(explorerState.currentPath);
+    final isHomeFolder = settings.homeFolderPath == explorerState.currentPath;
     final awaitingDestinationTask =
         ref.watch(transferControllerProvider).awaitingDestinationTask;
     final isSelectionMode = explorerState.isSelectionMode;
@@ -117,7 +123,7 @@ class ExplorerScreen extends ConsumerWidget {
         }
         return true;
       },
-       child: Scaffold(
+      child: Scaffold(
         bottomNavigationBar: pickerMode && isSelectionMode
             ? SafeArea(
                 child: Padding(
@@ -145,7 +151,7 @@ class ExplorerScreen extends ConsumerWidget {
                 ),
               )
             : null,
-         appBar: AppBar(
+        appBar: AppBar(
           leading: isSelectionMode
               ? IconButton(
                   tooltip: 'Exit selection',
@@ -176,25 +182,52 @@ class ExplorerScreen extends ConsumerWidget {
             if (isSelectionMode) ...[
               IconButton(
                 tooltip: 'Select all',
-                onPressed: () {
-                  final entries =
-                      listing.value?.entries.map((e) => e.path).toList() ?? [];
+                onPressed: () async {
+                  final paths = await _orderedVisiblePaths(
+                    ref: ref,
+                    state: explorerState,
+                    showHiddenFiles: settings.showHiddenFiles,
+                    sortOption: sortOption,
+                    filterType: filterType,
+                  );
                   ref
                       .read(explorerControllerProvider.notifier)
-                      .selectAll(entries);
+                      .selectAll(paths);
                 },
                 icon: const Icon(Icons.select_all_rounded),
               ),
-              IconButton(
-                tooltip: 'Select range',
-                onPressed: selectedCount >= 2
+              SelectionRangeMenu(
+                onSelectBetween: selectedCount >= 2
                     ? () {
                         ref
                             .read(explorerControllerProvider.notifier)
                             .selectInterval();
                       }
                     : null,
-                icon: const Icon(Icons.linear_scale_rounded),
+                onSelectFirst: () async {
+                  final paths = await _orderedVisiblePaths(
+                    ref: ref,
+                    state: explorerState,
+                    showHiddenFiles: settings.showHiddenFiles,
+                    sortOption: sortOption,
+                    filterType: filterType,
+                  );
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectToFirst(orderedPaths: paths);
+                },
+                onSelectLast: () async {
+                  final paths = await _orderedVisiblePaths(
+                    ref: ref,
+                    state: explorerState,
+                    showHiddenFiles: settings.showHiddenFiles,
+                    sortOption: sortOption,
+                    filterType: filterType,
+                  );
+                  ref
+                      .read(explorerControllerProvider.notifier)
+                      .selectToLast(orderedPaths: paths);
+                },
               ),
               TextButton(
                 onPressed: () {
@@ -235,13 +268,17 @@ class ExplorerScreen extends ConsumerWidget {
                 ),
                 IconButton(
                   tooltip: 'Select all',
-                  onPressed: () {
-                    final entries =
-                        listing.value?.entries.map((e) => e.path).toList() ??
-                            [];
+                  onPressed: () async {
+                    final paths = await _orderedVisiblePaths(
+                      ref: ref,
+                      state: explorerState,
+                      showHiddenFiles: settings.showHiddenFiles,
+                      sortOption: sortOption,
+                      filterType: filterType,
+                    );
                     ref
                         .read(explorerControllerProvider.notifier)
-                        .selectAll(entries);
+                        .selectAll(paths);
                   },
                   icon: const Icon(Icons.select_all_rounded),
                 ),
@@ -249,7 +286,8 @@ class ExplorerScreen extends ConsumerWidget {
               if (filterType != null)
                 IconButton(
                   tooltip: 'Clear filter',
-                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  constraints:
+                      const BoxConstraints(minWidth: 36, minHeight: 36),
                   onPressed: () {
                     ref.read(explorerFilterTypeProvider.notifier).state = null;
                   },
@@ -271,9 +309,7 @@ class ExplorerScreen extends ConsumerWidget {
                       );
                 },
                 icon: Icon(
-                  isFavorite
-                      ? Icons.star_rounded
-                      : Icons.star_border_rounded,
+                  isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
                 ),
               ),
               IconButton(
@@ -305,7 +341,7 @@ class ExplorerScreen extends ConsumerWidget {
                 tooltip: 'More',
                 icon: const Icon(Icons.more_vert_rounded),
                 offset: const Offset(0, 48),
-                onSelected: (action) {
+                onSelected: (action) async {
                   switch (action) {
                     case _MoreMenuAction.newFolder:
                       _showCreateFolderDialog(
@@ -319,6 +355,41 @@ class ExplorerScreen extends ConsumerWidget {
                     case _MoreMenuAction.newFile:
                       _showNewFileMenuSheet(context, ref);
                       break;
+                    case _MoreMenuAction.pinFolder:
+                      pinShortcutToHomeScreen(
+                        context,
+                        ref,
+                        path: explorerState.currentPath,
+                        isFolder: true,
+                        label: _favoriteLabelFor(explorerState, selectedVolume),
+                      );
+                      break;
+                    case _MoreMenuAction.useAsHome:
+                      {
+                        final setAsHome = !isHomeFolder;
+                        await ref
+                            .read(settingsControllerProvider.notifier)
+                            .setHomeFolder(
+                              setAsHome ? explorerState.currentPath : null,
+                            );
+                        if (!context.mounted) break;
+                        final label = _favoriteLabelFor(
+                          explorerState,
+                          selectedVolume,
+                        );
+                        ScaffoldMessenger.of(context)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                setAsHome
+                                    ? 'Explorer now starts in $label'
+                                    : 'Home folder cleared',
+                              ),
+                            ),
+                          );
+                        break;
+                      }
                     case _MoreMenuAction.sortNameAsc:
                       ref.read(explorerSortOptionProvider.notifier).state =
                           ExplorerSortOption.nameAscending;
@@ -369,6 +440,34 @@ class ExplorerScreen extends ConsumerWidget {
                         Text('New file'),
                         Spacer(),
                         Icon(Icons.chevron_right_rounded, size: 18),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: _MoreMenuAction.pinFolder,
+                    child: Row(
+                      children: [
+                        Icon(Icons.push_pin_rounded),
+                        SizedBox(width: 12),
+                        Text('Pin to home screen'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: _MoreMenuAction.useAsHome,
+                    child: Row(
+                      children: [
+                        Icon(
+                          isHomeFolder
+                              ? Icons.home_rounded
+                              : Icons.home_outlined,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          isHomeFolder
+                              ? 'Clear home folder'
+                              : 'Set as home folder',
+                        ),
                       ],
                     ),
                   ),
@@ -689,8 +788,7 @@ class ExplorerScreen extends ConsumerWidget {
                         ref.read(explorerControllerProvider.notifier).refresh();
                       },
                     ),
-                    loading: () =>
-                        const AppLoadingIndicator(),
+                    loading: () => const AppLoadingIndicator(),
                   );
                 },
                 error: (error, stackTrace) => _DirectoryError(
@@ -721,6 +819,24 @@ String _favoriteLabelFor(ExplorerState state, StorageVolume? selectedVolume) {
     return name;
   }
   return currentPath;
+}
+
+Future<List<String>> _orderedVisiblePaths({
+  required WidgetRef ref,
+  required ExplorerState state,
+  required bool showHiddenFiles,
+  required ExplorerSortOption sortOption,
+  required FileSystemEntryType? filterType,
+}) async {
+  final entries = await orderedVisibleExplorerEntries(
+    entries: state.listing.value?.entries ?? const [],
+    showHiddenFiles: showHiddenFiles,
+    sortOption: sortOption,
+    filterType: filterType,
+    storage: ref.read(storageRepositoryProvider),
+    mediaStore: ref.read(mediaStorePlatformProvider),
+  );
+  return [for (final entry in entries) entry.path];
 }
 
 bool _taskTouchesPath(TransferTask task, String path) {
@@ -767,8 +883,8 @@ class _BreadcrumbBar extends ConsumerWidget {
     // actual volume (e.g. "0" for internal, or the SD card label).
     const hiddenPrefix = {'storage', 'emulated'};
     var start = 0;
-    while (
-        start < allSegments.length && hiddenPrefix.contains(allSegments[start])) {
+    while (start < allSegments.length &&
+        hiddenPrefix.contains(allSegments[start])) {
       start++;
     }
     final segments = allSegments.sublist(start);
@@ -799,20 +915,26 @@ class _BreadcrumbBar extends ConsumerWidget {
                         final segmentPath =
                             '/${allSegments.sublist(0, start + index + 1).join('/')}';
 
+                        final breadcrumb = _ArrowBreadcrumb(
+                          label: segment,
+                          onTap: isLast
+                              ? null
+                              : () {
+                                  ref
+                                      .read(explorerControllerProvider.notifier)
+                                      .openDirectory(segmentPath);
+                                },
+                          isLast: isLast,
+                        );
+
                         return Transform.translate(
                           offset: const Offset(-12, 0),
-                          child: _ArrowBreadcrumb(
-                            label: segment,
-                            onTap: isLast
-                                ? null
-                                : () {
-                                    ref
-                                        .read(
-                                            explorerControllerProvider.notifier)
-                                        .openDirectory(segmentPath);
-                                  },
-                            isLast: isLast,
-                          ),
+                          child: isLast
+                              ? breadcrumb
+                              : ExplorerDropTarget(
+                                  destinationPath: segmentPath,
+                                  child: breadcrumb,
+                                ),
                         );
                       }),
                   ],
@@ -1015,6 +1137,7 @@ class _EntryList extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
+    final orderedPaths = [for (final entry in entries) entry.path];
 
     return ListView.separated(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1024,7 +1147,7 @@ class _EntryList extends ConsumerWidget {
         final entry = entries[index];
         final isSelected = selectedPaths.contains(entry.path);
 
-        return FileEntryListTile(
+        final tile = FileEntryListTile(
           entry: entry,
           isSelectionMode: isSelectionMode,
           isSelected: isSelected,
@@ -1034,12 +1157,26 @@ class _EntryList extends ConsumerWidget {
                 .read(explorerControllerProvider.notifier)
                 .toggleSelection(entry.path);
           },
+          onExtendSelection: () {
+            ref
+                .read(explorerControllerProvider.notifier)
+                .selectTo(entry.path, orderedPaths: orderedPaths);
+          },
           onTap: _canOpenEntry(entry)
               ? () => _openEntry(context, ref, entry, entries)
               : null,
-          trailing: isSelectionMode
-              ? null
-              : EntryActionsButton(entry: entry),
+          trailing: isSelectionMode ? null : EntryActionsButton(entry: entry),
+        );
+
+        return ExplorerDragSource(
+          entry: entry,
+          selectedPaths: selectedPaths,
+          isSelectionMode: isSelectionMode,
+          child: ExplorerDropTarget(
+            destinationPath: entry.path,
+            enabled: entry.isFolder,
+            child: tile,
+          ),
         );
       },
     );
@@ -1066,6 +1203,7 @@ class EntryGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final explorerState = ref.watch(explorerControllerProvider);
     final selectedPaths = explorerState.selectedPaths;
+    final orderedPaths = [for (final entry in entries) entry.path];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -1089,7 +1227,7 @@ class EntryGrid extends ConsumerWidget {
             final entry = entries[index];
             final isSelected = selectedPaths.contains(entry.path);
 
-            return GridEntryTile(
+            final tile = GridEntryTile(
               entry: entry,
               isSelected: isSelected,
               isSelectionMode: isSelectionMode,
@@ -1097,6 +1235,12 @@ class EntryGrid extends ConsumerWidget {
                 ref
                     .read(explorerControllerProvider.notifier)
                     .toggleSelection(entry.path);
+              },
+              onExtendSelection: () {
+                ref.read(explorerControllerProvider.notifier).selectTo(
+                      entry.path,
+                      orderedPaths: orderedPaths,
+                    );
               },
               onOpen: onOpen != null
                   ? () => onOpen!(context, ref, entry)
@@ -1108,6 +1252,17 @@ class EntryGrid extends ConsumerWidget {
                         }
                       : () => _openEntry(context, ref, entry, entries),
               trailing: trailingBuilder?.call(context, entry),
+            );
+
+            return ExplorerDragSource(
+              entry: entry,
+              selectedPaths: selectedPaths,
+              isSelectionMode: isSelectionMode,
+              child: ExplorerDropTarget(
+                destinationPath: entry.path,
+                enabled: entry.isFolder,
+                child: tile,
+              ),
             );
           },
         );
@@ -1253,14 +1408,20 @@ class _FilteredEntryListView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<FileSystemEntry>>(
-      future: _filterEntriesByContent(),
+      future: orderedVisibleExplorerEntries(
+        entries: entries,
+        showHiddenFiles: true,
+        sortOption: sortOption,
+        filterType: filterType,
+        storage: storage,
+        mediaStore: mediaStore,
+      ),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const AppLoadingIndicator();
         }
 
-        final filteredEntries = snapshot.data ?? [];
-        final sorted = sortExplorerEntries(filteredEntries, option: sortOption);
+        final sorted = snapshot.data ?? [];
 
         if (sorted.isEmpty) {
           return _EmptyDirectory(filterType: filterType);
@@ -1271,41 +1432,6 @@ class _FilteredEntryListView extends StatelessWidget {
             : EntryGrid(entries: sorted, isSelectionMode: isSelectionMode);
       },
     );
-  }
-
-  Future<List<FileSystemEntry>> _filterEntriesByContent() async {
-    final filtered = <FileSystemEntry>[];
-
-    for (final entry in entries) {
-      if (!entry.isFolder) {
-        // Include files that match the filter type
-        if (entry.type == filterType) {
-          filtered.add(entry);
-        }
-      } else {
-        final matchingCount = await _countMatchingEntries(entry.path);
-        if (matchingCount > 0) {
-          filtered.add(entry.copyWith(childrenCount: matchingCount));
-        }
-      }
-    }
-
-    return filtered;
-  }
-
-  Future<int> _countMatchingEntries(String path) async {
-    final mediaStore = this.mediaStore;
-    final mediaType =
-        mediaStore == null ? null : mediaStoreMediaTypeFor(filterType);
-    if (mediaStore != null && mediaType != null) {
-      try {
-        return await mediaStore.countMedia(mediaType, rootPath: path);
-      } on Object {
-        // Fall through to the filesystem walk.
-      }
-    }
-    final counts = await storage.countEntriesByType(path);
-    return counts[filterType] ?? 0;
   }
 }
 

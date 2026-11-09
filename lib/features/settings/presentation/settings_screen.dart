@@ -2,6 +2,7 @@ import 'package:file_explorer/app/theme/app_theme.dart';
 import 'package:file_explorer/features/history_backup/presentation/history_backup_card.dart';
 import 'package:file_explorer/features/settings/domain/entities/app_settings.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
+import 'package:file_explorer/shared/widgets/folder_picker_sheet.dart';
 import 'package:file_explorer/app/theme/glass.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -64,6 +65,7 @@ class SettingsScreen extends ConsumerWidget {
                   value,
                 ),
               ),
+              _HomeFolderTile(path: settings.homeFolderPath),
             ],
           ),
           _SettingsSection(
@@ -292,6 +294,55 @@ class _SettingsSection extends StatelessWidget {
             children[i],
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _HomeFolderTile extends ConsumerWidget {
+  const _HomeFolderTile({required this.path});
+
+  final String? path;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final homePath = path;
+    return GlassTile(
+      child: ListTile(
+        leading: const Icon(Icons.home_rounded),
+        title: const Text('Home folder'),
+        subtitle: Text(
+          homePath ?? 'Explorer starts at the internal storage root',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (homePath != null)
+              IconButton(
+                tooltip: 'Clear home folder',
+                onPressed: () => ref
+                    .read(settingsControllerProvider.notifier)
+                    .setHomeFolder(null),
+                icon: const Icon(Icons.close_rounded),
+              ),
+            TextButton(
+              onPressed: () async {
+                final selected = await pickFolder(
+                  context,
+                  ref,
+                  currentPath: homePath ?? '',
+                );
+                if (selected == null || selected.isEmpty) return;
+                await ref
+                    .read(settingsControllerProvider.notifier)
+                    .setHomeFolder(selected);
+              },
+              child: const Text('Change'),
+            ),
+          ],
+        ),
       ),
     );
   }

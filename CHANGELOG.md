@@ -2,6 +2,60 @@
 
 Progress log for the Flutter application.
 
+## 2026-11-09
+
+### Added
+- **Range selection** (`lib/features/explorer/`): select-to-item, select
+  first/last, and shift-click extend primary selections across list and grid.
+  The controller tracks an anchor, replaces the selection for a plain
+  select-to, and unions ranges for first/last; search results and the folder
+  picker use the same helpers.
+- **Drag-and-drop** (`widgets/explorer_drag_and_drop.dart`): file tiles become
+  draggable in selection mode with folder and breadcrumb drop targets. Drops
+  queue copy/move operations through `TransferController` (Ctrl at drop copies,
+  otherwise moves) instead of mutating files directly.
+- **Home-screen shortcuts** (`data/platform/shortcut_platform.dart`,
+  native `ShortcutManager` channel): pin a file or folder from the action sheet
+  or a single-selection tile. Supports API 26+, reports
+  pinned/already-pinned/unsupported/failed, and opens the pinned entry through
+  the incoming-intent path.
+- **Set folder as Home** (`SettingKey.homeFolder`): Explorer menu toggles the
+  current folder as the persisted startup folder, with a settings row to clear
+  it. `main.dart` seeds the start path from the setting.
+- **7z extraction** (`koni_archive`, extract-only): `.7z` is recognized as an
+  archive for extraction and password prompts; browsing and creation are
+  rejected with clear messages. `.7z` was removed from incoming-intent archive
+  routing because it is not browsable. RAR was intentionally skipped for
+  licensing reasons.
+- **PDF viewer** (`features/documents/`): native `PdfRenderer` channel
+  (`getPageCount`, `renderPage`, `close`) renders pages to PNG off the UI
+  thread; the Flutter screen paginates with prev/next, pinch-zoom, device-pixel
+  scaling, and retry/error states. PDFs open from Explorer and "Open with";
+  the manifest accepts `application/pdf`.
+- **EPUB viewer** (`features/documents/`): in-app EPUB parser resolves
+  `META-INF/container.xml` → OPF → manifest/spine, caps archive/chapter sizes,
+  converts chapter XHTML into heading/paragraph/quote/code/list/image blocks,
+  and derives chapter titles. A chapter reader provides a table of contents,
+  selectable text, and previous/next navigation. EPUBs open from Explorer and
+  "Open with"; the manifest accepts `application/epub+zip`.
+
+### Changed
+- Added `koni_archive ^0.9.0`, `html ^0.15.6`, and `xml ^6.5.0` dependencies.
+- Archive password handling now covers ZIP and 7z through a shared
+  "Archive password" dialog.
+
+### Verified
+- `dart format`: clean. `flutter analyze`: clean except the pre-existing
+  info-level doc-comment lint in `lib/shared/config/storage_config.dart`.
+- New document tests: 8/8 pass (PDF channel + format detection, EPUB spine
+  order/metadata/chapter text, missing-container rejection); 7z extraction
+  tests pass. The last full suite before the final viewer slices was 248 pass,
+  2 skipped, 1 pre-existing unrelated failure (`nearby_share_screen_test`).
+- **Untested on device:** no Android device was connected. Shortcut pinning,
+  native PDF rendering, EPUB reading, drag-and-drop transfers, 7z extraction,
+  range selection, and the home-folder startup path need manual verification.
+  The full suite was not re-run after the final EPUB slice.
+
 ## 2026-11-02
 
 ### Added

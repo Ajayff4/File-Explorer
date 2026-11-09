@@ -1,6 +1,6 @@
 import 'package:path/path.dart' as p;
 
-enum ArchiveFormat { zip, tar, gzip, tarGzip, tarBzip2, tarXz }
+enum ArchiveFormat { zip, tar, gzip, tarGzip, tarBzip2, tarXz, sevenZip }
 
 ArchiveFormat? archiveFormatForPath(String path) {
   final name = p.basename(path).toLowerCase();
@@ -12,6 +12,9 @@ ArchiveFormat? archiveFormatForPath(String path) {
   }
   if (name.endsWith('.tar.xz') || name.endsWith('.txz')) {
     return ArchiveFormat.tarXz;
+  }
+  if (name.endsWith('.7z')) {
+    return ArchiveFormat.sevenZip;
   }
   if (name.endsWith('.gz')) {
     return ArchiveFormat.gzip;
@@ -26,7 +29,8 @@ ArchiveFormat? archiveFormatForPath(String path) {
 }
 
 bool isBrowsableArchive(ArchiveFormat format) {
-  return true;
+  // 7z supports extraction only; creation and browsing are out of scope.
+  return format != ArchiveFormat.sevenZip;
 }
 
 String archiveBaseName(String path) {
@@ -43,6 +47,7 @@ String archiveBaseName(String path) {
     '.gz',
     '.tar',
     '.zip',
+    '.7z',
   ];
   for (final suffix in suffixes) {
     if (lowerName.endsWith(suffix)) {
@@ -63,5 +68,6 @@ String extensionForArchiveFormat(ArchiveFormat format) {
     ArchiveFormat.tarGzip => '.tar.gz',
     ArchiveFormat.tarBzip2 => '.tar.bz2',
     ArchiveFormat.tarXz => '.tar.xz',
+    ArchiveFormat.sevenZip => '.7z',
   };
 }

@@ -4,6 +4,7 @@ import 'package:file_explorer/features/media/presentation/widgets/media_thumbnai
 import 'package:file_explorer/shared/formatters/byte_format.dart';
 import 'package:file_explorer/shared/formatters/number_format.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class FileEntryColors {
@@ -352,6 +353,7 @@ class GridEntryTile extends ConsumerWidget {
     required this.isSelectionMode,
     required this.onToggleSelection,
     required this.onOpen,
+    this.onExtendSelection,
     this.trailing,
     super.key,
   });
@@ -360,6 +362,7 @@ class GridEntryTile extends ConsumerWidget {
   final bool isSelected;
   final bool isSelectionMode;
   final VoidCallback onToggleSelection;
+  final VoidCallback? onExtendSelection;
   final VoidCallback? onOpen;
   final Widget? trailing;
 
@@ -370,67 +373,76 @@ class GridEntryTile extends ConsumerWidget {
     return GlassTile(
       selected: isSelected,
       borderRadius: 14,
-      onTap: isSelectionMode ? onToggleSelection : onOpen,
+      onTap: isSelectionMode
+          ? () {
+              if (HardwareKeyboard.instance.isShiftPressed &&
+                  onExtendSelection != null) {
+                onExtendSelection!();
+              } else {
+                onToggleSelection();
+              }
+            }
+          : onOpen,
       onLongPress: isSelectionMode ? null : onToggleSelection,
       child: Stack(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 56,
-                    child: Center(child: GridEntryVisual(entry: entry)),
-                  ),
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    height: 28,
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Text(
-                        entry.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
-                      ),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 4, 4, 4),
+            child: Column(
+              children: [
+                SizedBox(
+                  height: 56,
+                  child: Center(child: GridEntryVisual(entry: entry)),
+                ),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 28,
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: Text(
+                      entry.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurface,
+                            fontWeight: FontWeight.w600,
+                          ),
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  if (!entry.isFolder)
-                    SizedBox(
-                      height: 16,
-                      child: Text(
-                        detailForFileSystemEntry(entry),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall,
-                      ),
+                ),
+                const SizedBox(height: 2),
+                if (!entry.isFolder)
+                  SizedBox(
+                    height: 16,
+                    child: Text(
+                      detailForFileSystemEntry(entry),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall,
                     ),
-                ],
+                  ),
+              ],
+            ),
+          ),
+          if (isSelectionMode)
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Checkbox(
+                visualDensity: VisualDensity.compact,
+                value: isSelected,
+                onChanged: (_) => onToggleSelection(),
               ),
             ),
-            if (isSelectionMode)
-              Positioned(
-                top: 0,
-                left: 0,
-                child: Checkbox(
-                  visualDensity: VisualDensity.compact,
-                  value: isSelected,
-                  onChanged: (_) => onToggleSelection(),
-                ),
-              ),
-            if (trailing != null && !isSelectionMode)
-              Positioned(
-                top: 0,
-                right: 0,
-                child: trailing!,
-              ),
-          ],
-        ),
+          if (trailing != null && !isSelectionMode)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: trailing!,
+            ),
+        ],
+      ),
     );
   }
 }
@@ -464,6 +476,7 @@ class FileEntryListTile extends StatelessWidget {
     this.isSelectionMode = false,
     this.isSelected = false,
     this.onToggleSelection,
+    this.onExtendSelection,
     this.badgeCount,
     this.leading,
     this.trailing,
@@ -476,6 +489,7 @@ class FileEntryListTile extends StatelessWidget {
   final bool isSelectionMode;
   final bool isSelected;
   final VoidCallback? onToggleSelection;
+  final VoidCallback? onExtendSelection;
   final int? badgeCount;
   final Widget? leading;
   final Widget? trailing;
@@ -492,109 +506,112 @@ class FileEntryListTile extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 12),
       borderRadius: 14,
       selected: isSelected,
-      onTap: isSelectionMode ? onToggleSelection : onTap,
-      onLongPress:
-          isSelectionMode ? null : (onLongPress ?? onToggleSelection),
+      onTap: isSelectionMode
+          ? (HardwareKeyboard.instance.isShiftPressed &&
+                  onExtendSelection != null
+              ? onExtendSelection
+              : onToggleSelection)
+          : onTap,
+      onLongPress: isSelectionMode ? null : (onLongPress ?? onToggleSelection),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
+        children: [
+          if (isSelectionMode) ...[
+            SizedBox(
+              width: 24,
+              height: 24,
+              child: Checkbox(
+                visualDensity: VisualDensity.compact,
+                value: isSelected,
+                onChanged: (_) => onToggleSelection?.call(),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
+          SizedBox(
+            width: 56,
+            height: 56,
+            child: Stack(
+              clipBehavior: Clip.none,
               children: [
-                if (isSelectionMode) ...[
-                  SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: Checkbox(
-                      visualDensity: VisualDensity.compact,
-                      value: isSelected,
-                      onChanged: (_) => onToggleSelection?.call(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned.fill(
-                        child: leading != null
-                            ? Center(child: leading)
-                            : showsThumbnail
-                                ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(14),
-                                    child: MediaThumbnail(
-                                      entry: entry,
-                                      fallback: fileIconForEntry(context, entry,
-                                          size: 56),
-                                      dimension: 56,
-                                    ),
-                                  )
-                                : Center(
-                                    child: GlassIconChip(
-                                      icon:
-                                          iconForFileSystemEntry(entry),
-                                      color: kindColor,
-                                      size: 56,
-                                    ),
-                                  ),
-                      ),
-                      if (badgeCount != null)
-                        Positioned(
-                          top: -4,
-                          right: -6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 5, vertical: 1),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            constraints: const BoxConstraints(
-                                minWidth: 18, minHeight: 18),
-                            child: Text(
-                              formatCount(badgeCount!),
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: colorScheme.onPrimary,
-                                fontSize: 10,
-                                fontWeight: FontWeight.w600,
+                Positioned.fill(
+                  child: leading != null
+                      ? Center(child: leading)
+                      : showsThumbnail
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: MediaThumbnail(
+                                entry: entry,
+                                fallback:
+                                    fileIconForEntry(context, entry, size: 56),
+                                dimension: 56,
+                              ),
+                            )
+                          : Center(
+                              child: GlassIconChip(
+                                icon: iconForFileSystemEntry(entry),
+                                color: kindColor,
+                                size: 56,
                               ),
                             ),
-                          ),
+                ),
+                if (badgeCount != null)
+                  Positioned(
+                    top: -4,
+                    right: -6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      constraints:
+                          const BoxConstraints(minWidth: 18, minHeight: 18),
+                      child: Text(
+                        formatCount(badgeCount!),
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: colorScheme.onPrimary,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
                         ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        _buildSubtitle(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: colorScheme.onSurfaceVariant,
-                            ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 4),
-                  trailing!,
-                ],
               ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  _buildSubtitle(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) ...[
+            const SizedBox(width: 4),
+            trailing!,
+          ],
+        ],
       ),
     );
   }

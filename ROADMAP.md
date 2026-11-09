@@ -63,6 +63,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Archives | Folders can compress/extract with TAR.GZ. |
 | ✅ | Archives | ZIP contents can be browsed in-app without extracting (folder navigation, refresh, and "Open with" for the archive). |
 | ✅ | Archives | Files inside ZIP archives preview in-app: images, video, audio, and text. |
+| ✅ | Archives | `.7z` archives extract through Transfers, including password prompts; browsing/creation remains ZIP-only (2026-11-09, on-device untested). |
 | ✅ | Favorites | Persisted favorite folders, Home list, and Explorer star action. |
 | ✅ | Recents | Persisted recent folders/files and Home recent section setting support. |
 | ✅ | History backup | Auto-snapshots all history (transfers, downloads, QR, recents, favorites, settings) into hidden `File Explorer/.history`; restores automatically on reinstall, manual Back up now in Settings (2026-09-05). |
@@ -110,6 +111,8 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Viewers | "Open as" action lets users force-open any file as Text, Image, Video, or Audio with choice of built-in or system viewer. |
 | ✅ | Viewers | Built-in text viewer/editor with monospace font, line wrap toggle, adjustable font size, and support for 40+ text/code file extensions; edit mode saves in place with unsaved-change guard and UTF-8/Latin-1/UTF-16 LE/BE encoding + BOM preservation (2026-11-02). |
 | ✅ | Viewers | Files inside ZIP archives open in the same full image viewer / video player / audio player as regular files. |
+| ✅ | Viewers | Built-in read-only PDF viewer using native `PdfRenderer` — pagination, pinch-zoom, retry/error states (2026-11-09, on-device untested). |
+| ✅ | Viewers | Built-in read-only EPUB reader — container/OPF/spine parsing, chapter list, selectable text, previous/next navigation (2026-11-09, on-device untested). |
 | ✅ | Players | In-app video player with auto-hiding controls, landscape mode, 10-second seeking, speed, loop, shuffle, previous/next, and details. |
 | ✅ | Players | Video player double-tap to seek forward/back 10s with ripple animation. |
 | ✅ | Players | Video player mute/unmute button. |
@@ -117,6 +120,10 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Players | In-app audio player with seek, speed, volume, mute, loop, shuffle, previous/next, and details; live spectrum graph (native FFT, beat-synced fallback) + static "Audio Player" title (2026-09-05). |
 | ✅ | Explorer | Compact four-column grid tiles with purple folder icons. |
 | ✅ | Explorer | Long-press opens item actions with Select, Share, Open with, transfer actions, and Properties. |
+| ✅ | Explorer | Range selection: select-to-item, select first/last, and shift-click extension across list and grid (2026-11-09, on-device untested). |
+| ✅ | Explorer | Drag-and-drop copy/move onto folders and breadcrumbs, queued through Transfers (Ctrl at drop = copy) (2026-11-09, on-device untested). |
+| ✅ | Explorer | Set the current folder as Home/startup folder, clearable in Settings (2026-11-09, on-device untested). |
+| ✅ | Explorer | Pin files/folders to the Android home screen via `ShortcutManager`, API 26+ (2026-11-09, on-device untested). |
 | ✅ | Explorer | Storage repository, media scanning, and search traverse all nested folders without depth limits. |
 | ✅ | UI polish | Denser mobile list/card spacing and compact icon button taps. |
 | ✅ | UI polish | Grid tiles keep icons, long names, and item counts aligned. |
@@ -144,7 +151,7 @@ The app is an early but usable file-manager vertical slice.
 | ✅ | Downloader | **Cookies import** — a Netscape `cookies.txt` can be imported in the Download settings card, is stored app-private, and is passed to yt-dlp as `cookiefile`; unblocks login-walled sites such as Instagram (2026-08-30). |
 | ⚠️ | Downloader | Site support limited to what `yt-dlp` (plus the vendored Threads plugin) can resolve; login-gated sites now work with imported cookies, but DRM does not. Sites that need request impersonation (`curl_cffi`, not bundled) still fail anonymously. See `docs/DOWNLOADER.md` → Limitations. |
 | ✅ | Branding | Android launcher icons generated from the provided logo. |
-| ✅ | Share / Open-with | App registers as `ACTION_VIEW` / `ACTION_SEND` / `SEND_MULTIPLE` target (images, audio, video, text, PDF, archives, APKs); opening a file from another manager (e.g. ES File Explorer) launches the built-in viewer instead of a 3rd-party app (2026-08-28). |
+| ✅ | Share / Open-with | App registers as `ACTION_VIEW` / `ACTION_SEND` / `SEND_MULTIPLE` target (images, audio, video, text, PDF, EPUB, archives, APKs); opening a file from another manager (e.g. ES File Explorer) launches the built-in viewer instead of a 3rd-party app (2026-11-09 for EPUB). |
 
 ## Last Verified
 
@@ -171,6 +178,8 @@ flutter test
 flutter build apk --debug
 # passed after native media_store channel changes
 ```
+
+Update 2026-11-09: **Explorer power tools + document viewers** — range selection (select-to, first/last, shift-click), drag-and-drop copy/move through the transfer queue, pinned home-screen shortcuts (native `ShortcutManager` channel), and a persisted start folder ("set folder as home"). Archives gained extract-only 7z support via `koni_archive` (RAR intentionally skipped for licensing), and the built-in viewer now opens PDFs (native `PdfRenderer`, paginated + pinch-zoom) and EPUBs (in-app container/OPF/spine parser with chapter navigation). `flutter analyze`: clean except the pre-existing info lint; `dart format` clean; documents tests 8/8 pass; the last full suite before these two viewer slices was 248 pass + 2 skipped + 1 pre-existing unrelated failure (`nearby_share_screen_test`). No Android device was connected, so shortcut pinning, PDF rendering, EPUB reading, drag-and-drop, and 7z extraction still need on-device verification; the full suite was not re-run after the final EPUB slice.
 
 Update 2026-11-02: **Local power tools slice** — the text viewer is now an editor (save in place, dirty guard, UTF-8/Latin-1/UTF-16 LE/BE with BOM preservation); multi-select rename became batch rename (find/replace, prefix/suffix, numbering, preserve extension, live preview); files expose streamed MD5/SHA-1/SHA-256/SHA-512 checksums from actions and properties; and any entry can be hidden/unhidden through a dot-prefix rename. First launch now requests full storage access automatically when possible (no prompt for later windows), with the blocked state on later denial. `flutter analyze`: no new issues (1 pre-existing info lint); `flutter test`: 230 pass + 1 pre-existing unrelated failure (`nearby_share_screen_test`); standard debug APK built and installed on device (RMX3031).
 
@@ -373,7 +382,8 @@ list, checked against the current codebase and current Android/Play policy.
 
 Already at parity (not re-planned): local file operations, multi-select,
 search index, recycle bin, AES-256 encryption, storage analyzer, media
-viewers, ZIP/TAR/GZ/TAR.GZ compression and extraction, FTP/FTPS/SFTP clients,
+viewers, ZIP/TAR/GZ/TAR.GZ compression and extraction, 7z extraction,
+PDF/EPUB viewing, FTP/FTPS/SFTP clients,
 LAN Share, QR tools, Universal Downloader, multi-window, hidden-file
 filtering, and copy-path.
 
@@ -387,13 +397,15 @@ complete, tested flows — no placeholder actions.
 | ✅ | Text/code editor | Reuse the existing text viewer; add editing, save, and encoding handling (2026-11-02). |
 | ✅ | Batch rename | Prefix/suffix, find/replace, numbering, and extension change with preview (2026-11-02). |
 | ✅ | MD5/SHA checksums | Properties action + copy; stream large files instead of loading them whole (2026-11-02). |
-| ☐ | Range selection | Select first/last item; shift-like selection across list and grid. |
-| ☐ | Drag-and-drop | Move/copy within Explorer; route through the transfer queue, never mutate directly. |
-| ☐ | Home-screen shortcuts | Pin file/folder shortcuts through Android `ShortcutManager`. |
+| ✅ | Range selection | Select first/last item; shift-like selection across list and grid (2026-11-09; unit-tested, untested on device). |
+| ✅ | Drag-and-drop | Move/copy within Explorer through the transfer queue (2026-11-09; widget-tested, untested on device). |
+| ✅ | Home-screen shortcuts | Pin file/folder shortcuts through Android `ShortcutManager` (2026-11-09; channel-tested and Kotlin-compiled, untested on device). |
 | ✅ | Explicit hide files/folders | Dot-rename action alongside the existing Show hidden toggle (2026-11-02). |
-| ☐ | Set folder as Home | Persisted start folder for Explorer (ES's "set folder as home"). |
-| ☐ | RAR/7z extraction | Creation for ZIP/TAR/GZ/TAR.GZ already ships; add extraction only. 7z is free; use a permissively licensed RAR decoder and skip RAR creation (licensing). |
-| ☐ | PDF/EPUB viewer | `PdfRenderer` + EPUB reader; read-only, no editor. |
+| ✅ | Set folder as Home | Persisted start folder for Explorer (2026-11-09; controller-tested, untested on device). |
+| ✅ | 7z extraction | Extract-only via `koni_archive`; ZIP/TAR/GZ/TAR.GZ creation already ships (2026-11-09; extraction test passes, untested on device). |
+| ☐ | RAR extraction | Skipped by decision — no permissively licensed decoder bundled; RAR creation remains out of scope. |
+| ✅ | PDF viewer | Native Android `PdfRenderer`, paginated with pinch-zoom, read-only (2026-11-09; Kotlin compiles and channel tests pass, on-device rendering untested). |
+| ✅ | EPUB viewer | In-app container/OPF/spine parser and chapter reader, read-only (2026-11-09; parser tests pass, untested on device). |
 | ☐ | Video merger | Concatenate selected clips in user order. Use native track-copy muxing for compatible files in both flavors; keep FFmpeg re-encode fallback to builds that bundle the binary. |
 | ☐ | Rich file-type icons | Replace extension-letter badges with recognizable file/type artwork for documents, spreadsheets, code, archives, media, and apps; keep real thumbnails where available. |
 | ☐ | SQLite/hex viewer | Read-only; lowest priority inside P1. |

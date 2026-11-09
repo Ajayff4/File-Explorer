@@ -16,6 +16,8 @@ class DriftSettingsStore implements SettingsStore {
 
     const defaults = AppSettings();
 
+    final homeFolderValue = values[SettingKey.homeFolder.storageKey];
+
     AppThemeMode readThemeMode() {
       final raw = values[SettingKey.themeMode.storageKey];
       for (final mode in AppThemeMode.values) {
@@ -48,6 +50,9 @@ class DriftSettingsStore implements SettingsStore {
           values[SettingKey.showTransferStation.storageKey] == 'true',
       themeMode: readThemeMode(),
       themeAccent: readThemeAccent(),
+      homeFolderPath: homeFolderValue == null || homeFolderValue.isEmpty
+          ? null
+          : homeFolderValue,
     );
   }
 

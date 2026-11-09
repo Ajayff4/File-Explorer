@@ -6,11 +6,15 @@ import android.content.ContentUris
 import android.content.Intent
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
+import android.content.pm.ShortcutInfo
+import android.content.pm.ShortcutManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.BitmapDrawable
 import android.graphics.drawable.Drawable
+import android.graphics.drawable.Icon
+import android.graphics.pdf.PdfRenderer
 import android.content.ClipData
 import android.content.ContentValues
 import android.media.MediaScannerConnection
@@ -58,6 +62,15 @@ class MainActivity: FlutterActivity() {
     private val incomingChannel = "com.ajayff4.fileexplorer/incoming"
     private var incomingMethodChannel: MethodChannel? = null
     private var pendingIncomingPaths: List<String>? = null
+    private var pendingPinnedShortcut: Map<String, Any?>? = null
+    private val shortcutsChannel = "com.ajayff4.fileexplorer/shortcuts"
+    private val pdfChannel = "com.ajayff4.fileexplorer/pdf"
+    private val pdfExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    private var pdfRenderer: PdfRenderer? = null
+    private var pdfRendererPath: String? = null
+    private val EXTRA_PINNED_PATH = "com.ajayff4.fileexplorer.extra.PINNED_PATH"
+    private val EXTRA_PINNED_IS_FOLDER =
+        "com.ajayff4.fileexplorer.extra.PINNED_IS_FOLDER"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -74,8 +87,17 @@ class MainActivity: FlutterActivity() {
 
     /// Routes ACTION_VIEW / ACTION_SEND / ACTION_SEND_MULTIPLE intents to Flutter
     /// so the built-in viewers can open the file(s) instead of a 3rd-party app.
+    /// Pinned home-screen shortcuts carry a path extra and are forwarded too.
     private fun handleIntent(intent: Intent?) {
         if (intent == null) return
+        val pinnedPath = intent.getStringExtra(EXTRA_PINNED_PATH)
+        if (pinnedPath != null) {
+            forwardPinnedShortcut(
+                pinnedPath,
+                intent.getBooleanExtra(EXTRA_PINNED_IS_FOLDER, false),
+            )
+            return
+        }
         val uris = when (intent.action) {
             Intent.ACTION_VIEW -> intent.data?.let { listOf(it) } ?: emptyList()
             Intent.ACTION_SEND -> {
@@ -162,6 +184,53 @@ class MainActivity: FlutterActivity() {
         }
     }
 
+    private fun forwardPinnedShortcut(path: String, isFolder: Boolean) {
+        val payload = mapOf("path" to path, "isFolder" to isFolder)
+        if (incomingMethodChannel != null) {
+            incomingMethodChannel?.invokeMethod("onShortcut", payload)
+        } else {
+            pendingPinnedShortcut = payload
+        }
+    }
+
+    private fun isPinShortcutSupported(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return false
+        return getSystemService(ShortcutManager::class.java)
+            ?.isRequestPinShortcutSupported == true
+    }
+
+    /// Asks the launcher to pin a shortcut for [path]. Returns one of
+    /// `pinned`, `already_pinned`, `unsupported`, or `failed`.
+    private fun requestPinnedShortcut(
+        path: String,
+        label: String,
+        isFolder: Boolean,
+    ): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return "unsupported"
+        val manager = getSystemService(ShortcutManager::class.java)
+            ?: return "unsupported"
+        if (!manager.isRequestPinShortcutSupported) return "unsupported"
+
+        val id = "pinned-" + Integer.toHexString(path.hashCode())
+        if (manager.pinnedShortcuts.any { it.id == id }) return "already_pinned"
+
+        val launchIntent = Intent(this, MainActivity::class.java).apply {
+            action = Intent.ACTION_VIEW
+            putExtra(EXTRA_PINNED_PATH, path)
+            putExtra(EXTRA_PINNED_IS_FOLDER, isFolder)
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        val safeLabel = label.trim().ifEmpty { File(path).name.ifEmpty { "Shortcut" } }
+        val shortcut = ShortcutInfo.Builder(this, id)
+            .setShortLabel(safeLabel)
+            .setLongLabel(safeLabel)
+            .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIntent(launchIntent)
+            .build()
+
+        return if (manager.requestPinShortcut(shortcut, null)) "pinned" else "failed"
+    }
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -179,9 +248,96 @@ class MainActivity: FlutterActivity() {
                     result.success(pendingIncomingPaths)
                     pendingIncomingPaths = null
                 }
+                "getPendingShortcut" -> {
+                    result.success(pendingPinnedShortcut)
+                    pendingPinnedShortcut = null
+                }
                 else -> result.notImplemented()
             }
         }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, shortcutsChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isSupported" -> result.success(isPinShortcutSupported())
+                    "requestPin" -> {
+                        val path = call.argument<String>("path")
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else {
+                            result.success(
+                                requestPinnedShortcut(
+                                    path,
+                                    call.argument<String>("label") ?: "",
+                                    call.argument<Boolean>("isFolder") ?: false,
+                                ),
+                            )
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, pdfChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "getPageCount" -> {
+                        val path = call.argument<String>("path")
+                        if (path == null) {
+                            result.error("missing_path", "Path is required", null)
+                        } else {
+                            pdfExecutor.execute {
+                                try {
+                                    val count = pdfRendererFor(path).pageCount
+                                    runOnUiThread { result.success(count) }
+                                } catch (error: Exception) {
+                                    runOnUiThread {
+                                        result.error(
+                                            "pdf_error",
+                                            error.message ?: "Could not open PDF",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "renderPage" -> {
+                        val path = call.argument<String>("path")
+                        val pageIndex = call.argument<Int>("page")
+                        val width = call.argument<Int>("width")
+                        if (path == null || pageIndex == null || width == null) {
+                            result.error(
+                                "invalid_arguments",
+                                "path, page and width are required",
+                                null,
+                            )
+                        } else {
+                            pdfExecutor.execute {
+                                try {
+                                    val bytes = renderPdfPage(path, pageIndex, width)
+                                    runOnUiThread { result.success(bytes) }
+                                } catch (error: Exception) {
+                                    runOnUiThread {
+                                        result.error(
+                                            "pdf_error",
+                                            error.message ?: "Could not render PDF page",
+                                            null,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    "close" -> {
+                        pdfExecutor.execute {
+                            closePdfRenderer()
+                            runOnUiThread { result.success(null) }
+                        }
+                    }
+                    else -> result.notImplemented()
+                }
+            }
 
         // Downloader (Chaquopy/Python/yt-dlp) is wired only in the `universal`
         // flavor; the `standard` flavor compiles a no-op of this same function,
@@ -523,7 +679,61 @@ class MainActivity: FlutterActivity() {
 
     override fun onDestroy() {
         stopAudioVisualizer()
+        closePdfRenderer()
+        pdfExecutor.shutdown()
         super.onDestroy()
+    }
+
+    private fun pdfRendererFor(path: String): PdfRenderer {
+        val cached = pdfRenderer
+        if (cached != null && pdfRendererPath == path) {
+            return cached
+        }
+        closePdfRenderer()
+        val descriptor = ParcelFileDescriptor.open(
+            File(path),
+            ParcelFileDescriptor.MODE_READ_ONLY,
+        )
+        val renderer = PdfRenderer(descriptor)
+        pdfRenderer = renderer
+        pdfRendererPath = path
+        return renderer
+    }
+
+    private fun closePdfRenderer() {
+        try {
+            pdfRenderer?.close()
+        } catch (_: Exception) {
+        }
+        pdfRenderer = null
+        pdfRendererPath = null
+    }
+
+    private fun renderPdfPage(path: String, pageIndex: Int, width: Int): ByteArray {
+        val renderer = pdfRendererFor(path)
+        if (pageIndex !in 0 until renderer.pageCount) {
+            throw IllegalArgumentException("Page $pageIndex is out of range")
+        }
+        val page = renderer.openPage(pageIndex)
+        val targetWidth = width.coerceAtLeast(1)
+        val targetHeight = (targetWidth.toDouble() * page.height / page.width)
+            .toInt()
+            .coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(
+            targetWidth,
+            targetHeight,
+            Bitmap.Config.ARGB_8888,
+        )
+        try {
+            bitmap.eraseColor(android.graphics.Color.WHITE)
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            val output = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+            return output.toByteArray()
+        } finally {
+            page.close()
+            bitmap.recycle()
+        }
     }
 
     private fun startAudioVisualizer(): Boolean {

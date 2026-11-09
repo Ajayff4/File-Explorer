@@ -187,6 +187,132 @@ void main() {
       isFalse,
     );
   });
+
+  test('opens the configured home folder on launch', () async {
+    final container = _createExplorerContainer(
+      startPath: '${_MultiVolumeStorageRepository.primaryPath}/Documents',
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    final state = container.read(explorerControllerProvider);
+    expect(
+      state.currentPath,
+      '${_MultiVolumeStorageRepository.primaryPath}/Documents',
+    );
+    expect(state.listing.hasValue, isTrue);
+  });
+
+  test('falls back to the primary root when the home folder fails', () async {
+    final container = _createExplorerContainer(
+      startPath: '/missing/home-folder',
+    );
+    addTearDown(container.dispose);
+
+    await _waitForExplorerLoad(container);
+
+    final state = container.read(explorerControllerProvider);
+    expect(
+      state.currentPath,
+      _MultiVolumeStorageRepository.primaryPath,
+    );
+    expect(state.listing.hasValue, isTrue);
+  });
+
+  group('range selection', () {
+    const a = '/storage/emulated/0/a';
+    const b = '/storage/emulated/0/b';
+    const c = '/storage/emulated/0/c';
+    const d = '/storage/emulated/0/d';
+    const orderedPaths = [a, b, c, d];
+
+    late ProviderContainer container;
+    late ExplorerController controller;
+
+    setUp(() async {
+      container = _createExplorerContainer();
+      addTearDown(container.dispose);
+      await _waitForExplorerLoad(container);
+      controller = container.read(explorerControllerProvider.notifier);
+    });
+
+    ExplorerState readState() => container.read(explorerControllerProvider);
+
+    test('toggleSelection sets and clears the anchor', () {
+      controller.toggleSelection(b);
+
+      var state = readState();
+      expect(state.selectedPaths, [b]);
+      expect(state.isSelectionMode, isTrue);
+      expect(state.selectionAnchorPath, b);
+
+      controller.toggleSelection(b);
+
+      state = readState();
+      expect(state.selectedPaths, isEmpty);
+      expect(state.isSelectionMode, isFalse);
+      expect(state.selectionAnchorPath, isNull);
+    });
+
+    test('toggleSelection keeps the anchor when another entry is toggled off',
+        () {
+      controller.toggleSelection(b);
+      controller.toggleSelection(d);
+
+      expect(readState().selectionAnchorPath, d);
+
+      controller.toggleSelection(b);
+
+      final state = readState();
+      expect(state.selectedPaths, [d]);
+      expect(state.selectionAnchorPath, d);
+    });
+
+    test('selectTo extends the selection in both directions', () {
+      controller.toggleSelection(b);
+
+      controller.selectTo(d, orderedPaths: orderedPaths);
+      expect(readState().selectedPaths, [b, c, d]);
+
+      controller.selectTo(a, orderedPaths: orderedPaths);
+      final state = readState();
+      expect(state.selectedPaths, [a, b]);
+      expect(state.selectionAnchorPath, b);
+    });
+
+    test('selectTo falls back to a toggle without an anchor', () {
+      controller.selectTo(c, orderedPaths: orderedPaths);
+
+      final state = readState();
+      expect(state.selectedPaths, [c]);
+      expect(state.isSelectionMode, isTrue);
+      expect(state.selectionAnchorPath, c);
+    });
+
+    test('selectToFirst and selectToLast union ranges around the anchor', () {
+      controller.toggleSelection(c);
+
+      controller.selectToFirst(orderedPaths: orderedPaths);
+      expect(readState().selectedPaths, [a, b, c]);
+
+      controller.selectToLast(orderedPaths: orderedPaths);
+      final state = readState();
+      expect(state.selectedPaths, [a, b, c, d]);
+      expect(state.selectionAnchorPath, c);
+    });
+
+    test('selectAll and exitSelectionMode maintain the anchor', () {
+      controller.selectAll(orderedPaths);
+      expect(readState().selectedPaths, orderedPaths);
+      expect(readState().selectionAnchorPath, a);
+
+      controller.exitSelectionMode();
+      final state = readState();
+      expect(state.selectedPaths, isEmpty);
+      expect(state.selectionAnchorPath, isNull);
+    });
+  });
 }
 
 class _RecordingStoragePermissionRepository
@@ -223,6 +349,28 @@ Future<void> _waitForExplorerLoad(ProviderContainer container) async {
     await Future<void>.delayed(const Duration(milliseconds: 10));
   }
   fail('Explorer did not finish loading');
+}
+
+ProviderContainer _createExplorerContainer({String? startPath}) {
+  return ProviderContainer(
+    overrides: [
+      storageRepositoryProvider.overrideWithValue(
+        _MultiVolumeStorageRepository(),
+      ),
+      recentLocationStoreProvider.overrideWithValue(
+        InMemoryRecentLocationStore(),
+      ),
+      storagePermissionRepositoryProvider.overrideWithValue(
+        const FakeStoragePermissionRepository(
+          initialState: StoragePermissionState.fullAccess(
+            accessMode: StorageAccessMode.allFiles,
+            message: 'Full storage access is enabled',
+          ),
+        ),
+      ),
+      explorerStartPathProvider.overrideWithValue(startPath),
+    ],
+  );
 }
 
 class _MultiVolumeStorageRepository implements StorageRepository {

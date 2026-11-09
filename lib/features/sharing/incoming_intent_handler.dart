@@ -1,7 +1,10 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_explorer/app/router/app_router.dart';
+import 'package:file_explorer/features/documents/domain/document_format.dart';
 import 'package:file_explorer/features/explorer/domain/entities/file_system_entry.dart';
+import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/media/presentation/media_viewer_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -41,12 +44,15 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
     // Pull any file(s) that arrived before this handler was registered (e.g. a
     // cold-start "Open with" intent queued on the native side). Live intents
     // arriving while the app is already running are pushed via `onFiles`.
-    _incomingChannel
-        .invokeMethod<List<dynamic>?>('getPending')
-        .then((value) {
+    _incomingChannel.invokeMethod<List<dynamic>?>('getPending').then((value) {
       final paths = value?.whereType<String>().toList();
       if (paths != null && paths.isNotEmpty) _openPaths(paths);
     });
+    // A home-screen shortcut may have launched the app before this handler was
+    // registered; the native side queues it for us to pull once ready.
+    _incomingChannel
+        .invokeMethod<Map<dynamic, dynamic>?>('getPendingShortcut')
+        .then(_openShortcutArgs);
   }
 
   @override
@@ -59,6 +65,10 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
   Widget build(BuildContext context) => widget.child;
 
   Future<dynamic> _handle(MethodCall call) async {
+    if (call.method == 'onShortcut') {
+      _openShortcutArgs(call.arguments);
+      return;
+    }
     if (call.method != 'onFiles') return;
     final paths = <String>[];
     if (call.arguments is List) {
@@ -69,7 +79,65 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
     if (paths.isNotEmpty) _openPaths(paths);
   }
 
-  void _openPaths(List<String> paths) {
+  void _openShortcutArgs(Object? arguments) {
+    if (arguments is! Map) return;
+    final path = arguments['path'];
+    if (path is! String || path.isEmpty) return;
+    _openShortcut(path, isFolder: arguments['isFolder'] == true);
+  }
+
+  void _openShortcut(String path, {required bool isFolder}) {
+    final router = widget.router;
+    final scaffoldContext = router.routerDelegate.navigatorKey.currentContext;
+
+    var isDirectory = false;
+    var exists = false;
+    try {
+      isDirectory = Directory(path).existsSync();
+      exists = isDirectory || File(path).existsSync();
+    } on FileSystemException {
+      // Unreadable targets are reported below instead of crashing.
+    }
+
+    if (!exists) {
+      if (scaffoldContext != null) {
+        ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+          SnackBar(
+            content:
+                Text('Shortcut target no longer exists: ${p.basename(path)}'),
+          ),
+        );
+      }
+      return;
+    }
+
+    if (isFolder || isDirectory) {
+      unawaited(
+        ref.read(explorerControllerProvider.notifier).openDirectory(path),
+      );
+      router.go(AppRoutes.explorer);
+      return;
+    }
+
+    if (_openPaths([path], showUnhandledMessage: false)) return;
+
+    final parent = p.dirname(path);
+    if (Directory(parent).existsSync()) {
+      unawaited(
+        ref.read(explorerControllerProvider.notifier).openDirectory(parent),
+      );
+      router.go(AppRoutes.explorer);
+      if (scaffoldContext != null) {
+        ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+          SnackBar(
+            content: Text('Opened folder containing ${p.basename(path)}'),
+          ),
+        );
+      }
+    }
+  }
+
+  bool _openPaths(List<String> paths, {bool showUnhandledMessage = true}) {
     final router = widget.router;
     final scaffoldContext = router.routerDelegate.navigatorKey.currentContext;
 
@@ -83,23 +151,36 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
           AppRoutes.mediaViewer,
           extra: MediaViewerSession(entry: entry, entries: [entry]),
         );
-        return;
+        return true;
+      }
+      if (isPdfFile(path)) {
+        router.push(AppRoutes.pdfViewer,
+            extra: _entryFor(path, FileSystemEntryType.document));
+        return true;
+      }
+      if (isEpubFile(path)) {
+        router.push(AppRoutes.epubViewer,
+            extra: _entryFor(path, FileSystemEntryType.document));
+        return true;
       }
       if (_isText(path)) {
-        router.push(AppRoutes.textViewer, extra: _entryFor(path, FileSystemEntryType.document));
-        return;
+        router.push(AppRoutes.textViewer,
+            extra: _entryFor(path, FileSystemEntryType.document));
+        return true;
       }
       if (_isArchive(path)) {
-        router.push(AppRoutes.archiveViewer, extra: _entryFor(path, FileSystemEntryType.archive));
-        return;
+        router.push(AppRoutes.archiveViewer,
+            extra: _entryFor(path, FileSystemEntryType.archive));
+        return true;
       }
     }
 
-    if (scaffoldContext != null) {
+    if (showUnhandledMessage && scaffoldContext != null) {
       ScaffoldMessenger.of(scaffoldContext).showSnackBar(
         SnackBar(content: Text('Received ${paths.length} file(s)')),
       );
     }
+    return false;
   }
 
   FileSystemEntry _entryFor(String path, FileSystemEntryType type) {
@@ -158,9 +239,36 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
 
   bool _isText(String path) {
     const text = {
-      'txt', 'text', 'log', 'md', 'markdown', 'html', 'htm', 'css', 'js', 'json',
-      'xml', 'yaml', 'yml', 'toml', 'ini', 'cfg', 'conf', 'sh', 'py', 'dart',
-      'java', 'kt', 'c', 'cpp', 'h', 'cs', 'go', 'rs', 'swift', 'sql',
+      'txt',
+      'text',
+      'log',
+      'md',
+      'markdown',
+      'html',
+      'htm',
+      'css',
+      'js',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'toml',
+      'ini',
+      'cfg',
+      'conf',
+      'sh',
+      'py',
+      'dart',
+      'java',
+      'kt',
+      'c',
+      'cpp',
+      'h',
+      'cs',
+      'go',
+      'rs',
+      'swift',
+      'sql',
     };
     final ext = p.extension(path).toLowerCase().replaceAll('.', '');
     return text.contains(ext);
@@ -168,7 +276,14 @@ class _IncomingIntentHandlerState extends ConsumerState<IncomingIntentHandler> {
 
   bool _isArchive(String path) {
     const archives = {
-      '.zip', '.rar', '.7z', '.tar', '.gz', '.tgz', '.bz2', '.xz', '.zst',
+      '.zip',
+      '.rar',
+      '.tar',
+      '.gz',
+      '.tgz',
+      '.bz2',
+      '.xz',
+      '.zst',
     };
     return archives.contains(p.extension(path).toLowerCase());
   }

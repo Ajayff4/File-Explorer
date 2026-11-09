@@ -8,6 +8,7 @@ import 'package:file_explorer/features/explorer/domain/entities/file_system_entr
 import 'package:file_explorer/features/explorer/presentation/controllers/explorer_controller.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/batch_rename_dialog.dart';
 import 'package:file_explorer/features/explorer/presentation/widgets/entry_actions_button.dart';
+import 'package:file_explorer/features/explorer/presentation/widgets/shortcut_actions.dart';
 import 'package:file_explorer/features/search/presentation/controllers/file_search_controller.dart';
 import 'package:file_explorer/features/settings/presentation/controllers/settings_controller.dart';
 import 'package:file_explorer/features/transfers/domain/entities/transfer_task.dart';
@@ -387,6 +388,24 @@ void _showMoreOptions(
                 }
               },
             ),
+            if (selectedPaths.length == 1)
+              ListTile(
+                leading: const Icon(Icons.push_pin_rounded),
+                title: const Text('Pin to home screen'),
+                onTap: () async {
+                  Navigator.of(sheetContext).pop();
+                  final path = selectedPaths.first;
+                  final isFolder = await FileSystemEntity.isDirectory(path);
+                  if (!context.mounted) return;
+                  await pinShortcutToHomeScreen(
+                    context,
+                    ref,
+                    path: path,
+                    isFolder: isFolder,
+                    label: path.split('/').last,
+                  );
+                },
+              ),
             ListTile(
               leading: const Icon(Icons.info_outline_rounded),
               title: const Text('Properties'),
