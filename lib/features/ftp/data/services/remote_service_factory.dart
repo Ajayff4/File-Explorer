@@ -1,5 +1,6 @@
 import 'package:file_explorer/features/ftp/data/services/ftp_remote_service.dart';
 import 'package:file_explorer/features/ftp/data/services/sftp_remote_service.dart';
+import 'package:file_explorer/features/ftp/data/services/webdav_remote_service.dart';
 import 'package:file_explorer/features/ftp/domain/entities/ftp_connection.dart';
 import 'package:file_explorer/features/ftp/domain/repositories/remote_file_service.dart';
 
@@ -7,6 +8,7 @@ import 'package:file_explorer/features/ftp/domain/repositories/remote_file_servi
 RemoteFileService createRemoteFileService(FtpProtocol protocol) {
   return switch (protocol) {
     FtpProtocol.sftp => SftpRemoteService(),
+    FtpProtocol.webdav || FtpProtocol.webdavs => WebDavRemoteService(),
     FtpProtocol.ftp || FtpProtocol.ftps => FtpRemoteService(),
   };
 }

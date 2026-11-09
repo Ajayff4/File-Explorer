@@ -357,7 +357,8 @@ class _FtpConnectionFormState extends State<FtpConnectionForm> {
                   border: OutlineInputBorder(),
                 ),
               ),
-              if (_protocol != FtpProtocol.sftp) ...[
+              if (_protocol == FtpProtocol.ftp ||
+                  _protocol == FtpProtocol.ftps) ...[
                 const SizedBox(height: 4),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
@@ -367,7 +368,8 @@ class _FtpConnectionFormState extends State<FtpConnectionForm> {
                       setState(() => _passiveMode = value),
                 ),
               ],
-              if (_protocol == FtpProtocol.ftps)
+              if (_protocol == FtpProtocol.ftps ||
+                  _protocol == FtpProtocol.webdavs)
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Accept invalid certificate'),

@@ -268,9 +268,9 @@ final _coreFeatures = [
   ),
   _CoreFeature(
     icon: Icons.dns_rounded,
-    title: 'FTP connections',
+    title: 'Remote connections',
     description:
-        'Save FTP, SFTP, and FTPS servers with host, port, login, and options, then manage them from one list.',
+        'Save FTP, SFTP, FTPS, and WebDAV servers with host, port, login, and options, then manage them from one list.',
     color: Color(0xFF1565C0),
     route: AppRoutes.ftp,
   ),

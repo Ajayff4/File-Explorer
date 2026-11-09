@@ -5,13 +5,17 @@ library;
 enum FtpProtocol {
   ftp,
   sftp,
-  ftps;
+  ftps,
+  webdav,
+  webdavs;
 
   /// Default network port for the protocol.
   int get defaultPort => switch (this) {
         FtpProtocol.ftp => 21,
         FtpProtocol.sftp => 22,
         FtpProtocol.ftps => 990,
+        FtpProtocol.webdav => 80,
+        FtpProtocol.webdavs => 443,
       };
 
   /// Uppercase label for UI.
@@ -19,6 +23,8 @@ enum FtpProtocol {
         FtpProtocol.ftp => 'FTP',
         FtpProtocol.sftp => 'SFTP',
         FtpProtocol.ftps => 'FTPS',
+        FtpProtocol.webdav => 'WebDAV',
+        FtpProtocol.webdavs => 'WebDAVS',
       };
 
   static FtpProtocol fromName(String? name) {

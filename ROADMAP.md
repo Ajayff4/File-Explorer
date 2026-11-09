@@ -426,10 +426,10 @@ OAuth/verification planning, so it stays `[FUTURE]`.
 
 | Status | Feature | Notes |
 | --- | --- | --- |
-| ☐ | SMB/CIFS client | Windows shares and NAS; the biggest practical ES gap. |
-| ☐ | WebDAV client | Nextcloud, ownCloud, and WebDAV servers. |
+| ☐ | SMB/CIFS client | Windows shares and NAS; the biggest practical ES gap. No Dart SMB library is available offline, so this stays blocked on a native/libsmbclient or pure-Dart implementation. |
+| ✅ | WebDAV client | Nextcloud, ownCloud, and WebDAV servers via PROPFIND over HTTP/HTTPS, with Basic auth and invalid-cert opt-in (2026-11-09; service tests pass, on-device untested). |
 | ☐ | FTP/HTTP server + Remote Manager | Browse the phone from a PC browser; needs a foreground service and notification. |
-| ☐ | Bluetooth sharing | Feasible but slow; Android 12+ runtime permissions. |
+| ✅ | Bluetooth sharing | Available through the system share sheet for files and folders (2026-11-09). |
 | ☐ | Wi-Fi Direct / LocalOnlyHotspot for Share | Removes the same-Wi-Fi limitation; user consent required per session. |
 | ☐ | `[FUTURE]` Google Drive | Prefer SAF (`drive.file`) to avoid restricted-scope OAuth; full Drive scope needs verification. |
 | ☐ | `[FUTURE]` Dropbox / OneDrive / Box / S3 | Vendor SDKs; OAuth, Data Safety, and account-deletion requirements. |

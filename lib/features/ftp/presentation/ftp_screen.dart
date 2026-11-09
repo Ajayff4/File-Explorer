@@ -29,7 +29,7 @@ class FtpScreen extends ConsumerWidget {
           },
           icon: const Icon(Icons.arrow_back_rounded),
         ),
-        title: const Text('FTP connections'),
+        title: const Text('Remote connections'),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _showForm(context, ref, null),
@@ -152,6 +152,7 @@ class _ConnectionTile extends ConsumerWidget {
       FtpProtocol.ftp => Icons.dns_rounded,
       FtpProtocol.sftp => Icons.lock_rounded,
       FtpProtocol.ftps => Icons.verified_user_outlined,
+      FtpProtocol.webdav || FtpProtocol.webdavs => Icons.cloud_rounded,
     };
   }
 
@@ -232,7 +233,7 @@ class _EmptyView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'No FTP connections yet',
+              'No remote connections yet',
               style: Theme.of(context).textTheme.titleMedium,
             ),
             const SizedBox(height: 8),

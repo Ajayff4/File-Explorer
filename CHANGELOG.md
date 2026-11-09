@@ -2,6 +2,22 @@
 
 Progress log for the Flutter application.
 
+## 2026-11-09 (WebDAV)
+
+### Added
+- **WebDAV client** (`features/ftp/`): WebDAV and WebDAVS are now first-class
+  remote connection types. `WebDavRemoteService` performs authenticated
+  PROPFIND listing (directories, sizes, modified times) and GET downloads over
+  HTTP/HTTPS, with optional acceptance of invalid certificates for self-signed
+  servers. Existing FTP screens, browser, store, and connection form handle the
+  new protocols without a separate feature, and passive mode is hidden for
+  WebDAV. A loopback PROPFIND/GET test covers listing and download.
+
+### Changed
+- `pubspec.yaml`: added `http: ^1.6.0`.
+- Remote connections screen and core-features copy now describe FTP, SFTP,
+  FTPS, and WebDAV together.
+
 ## 2026-11-09
 
 ### Added
